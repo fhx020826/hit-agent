@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..models.schemas import AnalyticsReport
-from ..services.mock_data import mock_analytics
+from ..services.llm_service import analytics_from_qa_logs
 from ..database import get_db, DBQALog
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
@@ -21,7 +21,8 @@ def get_analytics(lp_id: str, db: Session = Depends(get_db)):
     qa_rows = db.query(DBQALog).filter(DBQALog.lesson_pack_id == lp_id).all()
     total = len(qa_rows)
 
-    # MVP: 使用 mock 分析 + 真实问答计数
-    report = mock_analytics(lp_id)
-    report.total_questions = total if total > 0 else report.total_questions
-    return report
+    if total == 0:
+        from ..services.mock_data import mock_analytics
+        return mock_analytics(lp_id)
+    qa_dicts = [{"question": r.question, "answer": r.answer, "in_scope": r.in_scope} for r in qa_rows]
+    return analytics_from_qa_logs(lp_id, qa_dicts)

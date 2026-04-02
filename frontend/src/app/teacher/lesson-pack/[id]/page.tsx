@@ -9,13 +9,24 @@ export default function LessonPackDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [pack, setPack] = useState<LessonPack | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getLessonPack(id).then(setPack).catch(() => {}).finally(() => setLoading(false));
+    api.getLessonPack(id)
+      .then((p) => { setPack(p); setError(null); })
+      .catch((e) => setError("加载课时包失败: " + (e instanceof Error ? e.message : "网络错误")))
+      .finally(() => setLoading(false));
   }, [id]);
 
   if (loading) return <div className="p-8 text-center text-gray-500">加载中...</div>;
-  if (!pack) return <div className="p-8 text-center text-red-500">课时包不存在</div>;
+  if (error) return (
+    <div className="p-8 text-center">
+      <p className="text-red-500 mb-3">{error}</p>
+      <button onClick={() => { setLoading(true); api.getLessonPack(id).then(setPack).catch(() => setError("加载失败")).finally(() => setLoading(false)); }}
+        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg">重试</button>
+    </div>
+  );
+  if (!pack) return <div className="p-8 text-center text-gray-400">课时包不存在</div>;
 
   const p = pack.payload as Record<string, unknown>;
   const ft = p.frontier_topic as Record<string, string>;

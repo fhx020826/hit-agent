@@ -9,13 +9,14 @@ export default function TeacherDashboard() {
   const [packs, setPacks] = useState<LessonPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadCourseId, setUploadCourseId] = useState<string>("");
 
   const loadData = () => {
     Promise.all([api.listCourses(), api.listLessonPacks()])
-      .then(([c, p]) => { setCourses(c); setPacks(p); })
-      .catch(() => {})
+      .then(([c, p]) => { setCourses(c); setPacks(p); setError(null); })
+      .catch((e) => setError("加载失败: " + (e instanceof Error ? e.message : "网络错误")))
       .finally(() => setLoading(false));
   };
 
@@ -52,6 +53,12 @@ export default function TeacherDashboard() {
         </div>
       </header>
       <main className="max-w-5xl mx-auto p-6 space-y-8">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center justify-between">
+            <p className="text-sm text-red-700">{error}</p>
+            <button onClick={loadData} className="text-sm text-red-600 underline ml-4">重试</button>
+          </div>
+        )}
         <input type="file" ref={fileInputRef} className="hidden" onChange={onFileChange}
           accept=".txt,.md,.pdf,.doc,.docx" />
 

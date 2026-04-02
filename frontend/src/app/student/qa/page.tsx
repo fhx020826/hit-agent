@@ -24,9 +24,13 @@ function StudentQAContent() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<{ q: string; a: QAResponse }[]>([]);
 
+  const [packError, setPackError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!lpId) return;
-    api.getStudentLessonPack(lpId).then(setPackInfo).catch(() => {});
+    api.getStudentLessonPack(lpId)
+      .then((p) => { setPackInfo(p); setPackError(null); })
+      .catch(() => setPackError("加载课时包信息失败"));
   }, [lpId]);
 
   const handleAsk = async () => {
@@ -58,6 +62,11 @@ function StudentQAContent() {
           <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
             <h2 className="font-semibold text-gray-900">{(packInfo.frontier_topic?.name as string) || "课时包"}</h2>
             <p className="text-sm text-gray-600 mt-1">{packInfo.main_thread}</p>
+          </div>
+        )}
+        {packError && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 mb-4">
+            <p className="text-sm text-orange-700">{packError}</p>
           </div>
         )}
 

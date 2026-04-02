@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from ..models.schemas import LessonPack, LessonPackUpdate
 from ..database import get_db, DBLessonPack, DBCourse
-from ..services.mock_data import mock_generate_lesson_pack
+from ..services.llm_service import generate_lesson_pack as llm_generate_lp
 
 router = APIRouter(prefix="/api/lesson-packs", tags=["lesson-packs"])
 
@@ -36,7 +36,7 @@ def generate_lesson_pack(course_id: str, db: Session = Depends(get_db)):
         objectives=row.objectives, duration_minutes=row.duration_minutes,
         frontier_direction=row.frontier_direction, created_at=row.created_at,
     )
-    lp = mock_generate_lesson_pack(course)
+    lp = llm_generate_lp(course)
     db_lp = DBLessonPack(
         id=lp.id, course_id=lp.course_id, version=lp.version,
         status=lp.status, payload=json.dumps(lp.payload, ensure_ascii=False),

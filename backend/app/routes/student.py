@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from ..models.schemas import StudentQuestion, QAResponse
-from ..services.mock_data import mock_student_qa
+from ..services.llm_service import student_qa as llm_student_qa
 from ..database import get_db, DBLessonPack, DBQALog
 
 router = APIRouter(prefix="/api/student", tags=["student"])
@@ -62,7 +62,7 @@ def student_qa(lp_id: str, body: StudentQuestion, db: Session = Depends(get_db))
         id=lp_row.id, course_id=lp_row.course_id, version=lp_row.version,
         status=lp_row.status, payload=payload, created_at=lp_row.created_at,
     )
-    resp = mock_student_qa(body.question, lp)
+    resp = llm_student_qa(body.question, lp)
 
     from datetime import datetime
     db.add(DBQALog(

@@ -1,10 +1,17 @@
 """FastAPI 应用入口。"""
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import init_db
 from .routes import courses, lesson_packs, student, analytics, materials
+
+# 设置代理（如果本地有代理服务）
+if not os.getenv("https_proxy") and not os.getenv("HTTPS_PROXY"):
+    os.environ["http_proxy"] = "http://127.0.0.1:7897"
+    os.environ["https_proxy"] = "http://127.0.0.1:7897"
 
 app = FastAPI(
     title="前沿融课教师助手",

@@ -14,10 +14,16 @@ function ReviewContent() {
   const lpId = searchParams.get("lp_id") || "demo-lp-001";
   const [report, setReport] = useState<AnalyticsReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getAnalytics(lpId).then(setReport).catch(() => {}).finally(() => setLoading(false));
+    api.getAnalytics(lpId)
+      .then((r) => { setReport(r); setError(null); })
+      .catch((e) => setError("加载复盘数据失败: " + (e instanceof Error ? e.message : "网络错误")))
+      .finally(() => setLoading(false));
   }, [lpId]);
+
+  const retry = () => { setLoading(true); api.getAnalytics(lpId).then(setReport).catch(() => setError("加载失败")).finally(() => setLoading(false)); };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -29,7 +35,13 @@ function ReviewContent() {
       </header>
       <main className="max-w-5xl mx-auto p-6">
         {loading && <p className="text-center text-gray-500 py-12">加载中...</p>}
-        {!loading && !report && <p className="text-center text-gray-400 py-12">暂无复盘数据</p>}
+        {error && (
+          <div className="text-center py-12">
+            <p className="text-red-500 mb-3">{error}</p>
+            <button onClick={retry} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">重试</button>
+          </div>
+        )}
+        {!loading && !error && !report && <p className="text-center text-gray-400 py-12">暂无复盘数据</p>}
         {report && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
