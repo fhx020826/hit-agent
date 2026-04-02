@@ -1,6 +1,7 @@
 /** 后端 API 客户端 */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+export { API_BASE };
 
 export interface Course {
   id: string;
@@ -76,4 +77,17 @@ export const api = {
 
   // 分析
   getAnalytics: (lpId: string) => request<AnalyticsReport>(`/api/analytics/${lpId}`),
+
+  // 资料
+  uploadMaterial: async (courseId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}/api/materials/upload/${courseId}`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+    return res.json();
+  },
+  listMaterials: (courseId: string) => request<{ id: number; filename: string; file_type: string; created_at: string }[]>(`/api/materials/${courseId}`),
 };
