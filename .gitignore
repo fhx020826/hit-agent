@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Build output
+frontend/.next/
+frontend/out/
+frontend/build/
+backend/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data & uploads
+backend/data/uploads/
+backend/data/*.db
+backend/data/*.sqlite
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache
+.cache/
+*.egg-info/
+
+# Large files
+*.zip
+*.docx
+*.xlsx
+*.pptx
+*.pdf
+
+# Claude Code docs (reference only)
+claude_code_docs/
