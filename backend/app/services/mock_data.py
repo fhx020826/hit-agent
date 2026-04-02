@@ -1,7 +1,10 @@
 """Mock 数据服务：为 MVP 提供固定的演示数据与 mock AI 返回值。"""
 
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
+from typing import Dict, List
 
 from ..models.schemas import (
     Course, LessonPack, QAResponse, AnalyticsReport,
@@ -101,7 +104,7 @@ DEMO_LESSON_PACK = LessonPack(
 
 # ── Mock 问答 ─────────────────────────────────────────────
 
-_DEMO_QA_LOG: list[dict] = [
+_DEMO_QA_LOG: List[Dict] = [
     {"question": "QUIC 为什么选择基于 UDP 而不是直接改进 TCP？", "answer": "TCP 存在中间设备僵化问题，NAT 和防火墙会丢弃未知 TCP 选项，而 UDP 穿透性更好。此外，TCP 的拥塞控制在内核中实现，升级困难，QUIC 在用户态实现可以快速迭代。", "in_scope": True},
     {"question": "QUIC 的 0-RTT 是怎么实现的？", "answer": "0-RTT 依赖之前连接中缓存的服务器配置信息和预共享密钥。客户端在首次连接后会缓存服务器的传输参数，后续连接时直接使用缓存信息发送加密数据，无需等待握手完成。但 0-RTT 存在重放攻击风险，仅适用于幂等请求。", "in_scope": True},
     {"question": "HTTP/3 一定比 HTTP/2 快吗？", "answer": "不一定。在低延迟、稳定的网络环境下，HTTP/2 和 HTTP/3 性能差异不大。HTTP/3 的优势主要体现在高延迟、丢包率较高的网络环境中，尤其是移动网络场景。此外，HTTP/3 的 UDP 流量在某些网络中可能被限速或阻止。", "in_scope": True},
@@ -119,7 +122,7 @@ def get_demo_lesson_pack() -> LessonPack:
     return DEMO_LESSON_PACK
 
 
-def get_demo_qa_log() -> list[dict]:
+def get_demo_qa_log() -> List[Dict]:
     return _DEMO_QA_LOG
 
 

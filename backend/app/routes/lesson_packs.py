@@ -1,5 +1,9 @@
 """课时包相关路由：生成、查看、编辑、发布课时包。"""
 
+from __future__ import annotations
+
+from typing import Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException
 
 from ..models.schemas import LessonPack, LessonPackUpdate
@@ -12,7 +16,7 @@ from ..routes.courses import _courses
 router = APIRouter(prefix="/api/lesson-packs", tags=["lesson-packs"])
 
 # 内存存储
-_lesson_packs: dict[str, LessonPack] = {DEMO_LESSON_PACK_ID: get_demo_lesson_pack()}
+_lesson_packs: Dict[str, LessonPack] = {DEMO_LESSON_PACK_ID: get_demo_lesson_pack()}
 
 
 @router.post("/generate/{course_id}", response_model=LessonPack)
@@ -26,8 +30,8 @@ def generate_lesson_pack(course_id: str):
     return lp
 
 
-@router.get("", response_model=list[LessonPack])
-def list_lesson_packs(course_id: str | None = None):
+@router.get("", response_model=List[LessonPack])
+def list_lesson_packs(course_id: Optional[str] = None):
     """获取课时包列表，可按课程过滤。"""
     packs = list(_lesson_packs.values())
     if course_id:

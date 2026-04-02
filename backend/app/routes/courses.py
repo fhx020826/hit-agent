@@ -1,5 +1,9 @@
 """课程相关路由：创建课程、获取课程列表、获取单个课程。"""
 
+from __future__ import annotations
+
+from typing import Dict, List
+
 from fastapi import APIRouter, HTTPException
 
 from ..models.schemas import Course, CourseCreate
@@ -8,7 +12,7 @@ from ..services.mock_data import get_demo_course, DEMO_COURSE_ID
 router = APIRouter(prefix="/api/courses", tags=["courses"])
 
 # 内存存储，后续替换为数据库
-_courses: dict[str, Course] = {DEMO_COURSE_ID: get_demo_course()}
+_courses: Dict[str, Course] = {DEMO_COURSE_ID: get_demo_course()}
 
 
 @router.post("", response_model=Course)
@@ -20,7 +24,7 @@ def create_course(body: CourseCreate):
     return course
 
 
-@router.get("", response_model=list[Course])
+@router.get("", response_model=List[Course])
 def list_courses():
     """获取所有课程。"""
     return list(_courses.values())

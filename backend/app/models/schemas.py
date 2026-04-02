@@ -1,7 +1,9 @@
 """数据模型定义：所有核心实体的 Pydantic schema。"""
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -47,7 +49,7 @@ class StudentQuestion(BaseModel):
 
 class QAResponse(BaseModel):
     answer: str
-    evidence: list[str] = Field(default_factory=list, description="回答依据片段")
+    evidence: List[str] = Field(default_factory=list, description="回答依据片段")
     in_scope: bool = Field(True, description="是否在课程边界内")
 
 
@@ -56,7 +58,7 @@ class QAResponse(BaseModel):
 class AnalyticsReport(BaseModel):
     lesson_pack_id: str
     total_questions: int = 0
-    high_freq_topics: list[str] = Field(default_factory=list)
-    confused_concepts: list[str] = Field(default_factory=list)
-    knowledge_gaps: list[str] = Field(default_factory=list)
-    teaching_suggestions: list[str] = Field(default_factory=list)
+    high_freq_topics: List[str] = Field(default_factory=list)
+    confused_concepts: List[str] = Field(default_factory=list)
+    knowledge_gaps: List[str] = Field(default_factory=list)
+    teaching_suggestions: List[str] = Field(default_factory=list)

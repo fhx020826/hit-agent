@@ -1,5 +1,9 @@
 """学生端路由：问答与课时包查看。"""
 
+from __future__ import annotations
+
+from typing import Dict, List
+
 from fastapi import APIRouter, HTTPException
 
 from ..models.schemas import StudentQuestion, QAResponse
@@ -9,10 +13,10 @@ from ..routes.lesson_packs import _lesson_packs
 router = APIRouter(prefix="/api/student", tags=["student"])
 
 # 内存存储问答日志
-_qa_log: list[dict] = []
+_qa_log: List[Dict] = []
 
 
-@router.get("/lesson-packs", response_model=list[dict])
+@router.get("/lesson-packs", response_model=List[Dict])
 def list_published_packs():
     """学生端：获取已发布的课时包列表。"""
     published = [lp for lp in _lesson_packs.values() if lp.status == "published"]
