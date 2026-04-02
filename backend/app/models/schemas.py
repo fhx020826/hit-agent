@@ -43,8 +43,7 @@ class LessonPackUpdate(BaseModel):
 # ── 学生问答 ──────────────────────────────────────────────
 
 class StudentQuestion(BaseModel):
-    lesson_pack_id: str
-    question: str
+    question: str = Field(..., description="学生提问内容")
 
 
 class QAResponse(BaseModel):
