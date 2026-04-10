@@ -100,3 +100,21 @@
 - 当前剩余 warning：
   - `frontend/src/app/teacher/materials/page.tsx` 中 `useEffect` 依赖项 warning
   - `frontend/src/components/avatar-badge.tsx` 中 `<img>` 优化 warning
+
+### 2026-04-10 后端最小测试闭环
+- 新增测试文件：
+  - `backend/tests/conftest.py`
+  - `backend/tests/test_smoke_api.py`
+- 新增测试依赖文件：
+  - `backend/requirements-dev.txt`
+- 当前覆盖的最小链路：
+  - 健康检查
+  - 学生注册 + 读取个人信息
+  - 教师登录 + 创建课程 + 列课程
+  - 学生登录 + 创建问答会话 + 查询会话详情
+- 验证命令：
+  - `cd backend && pytest -q`
+- 当前结果：
+  - `4 passed, 2 warnings`
+- 当前 warning 来源：
+  - FastAPI `@app.on_event("startup")` 的弃用提示

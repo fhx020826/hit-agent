@@ -50,6 +50,12 @@
   - `bash scripts/dev-status.sh`
 - `dev-up.sh` 会打印你本地 Windows 需要执行的 SSH 端口转发命令
 
+### 后端测试
+- 安装测试依赖：
+  - `pip install -r backend/requirements-dev.txt`
+- 运行最小后端冒烟测试：
+  - `cd backend && pytest -q`
+
 ## 已确认的环境坑位
 - `~/.bashrc` 中现有 conda 初始化指向旧路径 `/home/dzmat/miniconda3/bin/conda`，直接 `conda activate` 会失败。
 - 因 `~/.bashrc` 开头有“非交互 shell 直接 return”的逻辑，普通 `bash -lc` 默认拿不到 `clash` / `proxy` 函数。
