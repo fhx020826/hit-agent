@@ -25,8 +25,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { language, setLanguage } = useLanguage();
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [quickSkinOpen, setQuickSkinOpen] = useState(false);
+  const [menuOpenPath, setMenuOpenPath] = useState<string | null>(null);
+  const [quickSkinOpenPath, setQuickSkinOpenPath] = useState<string | null>(null);
   const [teacherUnread, setTeacherUnread] = useState(0);
 
   const teacherNav = useMemo(
@@ -73,11 +73,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [adminNav, studentNav, teacherNav, user]);
 
   useEffect(() => {
-    setMenuOpen(false);
-    setQuickSkinOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     if (!user || user.role !== "teacher") return;
     let alive = true;
     api.listTeacherNotifications()
@@ -99,11 +94,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setAuthOpen(true);
   };
 
+  const menuOpen = menuOpenPath === pathname;
+  const quickSkinOpen = quickSkinOpenPath === pathname;
+
   const applyPreset = async (preset: { mode: string; accent: string; font: string; skin: string; language: string }) => {
     applyAppearance(preset);
     persistAppearance(preset);
     setLanguage(preset.language === "en-US" ? "en-US" : "zh-CN");
-    setQuickSkinOpen(false);
+    setQuickSkinOpenPath(null);
     if (isAuthenticated) {
       try {
         await api.updateMyAppearance(preset);
@@ -133,7 +131,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     await logout();
-    setMenuOpen(false);
+    setMenuOpenPath(null);
     router.push("/");
   };
 
@@ -165,7 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ) : null}
 
             <div className="ml-auto flex items-center gap-2">
-              <button onClick={() => setQuickSkinOpen((prev) => !prev)} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">
+              <button onClick={() => setQuickSkinOpenPath((prev) => (prev === pathname ? null : pathname))} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">
                 {t(language, "appearance")}
               </button>
               {!loading && !isAuthenticated ? (
@@ -179,7 +177,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </>
               ) : null}
               {!loading && isAuthenticated && user ? (
-                <button onClick={() => setMenuOpen((prev) => !prev)} className="flex items-center gap-3 rounded-full border border-white/70 bg-white/80 px-2 py-2 shadow-sm transition hover:bg-white">
+                <button onClick={() => setMenuOpenPath((prev) => (prev === pathname ? null : pathname))} className="flex items-center gap-3 rounded-full border border-white/70 bg-white/80 px-2 py-2 shadow-sm transition hover:bg-white">
                   <AvatarBadge name={user.display_name || user.account} avatarPath={user.profile.avatar_path} size="sm" />
                   <div className="hidden text-left md:block">
                     <p className="text-sm font-semibold text-slate-900">{user.display_name || user.account}</p>
@@ -217,7 +215,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {pick(language, "设置入口统一收纳在右上角，语言与外观会按账号分别保存。", "Theme and language are grouped in the top-right menu and saved per account.")}
               </p>
             </div>
-            <button onClick={() => setQuickSkinOpen(false)} className="ui-pill rounded-full px-3 py-1.5 text-xs font-semibold">
+            <button onClick={() => setQuickSkinOpenPath(null)} className="ui-pill rounded-full px-3 py-1.5 text-xs font-semibold">
               {t(language, "close")}
             </button>
           </div>
@@ -255,7 +253,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <p className="mt-1 text-xs leading-6 text-slate-500">{roleHint}</p>
               </div>
             </div>
-            <button onClick={() => setMenuOpen(false)} className="ui-pill rounded-full px-3 py-1.5 text-xs font-semibold">
+            <button onClick={() => setMenuOpenPath(null)} className="ui-pill rounded-full px-3 py-1.5 text-xs font-semibold">
               {t(language, "close")}
             </button>
           </div>

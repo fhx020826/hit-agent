@@ -87,3 +87,16 @@
   - `bash scripts/dev-status.sh` 可看到 `3000/8000` 均在监听
   - `curl http://127.0.0.1:8000/api/health` 正常
   - `curl -I http://127.0.0.1:3000` 返回 `HTTP/1.1 200 OK`
+
+### 2026-04-10 前端实现问题修复
+- 已修复前端原有的 `lint error`，主要包括：
+  - `AdminUsersPage` 中 effect 内直接触发带状态更新的加载函数
+  - `AppShell` 中依赖路由变化时直接在 effect 中同步 `setState`
+  - `AvatarBadge` 中依赖 `useEffect` 重置图片失败状态
+  - `LanguageProvider` 中依赖 `useEffect` 从本地缓存同步语言状态
+- 修复后验证结果：
+  - `npm run lint`：0 error，3 warning
+  - `npm run build`：成功
+- 当前剩余 warning：
+  - `frontend/src/app/teacher/materials/page.tsx` 中 `useEffect` 依赖项 warning
+  - `frontend/src/components/avatar-badge.tsx` 中 `<img>` 优化 warning

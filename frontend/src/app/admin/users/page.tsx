@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { api, type AdminUserItem, type UserProfile } from "@/lib/api";
@@ -37,22 +37,33 @@ export default function AdminUsersPage() {
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({ role: "student" as "admin" | "teacher" | "student", account: "", password: "", display_name: "", status: "active", profile: { ...EMPTY_PROFILE } });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const result = await api.listAdminUsers({ role: role || undefined, keyword: keyword || undefined });
       setItems(result);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "加载用户失败");
     }
-  };
+  }, [keyword, role]);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "admin")) router.push("/");
   }, [loading, user, router]);
 
   useEffect(() => {
-    if (user?.role === "admin") void load();
-  }, [user, role]);
+    let alive = true;
+    if (user?.role !== "admin") return;
+    api.listAdminUsers({ role: role || undefined, keyword: keyword || undefined })
+      .then((result) => {
+        if (alive) setItems(result);
+      })
+      .catch((error) => {
+        if (alive) setMessage(error instanceof Error ? error.message : "加载用户失败");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [keyword, role, user?.role]);
 
   if (!user || user.role !== "admin") {
     return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载用户管理...</main>;

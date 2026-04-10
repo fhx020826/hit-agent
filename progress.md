@@ -31,6 +31,10 @@
   - `scripts/dev-down.sh`
   - `scripts/dev-status.sh`
 - 一键启动脚本实测通过
+- 已完成第一优先级中的第 1 项：
+  - 修复前端当前明确的 Hook 实现错误
+  - `lint` 从 error 降为仅剩 warning
+  - `build` 保持通过
 
 ### 关键命令
 - 代理验证：

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { API_BASE } from "@/lib/api";
 
@@ -30,13 +30,9 @@ export function AvatarBadge({
   avatarPath?: string;
   size?: "sm" | "md" | "lg";
 }) {
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedAvatarPath, setFailedAvatarPath] = useState<string | null>(null);
   const sizeClass = size === "sm" ? "h-9 w-9 text-xs" : size === "lg" ? "h-24 w-24 text-2xl" : "h-11 w-11 text-sm";
-  const isRemote = Boolean(avatarPath && avatarPath.startsWith("/api/") && !imageFailed);
-
-  useEffect(() => {
-    setImageFailed(false);
-  }, [avatarPath]);
+  const isRemote = Boolean(avatarPath && avatarPath.startsWith("/api/") && failedAvatarPath !== avatarPath);
 
   if (isRemote) {
     return (
@@ -44,7 +40,7 @@ export function AvatarBadge({
         src={`${API_BASE}${avatarPath}`}
         alt={name || "avatar"}
         className={`${sizeClass} rounded-full border border-white/70 object-cover shadow-sm`}
-        onError={() => setImageFailed(true)}
+        onError={() => setFailedAvatarPath(avatarPath ?? null)}
       />
     );
   }

@@ -18,21 +18,21 @@ function normalizeLanguage(value?: string): LanguageCode {
   return value === "en-US" ? "en-US" : "zh-CN";
 }
 
+function readCachedLanguage(): LanguageCode {
+  if (typeof window === "undefined") return "zh-CN";
+  const raw = window.localStorage.getItem(APPEARANCE_CACHE_KEY);
+  if (!raw) return "zh-CN";
+  try {
+    const parsed = JSON.parse(raw) as { language?: string };
+    return normalizeLanguage(parsed.language);
+  } catch {
+    return "zh-CN";
+  }
+}
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuth();
-  const [language, setLanguageState] = useState<LanguageCode>("zh-CN");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem(APPEARANCE_CACHE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as { language?: string; mode?: string; accent?: string; font?: string; skin?: string };
-      setLanguageState(normalizeLanguage(parsed.language));
-    } catch {
-      // ignore malformed cache
-    }
-  }, []);
+  const [language, setLanguageState] = useState<LanguageCode>(readCachedLanguage);
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;
