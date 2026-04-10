@@ -16,6 +16,11 @@
   - `llm_service` 可正常导入
   - `rag_service.split_chunks` 可正常运行
   - 当前模型列表数量为 `0`，说明运行环境尚未配置模型密钥
+- 完成 git remote 切换：
+  - `origin` -> `https://github.com/fhx020826/hit-agent.git`
+  - `upstream` -> `https://github.com/wishmyself/hit-agent.git`
+- 已成功推送当前 `main` 到 `origin/main`
+- 新增文档 `docs/admin/hpc-collaboration-and-access.md`
 
 ### 关键命令
 - 代理验证：

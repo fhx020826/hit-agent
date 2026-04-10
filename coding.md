@@ -37,6 +37,15 @@
 ## 6. Git 约定
 - 有实际修改后及时提交，提交信息要能说明本次变更主题。
 - 重要代码和文档更新尽量同步到远程仓库。
+- 当前 remote 约定：
+  - `origin` = `fhx020826/hit-agent`
+  - `upstream` = `wishmyself/hit-agent`
+- 每次开始开发前先执行远程同步检查，避免在过期代码上继续修改：
+  - `bash -ic 'clash && proxy && cd /home/hxfeng/fhx-hit-agent && git fetch --all --prune'`
+  - `git pull --rebase origin main`
+- 如需吸收原始团队仓库更新，再执行：
+  - `git fetch upstream`
+  - `git rebase upstream/main`
 - 不上传以下内容：
   - 大型测试输出
   - 训练/推理日志

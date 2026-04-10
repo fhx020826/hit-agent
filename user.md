@@ -38,6 +38,18 @@
 - `~/.bashrc` 中现有 conda 初始化指向旧路径 `/home/dzmat/miniconda3/bin/conda`，直接 `conda activate` 会失败。
 - 因 `~/.bashrc` 开头有“非交互 shell 直接 return”的逻辑，普通 `bash -lc` 默认拿不到 `clash` / `proxy` 函数。
 
+## Git 协作约定
+- 当前 remote：
+  - `origin`：`fhx020826/hit-agent`
+  - `upstream`：`wishmyself/hit-agent`
+- 每次开发前默认先：
+  - `bash -ic 'clash && proxy && cd /home/hxfeng/fhx-hit-agent && git fetch --all --prune'`
+  - `git pull --rebase origin main`
+- 如需跟进原团队仓库更新：
+  - `git fetch upstream`
+  - `git rebase upstream/main`
+- 当前本地修改优先推送到 `origin/main`
+
 ## HPC 快速记录
 
 ### 支持联系人
@@ -63,3 +75,4 @@
 - 跳板机只负责登录与提交作业，不适合跑高负载任务
 - 需要多终端时，优先在计算节点里开 `tmux`
 - 外网问题优先检查本地代理反向映射或直接使用 Clash 代理
+- 本地访问服务器前后端时，优先使用 SSH 端口转发，不依赖服务器图形界面

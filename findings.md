@@ -20,6 +20,9 @@
 ### 仓库结构
 - 仓库已克隆到：`/home/hxfeng/fhx-hit-agent`
 - 当前分支：`main`
+- 当前 remote：
+  - `origin` = `https://github.com/fhx020826/hit-agent.git`
+  - `upstream` = `https://github.com/wishmyself/hit-agent.git`
 - 最近提交：
   - `d266c78 完善页面工作流`
   - `1c4de4f 增加RAG检索功能，测试完善教师端和学生端各界面功能`
@@ -64,3 +67,4 @@
 - 当前仓库未发现自动化测试目录、`pytest` 配置或前端测试配置。
 - 后端使用 SQLite，本地开发方便，但在并发、迁移、可维护性方面存在上限。
 - 数据模型集中定义在 `backend/app/database.py`，规模继续扩大后可维护性会下降。
+- `origin` 原仓库默认分支此前为 `master`，当前已额外推送出 `main` 分支；团队协作时需要统一使用 `main`。

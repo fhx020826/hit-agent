@@ -90,3 +90,11 @@
   - `from app.services.llm_service import list_available_models`
   - `from app.services.rag_service import split_chunks`
 - 当前 `list_available_models()` 返回 `0`，说明本地开发环境尚未配置模型相关 API Key，这属于配置状态，不是代码导入错误。
+
+## 当前协作方式
+- 已保留双 remote：
+  - `origin` 指向个人协作仓库 `fhx020826/hit-agent`
+  - `upstream` 指向原始仓库 `wishmyself/hit-agent`
+- 当前仓库适合采用“个人协作仓库提交 + 上游仓库持续同步”的模式。
+- 相关流程文档见：
+  - `docs/admin/hpc-collaboration-and-access.md`
