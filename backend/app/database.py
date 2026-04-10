@@ -461,6 +461,30 @@ class DBMaterial(Base):
     created_at = Column(String)
 
 
+class DBKnowledgeChunk(Base):
+    __tablename__ = "knowledge_chunks"
+    __table_args__ = (
+        Index("idx_knowledge_chunks_course_id", "course_id"),
+        Index("idx_knowledge_chunks_source", "source_type", "source_id"),
+        Index("idx_knowledge_chunks_updated_at", "updated_at"),
+    )
+
+    id = Column(String, primary_key=True)
+    course_id = Column(String, nullable=False)
+    source_type = Column(String, nullable=False)  # material | lesson_pack
+    source_id = Column(String, nullable=False)
+    source_name = Column(String, default="")
+    chunk_index = Column(Integer, default=0)
+    chunk_text = Column(Text, default="")
+    keywords_json = Column(Text, default="[]")
+    embedding_json = Column(Text, default="")
+    embedding_model = Column(String, default="")
+    embedding_updated_at = Column(String, default="")
+    meta_json = Column(Text, default="{}")
+    created_at = Column(String)
+    updated_at = Column(String)
+
+
 class DBClassroomShare(Base):
     __tablename__ = "classroom_shares"
 
@@ -610,6 +634,14 @@ def init_db() -> None:
             ("selected_model", "TEXT DEFAULT 'default'"),
             ("used_model_name", "TEXT DEFAULT ''"),
             ("model_status", "TEXT DEFAULT 'ok'"),
+        ],
+    )
+    _ensure_columns(
+        "knowledge_chunks",
+        [
+            ("embedding_json", "TEXT DEFAULT ''"),
+            ("embedding_model", "TEXT DEFAULT ''"),
+            ("embedding_updated_at", "TEXT DEFAULT ''"),
         ],
     )
 
@@ -825,4 +857,3 @@ def get_db():
         yield db
     finally:
         db.close()
-

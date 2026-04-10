@@ -1,41 +1,43 @@
 "use client";
 
+import ReactMarkdown from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+
 function normalizeContent(input: string) {
-  return input
+  const normalized = input
     .replace(/\\n/g, "\n")
     .replace(/\/n/g, "\n")
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  // Handle escaped delimiters produced by some model outputs.
+  // e.g. "\\(" -> "\(" and "\\[" -> "\["
+  return normalized
+    .replace(/\\\\\(/g, "\\(")
+    .replace(/\\\\\)/g, "\\)")
+    .replace(/\\\\\[/g, "\\[")
+    .replace(/\\\\\]/g, "\\]");
 }
 
-function isBullet(line: string) {
-  return /^(\-|\*|•|\d+[.)]|[一二三四五六七八九十]+[、.])\s*/.test(line.trim());
-}
-
-function stripBullet(line: string) {
-  return line.replace(/^(\-|\*|•|\d+[.)]|[一二三四五六七八九十]+[、.])\s*/, "").trim();
+function normalizeMathDelimiters(input: string) {
+  // Convert LaTeX \( ... \) and \[ ... \] into remark-math friendly delimiters.
+  return input
+    .replace(/\\\[((?:.|\n)*?)\\\]/g, (_all, expr: string) => `$$\n${String(expr).trim()}\n$$`)
+    .replace(/\\\((.+?)\\\)/g, (_all, expr: string) => `$${String(expr).trim()}$`);
 }
 
 export function RichAnswer({ content, className = "" }: { content: string; className?: string }) {
-  const normalized = normalizeContent(content);
+  const normalized = normalizeMathDelimiters(normalizeContent(content));
   if (!normalized) return null;
-  const blocks = normalized.split(/\n\s*\n/).map((item) => item.trim()).filter(Boolean);
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      {blocks.map((block, index) => {
-        const lines = block.split("\n").map((item) => item.trim()).filter(Boolean);
-        const bulletLike = lines.length > 1 && lines.every(isBullet);
-        if (bulletLike) {
-          return (
-            <ul key={`${block}-${index}`} className="list-disc space-y-2 pl-5">
-              {lines.map((line) => <li key={line}>{stripBullet(line)}</li>)}
-            </ul>
-          );
-        }
-        return <p key={`${block}-${index}`} className="whitespace-pre-wrap">{block}</p>;
-      })}
+    <div className={`space-y-3 leading-7 ${className}`}>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+        {normalized}
+      </ReactMarkdown>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { AuthProvider } from "@/components/auth-provider";
 import { AppearanceProvider } from "@/components/appearance-provider";
 import { LanguageProvider } from "@/components/language-provider";
+import "katex/dist/katex.min.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

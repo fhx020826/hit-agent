@@ -14,6 +14,11 @@ import httpx
 
 from ..models.schemas import AnalyticsReport, AssignmentReviewRequest, AssignmentReviewResponse, Course, LessonPack, MaterialUpdateResult, ModelOption
 
+try:
+    from pypdf import PdfReader
+except Exception:
+    PdfReader = None
+
 
 def _env(*names: str, default: Optional[str] = None) -> Optional[str]:
     for name in names:
@@ -260,6 +265,64 @@ def _normalize_chat_endpoint(base_url: str) -> str:
     return normalized
 
 
+def _norm_compare_text(text: str) -> str:
+    return re.sub(r"\s+", "", (text or "")).strip().lower()
+
+
+def _dedupe_text_parts(parts: List[str]) -> List[str]:
+    result: List[str] = []
+    seen: List[str] = []
+    for part in parts:
+        clean = (part or "").strip()
+        if not clean:
+            continue
+        norm = _norm_compare_text(clean)
+        if not norm:
+            continue
+        duplicated = False
+        for prev in seen:
+            if norm == prev:
+                duplicated = True
+                break
+            if min(len(norm), len(prev)) >= 120 and (norm in prev or prev in norm):
+                duplicated = True
+                break
+        if duplicated:
+            continue
+        seen.append(norm)
+        result.append(clean)
+    return result
+
+
+def _dedupe_answer_body(text: str) -> str:
+    clean = (text or "").strip()
+    if not clean:
+        return ""
+
+    # Remove repeated paragraphs caused by provider side duplicated chunks.
+    paragraphs = [part.strip() for part in re.split(r"\n\s*\n", clean) if part.strip()]
+    if paragraphs:
+        deduped = _dedupe_text_parts(paragraphs)
+        if deduped:
+            clean = "\n\n".join(deduped)
+
+    # Handle "same full answer + same full answer" concatenation.
+    blocks = [part.strip() for part in clean.split("\n\n") if part.strip()]
+    if len(blocks) >= 2 and len(blocks) % 2 == 0:
+        half = len(blocks) // 2
+        first = "\n\n".join(blocks[:half]).strip()
+        second = "\n\n".join(blocks[half:]).strip()
+        if _norm_compare_text(first) and _norm_compare_text(first) == _norm_compare_text(second):
+            clean = first
+
+    norm = _norm_compare_text(clean)
+    if len(norm) >= 160 and len(norm) % 2 == 0 and norm[: len(norm) // 2] == norm[len(norm) // 2 :]:
+        clean = clean[: max(1, len(clean) // 2)].strip()
+
+    clean = re.sub(r"\n{3,}", "\n\n", clean)
+    return clean.strip()
+
+
 def _call_chat_model(messages: List[Dict[str, Any]], *, model_key: str = "default", max_tokens: int = 2048, temperature: float = 0.4) -> Dict[str, Any]:
     catalog = _model_catalog()
     requested_key = model_key or "default"
@@ -309,7 +372,9 @@ def _call_chat_model(messages: List[Dict[str, Any]], *, model_key: str = "defaul
             for item in content:
                 if isinstance(item, dict):
                     parts.append(item.get("text") or item.get("content") or "")
-            content = "\n".join([part for part in parts if part]).strip()
+                elif isinstance(item, str):
+                    parts.append(item)
+            content = "\n\n".join(_dedupe_text_parts(parts)).strip()
         else:
             content = str(content).strip() or None
         duration_ms = int((time.perf_counter() - start) * 1000)
@@ -377,6 +442,19 @@ def _strip_xml_text(xml_bytes: bytes) -> str:
 def extract_text_from_file(file_path: str, file_type: str) -> tuple[str, str]:
     file_type = (file_type or "").lower()
     try:
+        if file_type == ".pdf":
+            if PdfReader is None:
+                return "当前环境尚未安装 pypdf，PDF 已保存但无法提取文本。", "stored"
+            reader = PdfReader(file_path)
+            pages: List[str] = []
+            for page in reader.pages[:80]:
+                text = (page.extract_text() or "").strip()
+                if text:
+                    pages.append(text)
+            merged = "\n".join(pages).strip()
+            if merged:
+                return merged[:12000], "parsed"
+            return "PDF 已保存，但未提取到可用文本（可能为扫描件或图片型 PDF）。", "stored"
         if file_type in {".txt", ".md", ".csv", ".json"}:
             raw = open(file_path, "rb").read()
             for encoding in ["utf-8", "gbk", "utf-8-sig"]:
@@ -404,7 +482,7 @@ def extract_text_from_file(file_path: str, file_type: str) -> tuple[str, str]:
             return "压缩包内容列表：" + "；".join(file_names), "indexed"
         if file_type in {".jpg", ".jpeg", ".png", ".webp"}:
             return "图片已保存；若所选模型支持视觉理解，系统会尝试结合图片分析。", "image"
-        if file_type in {".pdf", ".doc", ".ppt", ".rar"}:
+        if file_type in {".doc", ".ppt", ".rar"}:
             return f"当前版本已保存该文件，但暂未深度解析 {file_type} 内容。", "stored"
     except Exception as exc:
         return f"文件解析失败：{exc}", "failed"
@@ -453,7 +531,7 @@ def _clean_answer_text(raw_content: str) -> str:
     text = text.strip().strip("{}").strip()
     text = text.replace("\\n", "\n").replace("/n", "\n").replace("\r\n", "\n")
     text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
+    return _dedupe_answer_body(text)
 
 
 def ask_course_assistant(
@@ -463,14 +541,44 @@ def ask_course_assistant(
     course_context: str,
     history: List[Dict[str, str]],
     attachment_contexts: List[Dict[str, Any]],
+    retrieved_chunks: Optional[List[Dict[str, Any]]] = None,
     model_key: str = "default",
     language: str = "zh-CN",
 ) -> Dict[str, Any]:
     attachment_texts = []
     source_labels: List[str] = []
+    source_label_seen: set[str] = set()
+    retrieval_sections: List[str] = []
     image_urls: List[str] = []
     model_config = _get_model_config(model_key)
     supports_vision = bool(model_config and model_config.get("supports_vision"))
+    retrieval_source_hits: Dict[str, Dict[str, Any]] = {}
+
+    def add_source_label(label: str) -> None:
+        clean = (label or "").strip()
+        if not clean or clean in source_label_seen:
+            return
+        source_label_seen.add(clean)
+        source_labels.append(clean)
+
+    for idx, item in enumerate((retrieved_chunks or [])[:8], start=1):
+        snippet = str(item.get("snippet") or item.get("chunk_text") or "").strip()
+        if not snippet:
+            continue
+        source_type = "课程包" if item.get("source_type") == "lesson_pack" else "教学资料"
+        source_name = str(item.get("source_name") or source_type)
+        tag = f"R{idx}"
+        retrieval_sections.append(f"[{tag}] 来源：{source_name}（{source_type}）\n{snippet}")
+        source_key = f"{item.get('source_type', '')}:{item.get('source_id', '')}:{source_name}"
+        source_hit = retrieval_source_hits.get(source_key)
+        if not source_hit:
+            source_hit = {"source_name": source_name, "source_type": source_type, "tags": []}
+            retrieval_source_hits[source_key] = source_hit
+        source_hit["tags"].append(tag)
+
+    for source_hit in retrieval_source_hits.values():
+        tags = "/".join(source_hit["tags"][:4])
+        add_source_label(f"检索命中[{tags}] {source_hit['source_name']}（{source_hit['source_type']}）")
 
     for item in attachment_contexts:
         summary = item.get("parse_summary", "")
@@ -482,9 +590,9 @@ def ask_course_assistant(
             data_url = build_data_url(item.get("file_path", ""), file_type)
             if data_url:
                 image_urls.append(data_url)
-                source_labels.append(f"基于上传图片 {file_name} 分析")
+                add_source_label(f"基于上传图片 {file_name} 分析")
         elif summary:
-            source_labels.append(f"基于上传文件 {file_name}")
+            add_source_label(f"基于上传文件 {file_name}")
 
     history_lines = []
     for idx, record in enumerate(history[-6:], start=1):
@@ -492,7 +600,7 @@ def ask_course_assistant(
 
     system_prompt = (
         "你是课程专属 AI 助教。你的回答目标是让学生真正理解问题，而不是只让学生回去看资料。"
-        "请优先结合课程资料、可解析附件和会话上下文回答；如果资料不足，也要补充高质量解释。"
+        "请优先结合 RAG 检索片段、课程资料、可解析附件和会话上下文回答；如果资料不足，也要补充高质量解释。"
         "直接输出回答正文，不要输出 JSON，不要输出 Markdown 代码块，不要输出 answer、sources、in_scope 等字段名。"
         "回答尽量自然分段，必要时可分点，但只返回正文本身。"
         "若附件中存在未解析文件，可以诚实说明边界。"
@@ -501,6 +609,7 @@ def ask_course_assistant(
         system_prompt += " The user interface is currently in English, so your entire answer must be written in natural English."
     user_text = (
         f"课程名称：{course_name or '未命名课程'}\n"
+        f"RAG 检索命中片段：\n{_truncate(chr(10).join(retrieval_sections) or '暂无')}\n\n"
         f"课程资料摘要：\n{_truncate(course_context or '暂无课程资料')}\n\n"
         f"历史会话：\n{_truncate(chr(10).join(history_lines) or '暂无')}\n\n"
         f"可解析附件摘要：\n{_truncate(chr(10).join(attachment_texts) or '暂无')}\n\n"
@@ -752,7 +861,3 @@ def student_qa(question: str, lesson_pack: LessonPack):
     )
     from ..models.schemas import QAResponse
     return QAResponse(answer=payload["answer"], evidence=payload["sources"], in_scope=payload["in_scope"])
-
-
-
-
