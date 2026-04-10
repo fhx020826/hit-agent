@@ -46,6 +46,7 @@ from ..models.schemas import (
 )
 from ..security import get_current_user, require_roles
 from ..services.llm_service import ask_course_assistant, extract_text_from_file, generate_weakness_analysis, list_available_models
+from ..services.rag_service import ensure_course_chunk_index, retrieve_relevant_chunks
 
 router = APIRouter(prefix="/api/qa", tags=["qa"])
 
@@ -358,12 +359,33 @@ def ask_question(body: StudentQuestionCreate, current_user: dict = Depends(requi
 
     if body.answer_target_type in {"ai", "both"}:
         appearance = db.query(DBAppearanceSetting).filter(DBAppearanceSetting.user_role == current_user["role"], DBAppearanceSetting.user_id == current_user["id"]).first()
+        rag_query_parts: list[str] = []
+        if body.question.strip():
+            rag_query_parts.append(body.question.strip())
+        attachment_summaries = [f"{item.file_name}: {item.parse_summary}" for item in attachments if (item.parse_summary or "").strip()]
+        if attachment_summaries:
+            rag_query_parts.append("\n".join(attachment_summaries[:4]))
+        rag_query_text = "\n".join(rag_query_parts).strip() or "课程核心概念"
+        retrieved_chunks: list[dict] = []
+        try:
+            created_chunk_count = ensure_course_chunk_index(db, body.course_id or session.course_id or "")
+            if created_chunk_count > 0:
+                db.commit()
+            retrieved_chunks = retrieve_relevant_chunks(
+                db,
+                course_id=(body.course_id or session.course_id or ""),
+                query_text=rag_query_text,
+                top_k=6,
+            )
+        except Exception:
+            retrieved_chunks = []
         ai_payload = ask_course_assistant(
             question=body.question or "请结合上传附件帮我理解这份资料。",
             course_name=course_name,
             course_context=course_context,
             history=history,
             attachment_contexts=[{"file_name": item.file_name, "file_type": item.file_type, "file_path": item.file_path, "parse_summary": item.parse_summary} for item in attachments],
+            retrieved_chunks=retrieved_chunks,
             model_key=body.selected_model or session.selected_model or "default",
             language=(appearance.language if appearance and appearance.language else "zh-CN"),
         )
@@ -503,6 +525,37 @@ def assign_question_folder(question_id: str, body: QuestionFolderAssign, current
     db.commit()
     db.refresh(row)
     return _question_to_schema(row, db)
+
+
+@router.delete("/questions/{question_id}")
+def delete_question(question_id: str, current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
+    row = db.query(DBQuestion).filter(DBQuestion.id == question_id, DBQuestion.user_id == current_user["id"]).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="问题不存在")
+
+    attachment_rows = db.query(DBQuestionAttachment).filter(DBQuestionAttachment.question_id == question_id).all()
+    for attachment in attachment_rows:
+        if attachment.file_path and os.path.exists(attachment.file_path):
+            try:
+                os.remove(attachment.file_path)
+            except OSError:
+                pass
+
+    db.query(DBQuestionAttachment).filter(DBQuestionAttachment.question_id == question_id).delete(synchronize_session=False)
+    db.query(DBTeacherNotification).filter(DBTeacherNotification.related_question_id == question_id).delete(synchronize_session=False)
+
+    session = db.query(DBChatSession).filter(DBChatSession.id == row.session_id, DBChatSession.user_id == current_user["id"]).first()
+    db.delete(row)
+
+    if session:
+        latest = db.query(DBQuestion).filter(DBQuestion.session_id == session.id, DBQuestion.id != question_id).order_by(DBQuestion.updated_at.desc()).first()
+        now = datetime.now().isoformat()
+        session.updated_at = latest.updated_at if latest else now
+        if not latest:
+            session.title = "新建学习问答"
+
+    db.commit()
+    return {"status": "ok"}
 
 
 @router.get("/weakness-analysis", response_model=WeaknessAnalysisResponse)

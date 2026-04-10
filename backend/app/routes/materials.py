@@ -42,6 +42,8 @@ from ..models.schemas import (
     SavedAnnotationVersionItem,
 )
 from ..security import get_current_user, require_roles
+from ..services.llm_service import extract_text_from_file
+from ..services.rag_service import upsert_chunks_for_material
 
 router = APIRouter(prefix="/api/materials", tags=["materials"])
 
@@ -184,16 +186,8 @@ def upload_material(course_id: str, file: UploadFile = File(...), current_user: 
         output.write(content_bytes)
 
     ext = os.path.splitext(filename)[1].lower()
-    text_content = ""
-    if ext in {".txt", ".md", ".csv", ".json"}:
-        for encoding in ["utf-8", "gbk", "utf-8-sig"]:
-            try:
-                text_content = content_bytes.decode(encoding)
-                break
-            except Exception:
-                continue
-        if not text_content:
-            text_content = content_bytes.decode("utf-8", errors="replace")
+    text_content, parse_status = extract_text_from_file(file_path, ext)
+    index_text = text_content if parse_status in {"parsed", "indexed"} else ""
 
     row = DBMaterial(
         course_id=course_id,
@@ -213,6 +207,11 @@ def upload_material(course_id: str, file: UploadFile = File(...), current_user: 
     db.add(row)
     db.commit()
     db.refresh(row)
+    try:
+        upsert_chunks_for_material(db, row, content_text=index_text)
+        db.commit()
+    except Exception:
+        db.rollback()
     payload = _material_to_schema(row).model_dump()
     payload["message"] = "上传成功"
     return MaterialUploadResponse(**payload)

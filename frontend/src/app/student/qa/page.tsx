@@ -428,6 +428,20 @@ export default function StudentQAPage() {
                 <div className="max-w-[96%] rounded-[26px] border border-[var(--active-border)] bg-[var(--active-surface)] px-5 py-4 text-sm leading-7 text-slate-800">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-contrast)]">{pick(language, "AI 回答", "AI Answer")}</p>
                   <RichAnswer content={item.ai_answer_content} className="mt-2" />
+                  {item.ai_answer_sources?.length ? (
+                    <div className="mt-4 rounded-[18px] border border-slate-200/70 bg-white/70 px-3 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                        {pick(language, "参考依据", "Sources")}
+                      </p>
+                      <ul className="mt-2 space-y-1 text-xs leading-6 text-slate-600">
+                        {item.ai_answer_sources.slice(0, 8).map((source, idx) => (
+                          <li key={`${item.id}-source-${idx}`} className="rounded-[12px] border border-slate-200 bg-white px-2.5 py-1.5">
+                            {source}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 

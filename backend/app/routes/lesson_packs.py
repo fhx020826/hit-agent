@@ -11,6 +11,7 @@ from ..database import DBCourse, DBLessonPack, get_db
 from ..models.schemas import Course, LessonPack, LessonPackUpdate
 from ..security import get_current_user, require_roles
 from ..services.llm_service import generate_lesson_pack as llm_generate_lesson_pack
+from ..services.rag_service import upsert_chunks_for_lesson_pack
 
 router = APIRouter(prefix="/api/lesson-packs", tags=["lesson-packs"])
 
@@ -31,6 +32,11 @@ def generate_lesson_pack(course_id: str, current_user: dict = Depends(require_ro
     db.add(db_lp)
     db.commit()
     db.refresh(db_lp)
+    try:
+        upsert_chunks_for_lesson_pack(db, db_lp)
+        db.commit()
+    except Exception:
+        db.rollback()
     return _db_to_lp(db_lp)
 
 
@@ -73,4 +79,9 @@ def publish_lesson_pack(lp_id: str, current_user: dict = Depends(require_roles("
     row.status = "published"
     db.commit()
     db.refresh(row)
+    try:
+        upsert_chunks_for_lesson_pack(db, row)
+        db.commit()
+    except Exception:
+        db.rollback()
     return _db_to_lp(row)

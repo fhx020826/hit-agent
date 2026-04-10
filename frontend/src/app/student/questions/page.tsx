@@ -36,6 +36,7 @@ export default function StudentQuestionHistoryPage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderDesc, setNewFolderDesc] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [deletingQuestionId, setDeletingQuestionId] = useState("");
   const [keyword, setKeyword] = useState("");
   const [message, setMessage] = useState("");
 
@@ -176,6 +177,25 @@ export default function StudentQuestionHistoryPage() {
       await loadArchive(selectedCourseId);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : pick(language, "归档失败", "Failed to move the question."));
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId: string) => {
+    if (deletingQuestionId) return;
+    const confirmed = window.confirm(
+      pick(language, "确认删除这条问答记录吗？删除后不可恢复。", "Delete this Q&A record? This action cannot be undone."),
+    );
+    if (!confirmed) return;
+    setDeletingQuestionId(questionId);
+    try {
+      setMessage("");
+      await api.deleteQuestion(questionId);
+      await loadArchive(selectedCourseId);
+      setMessage(pick(language, "问答记录已删除。", "Q&A record deleted."));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : pick(language, "删除失败", "Delete failed."));
+    } finally {
+      setDeletingQuestionId("");
     }
   };
 
@@ -346,6 +366,13 @@ export default function StudentQuestionHistoryPage() {
                     <div className="mt-4 flex flex-wrap items-center gap-3">
                       <button onClick={() => void handleToggleCollect(item.id)} className="ui-pill rounded-full px-4 py-2 text-xs font-semibold">
                         {item.collected ? pick(language, "取消收藏", "Uncollect") : pick(language, "加入收藏", "Collect")}
+                      </button>
+                      <button
+                        onClick={() => void handleDeleteQuestion(item.id)}
+                        disabled={deletingQuestionId === item.id}
+                        className="ui-pill rounded-full px-4 py-2 text-xs font-semibold text-rose-600 disabled:opacity-50"
+                      >
+                        {deletingQuestionId === item.id ? pick(language, "删除中...", "Deleting...") : pick(language, "删除记录", "Delete")}
                       </button>
                       <label className="flex items-center gap-2 text-xs text-slate-600">
                         <span>{pick(language, "移动到", "Move to")}</span>

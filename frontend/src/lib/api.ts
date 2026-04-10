@@ -673,6 +673,7 @@ export const api = {
   },
   toggleCollect: (questionId: string) => request<{ status: string; collected: boolean }>(`/api/qa/questions/${questionId}/collect`, { method: "POST" }),
   assignQuestionFolder: (questionId: string, folderId: string) => request<QuestionRecord>(`/api/qa/questions/${questionId}/folder`, { method: "PUT", body: JSON.stringify({ folder_id: folderId }) }),
+  deleteQuestion: (questionId: string) => request<{ status: string }>(`/api/qa/questions/${questionId}`, { method: "DELETE" }),
   getWeaknessAnalysis: (courseId?: string) => request<WeaknessAnalysis>(`/api/qa/weakness-analysis${courseId ? `?course_id=${courseId}` : ""}`),
   listTeacherQuestions: (params?: { status?: string; course_id?: string }) => {
     const q = new URLSearchParams();
