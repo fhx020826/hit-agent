@@ -90,7 +90,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ### 6.2 前端启动
 ```bash
 cd /home/hxfeng/fhx-hit-agent/frontend
-npm install
+npm install --cache .npm-cache --registry=https://registry.npmjs.org/
 npm run dev
 ```
 
@@ -99,6 +99,10 @@ npm run dev
 ```text
 0.0.0.0:3000
 ```
+
+说明：
+- 在当前 HPC 环境下，前端依赖通过官方 npm registry 安装更稳定。
+- 如果已经启用 `clash && proxy`，优先直接使用 `https://registry.npmjs.org/`。
 
 ## 7. 你本地如何访问服务器上的前端
 

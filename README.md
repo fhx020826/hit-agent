@@ -176,7 +176,7 @@ $env:LLM_API_KEY = "你的智谱 API Key"
 在新终端执行：
 ```powershell
 cd .\frontend
-npm install --cache .npm-cache --registry=https://registry.npmmirror.com
+npm install --cache .npm-cache --registry=https://registry.npmjs.org/
 npm run dev
 ```
 
@@ -188,6 +188,7 @@ npm run dev
 说明：
 - 前端默认会把接口请求发送到“当前访问这台机器的 8000 端口”
 - 后端已改为监听 `0.0.0.0:8000`
+- 当前在 HPC 环境中，前端依赖使用官方 npm registry 更稳定；如已配置代理，优先使用 `https://registry.npmjs.org/`
 - 如果你的 Windows 防火墙拦截了 3000 或 8000 端口，需要允许局域网访问
 - 开发环境请尽量统一使用同一域名访问（`localhost` 或 `127.0.0.1` 选其一），避免 HMR 跨域警告
 

@@ -21,6 +21,11 @@
   - `upstream` -> `https://github.com/wishmyself/hit-agent.git`
 - 已成功推送当前 `main` 到 `origin/main`
 - 新增文档 `docs/admin/hpc-collaboration-and-access.md`
+- 完成运行验证：
+  - 后端健康检查通过
+  - 前端生产构建通过
+  - 前端 lint 发现若干 Hook 规范问题，但不阻塞构建和运行
+- 确认前端依赖安装在当前 HPC 下应优先使用官方 npm registry
 
 ### 关键命令
 - 代理验证：

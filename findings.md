@@ -68,3 +68,17 @@
 - 后端使用 SQLite，本地开发方便，但在并发、迁移、可维护性方面存在上限。
 - 数据模型集中定义在 `backend/app/database.py`，规模继续扩大后可维护性会下降。
 - `origin` 原仓库默认分支此前为 `master`，当前已额外推送出 `main` 分支；团队协作时需要统一使用 `main`。
+
+### 2026-04-10 运行验证补充
+- 后端验证通过：
+  - `uvicorn app.main:app --host 127.0.0.1 --port 8000` 可正常启动
+  - `curl http://127.0.0.1:8000/api/health` 返回 `{"status":"ok","version":"0.8.0"}`
+- 前端构建验证通过：
+  - `npm run build` 成功
+- 前端 lint 未通过，当前存在 4 个错误和 4 个警告，主要集中在：
+  - `react-hooks/set-state-in-effect`
+  - `react-hooks/exhaustive-deps`
+  - `@next/next/no-img-element`
+- 前端依赖安装结论：
+  - 使用 `npmmirror` 时曾出现 `next@16.2.2 invalid`、`.bin` 缺失、`next: not found`
+  - 改用官方 npm registry 后，依赖安装与构建恢复正常

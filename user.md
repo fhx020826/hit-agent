@@ -34,6 +34,13 @@
 - 可靠激活方式：
   - `eval "$(/home/hxfeng/miniconda3/bin/conda shell.bash hook)" && conda activate fhx-hit-agent`
 
+### 前端依赖
+- 当前 HPC 环境下，前端依赖优先使用官方 npm registry：
+  - `npm install --cache .npm-cache --registry=https://registry.npmjs.org/`
+- 使用 `npmmirror` 曾出现 `next` 包安装不完整，导致：
+  - `next: not found`
+  - `npm ls next` 显示 `invalid`
+
 ## 已确认的环境坑位
 - `~/.bashrc` 中现有 conda 初始化指向旧路径 `/home/dzmat/miniconda3/bin/conda`，直接 `conda activate` 会失败。
 - 因 `~/.bashrc` 开头有“非交互 shell 直接 return”的逻辑，普通 `bash -lc` 默认拿不到 `clash` / `proxy` 函数。
