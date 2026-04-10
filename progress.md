@@ -26,6 +26,11 @@
   - 前端生产构建通过
   - 前端 lint 发现若干 Hook 规范问题，但不阻塞构建和运行
 - 确认前端依赖安装在当前 HPC 下应优先使用官方 npm registry
+- 新增脚本：
+  - `scripts/dev-up.sh`
+  - `scripts/dev-down.sh`
+  - `scripts/dev-status.sh`
+- 一键启动脚本实测通过
 
 ### 关键命令
 - 代理验证：

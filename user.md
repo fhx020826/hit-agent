@@ -41,6 +41,15 @@
   - `next: not found`
   - `npm ls next` 显示 `invalid`
 
+### 一键启动
+- 服务器上一条命令启动前后端：
+  - `bash scripts/dev-up.sh`
+- 停止：
+  - `bash scripts/dev-down.sh`
+- 查看状态：
+  - `bash scripts/dev-status.sh`
+- `dev-up.sh` 会打印你本地 Windows 需要执行的 SSH 端口转发命令
+
 ## 已确认的环境坑位
 - `~/.bashrc` 中现有 conda 初始化指向旧路径 `/home/dzmat/miniconda3/bin/conda`，直接 `conda activate` 会失败。
 - 因 `~/.bashrc` 开头有“非交互 shell 直接 return”的逻辑，普通 `bash -lc` 默认拿不到 `clash` / `proxy` 函数。

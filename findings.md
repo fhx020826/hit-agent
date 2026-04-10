@@ -82,3 +82,8 @@
 - 前端依赖安装结论：
   - 使用 `npmmirror` 时曾出现 `next@16.2.2 invalid`、`.bin` 缺失、`next: not found`
   - 改用官方 npm registry 后，依赖安装与构建恢复正常
+- 一键启动验证通过：
+  - `bash scripts/dev-up.sh` 可成功拉起前后端
+  - `bash scripts/dev-status.sh` 可看到 `3000/8000` 均在监听
+  - `curl http://127.0.0.1:8000/api/health` 正常
+  - `curl -I http://127.0.0.1:3000` 返回 `HTTP/1.1 200 OK`

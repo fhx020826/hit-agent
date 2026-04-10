@@ -79,6 +79,33 @@ bash -ic 'clash && proxy && cd /home/hxfeng/fhx-hit-agent && git push origin mai
 
 ## 6. 服务器运行前后端
 
+### 6.0 一键启动方案
+推荐直接在项目根目录执行：
+
+```bash
+bash scripts/dev-up.sh
+```
+
+该脚本会自动：
+- 检查 `3000/8000` 端口
+- 使用 `tmux` 创建会话 `hit-agent-dev`
+- 启动后端
+- 启动前端
+- 做健康检查
+- 打印你本地需要执行的 SSH 转发命令
+
+停止服务：
+
+```bash
+bash scripts/dev-down.sh
+```
+
+查看状态：
+
+```bash
+bash scripts/dev-status.sh
+```
+
 ### 6.1 后端启动
 ```bash
 eval "$(/home/hxfeng/miniconda3/bin/conda shell.bash hook)"
@@ -131,6 +158,8 @@ ssh -L 3000:localhost:3000 -L 8000:localhost:8000 hpc
 随后本地可访问：
 - 前端：`http://localhost:3000`
 - 后端：`http://localhost:8000`
+
+实际使用时，`bash scripts/dev-up.sh` 也会直接把这条命令打印出来。
 
 ## 8. 其他人能否直接通过一个网址访问
 

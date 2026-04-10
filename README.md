@@ -151,6 +151,28 @@
 - `/admin/users`
 
 ## 快速启动
+### 0. 服务器上一键启动前后端
+在服务器项目根目录执行：
+```bash
+bash scripts/dev-up.sh
+```
+
+脚本会自动：
+- 启动后端 `8000`
+- 启动前端 `3000`
+- 放入 `tmux` 会话 `hit-agent-dev`
+- 打印你本地需要执行的 SSH 端口转发命令
+
+停止服务：
+```bash
+bash scripts/dev-down.sh
+```
+
+查看状态：
+```bash
+bash scripts/dev-status.sh
+```
+
 ### 1. 后端
 在项目根目录执行：
 ```powershell
