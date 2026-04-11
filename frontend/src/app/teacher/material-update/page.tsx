@@ -21,6 +21,7 @@ export default function MaterialUpdatePage() {
   const [result, setResult] = useState<MaterialUpdateResult | null>(null);
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState("");
+  const canRun = Boolean(selectedModel || selectedModelInfo);
 
   const reload = async () => {
     const [courseList, updateList, modelList] = await Promise.all([api.listCourses(), api.listMaterialUpdates(), api.listModels().catch(() => [])]);
@@ -30,7 +31,7 @@ export default function MaterialUpdatePage() {
     setCourseId((prev) => prev || courseList[0]?.id || "");
     setSelectedModel((prev) => {
       if (modelList.some((item) => item.key === prev)) return prev;
-      return modelList[0]?.key || "";
+      return modelList[0]?.key || prev || "default";
     });
   };
 
@@ -64,9 +65,9 @@ export default function MaterialUpdatePage() {
             <div className="relative w-full max-w-sm">
               <p className="text-sm font-semibold text-slate-500">当前模型</p>
               <button type="button" onClick={() => setModelMenuOpen((prev) => !prev)} className="mt-2 w-full rounded-[22px] border border-[var(--active-border)] bg-[var(--active-surface)] px-4 py-4 text-left shadow-[var(--active-shadow)] transition">
-                <span className="block text-sm font-semibold text-slate-900">{selectedModelInfo?.label || "暂无可用模型"}</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">{selectedModelInfo?.description || "请先在后端配置至少一个可用模型后再生成更新建议。"}</span>
-                {selectedModelInfo ? <span className="mt-2 inline-flex rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-600">实际模型：{selectedModelInfo.model_name}</span> : null}
+                <span className="block text-sm font-semibold text-slate-900">{selectedModelInfo?.label || "默认回退模式"}</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">{selectedModelInfo?.description || "当前未拉取到模型清单，但仍可用默认标识触发后端回退诊断与建议生成。"}</span>
+                <span className="mt-2 inline-flex rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-600">实际模型：{selectedModelInfo?.model_name || selectedModel || "default"}</span>
               </button>
               {modelMenuOpen ? (
                 <div className="absolute right-0 top-[calc(100%+10px)] z-40 max-h-80 w-full overflow-y-auto rounded-[24px] border border-slate-200 bg-[var(--surface)] p-3 shadow-2xl">
@@ -123,8 +124,8 @@ export default function MaterialUpdatePage() {
                 setRunning(true);
                 setMessage("");
                 const next = selectedFile
-                  ? await api.uploadMaterialUpdate({ course_id: courseId || undefined, title, instructions, selected_model: selectedModel, file: selectedFile })
-                  : await api.previewMaterialUpdate({ course_id: courseId || undefined, title, instructions, material_text: materialText, selected_model: selectedModel });
+                  ? await api.uploadMaterialUpdate({ course_id: courseId || undefined, title, instructions, selected_model: selectedModel || "default", file: selectedFile })
+                  : await api.previewMaterialUpdate({ course_id: courseId || undefined, title, instructions, material_text: materialText, selected_model: selectedModel || "default" });
                 setResult(next);
                 setMessage(next.model_status === "failed" ? next.summary : `已生成更新建议，本次实际使用模型：${next.used_model_name || next.selected_model}。`);
                 await reload();
@@ -134,13 +135,13 @@ export default function MaterialUpdatePage() {
                 setRunning(false);
               }
             }}
-            disabled={running || !selectedModelInfo}
+            disabled={running || !canRun}
             className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {running ? "生成中..." : "生成更新建议"}
           </button>
         </div>
-        <p className={`mt-3 text-sm ${message.includes("不可用") || message.includes("失败") ? "text-rose-700" : "text-slate-600"}`}>{message || (selectedModelInfo ? "建议优先补充文字说明，模型会据此更准确生成前沿更新方案。" : "当前没有可用模型，请先在后端配置后再使用该功能。")}</p>
+        <p className={`mt-3 text-sm ${message.includes("不可用") || message.includes("失败") ? "text-rose-700" : "text-slate-600"}`}>{message || (selectedModelInfo ? "建议优先补充文字说明，模型会据此更准确生成前沿更新方案。" : "当前没有模型清单时，会使用默认标识请求后端，并返回明确的诊断或回退建议。")}</p>
       </section>
 
       <section className="glass-panel rounded-[32px] px-5 py-6 md:px-6">
