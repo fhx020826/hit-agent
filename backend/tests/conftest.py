@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import json
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
@@ -15,7 +16,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import database, main
-from app.database import Base, DBCourse, DBUser, DBUserProfile
+from app.database import Base, DBCourse, DBLessonPack, DBSurveyTemplate, DBUser, DBUserProfile
 from app.security import hash_password
 
 
@@ -83,6 +84,16 @@ def _seed_demo_data(db: Session) -> None:
         status="active",
         created_at=now,
     )
+
+    admin_user = DBUser(
+        id="user-admin-demo",
+        role="admin",
+        account="admin_demo",
+        password_hash=hash_password("Admin123!"),
+        display_name="系统管理员",
+        status="active",
+        created_at=now,
+    )
     student_profile = DBUserProfile(
         user_id="user-student-demo",
         real_name="李明",
@@ -109,5 +120,38 @@ def _seed_demo_data(db: Session) -> None:
         created_at=now,
     )
 
-    db.add_all([teacher_user, teacher_profile, student_user, student_profile, course])
+    lesson_pack = DBLessonPack(
+        id="lp-demo-001",
+        course_id="course-demo-001",
+        version=1,
+        status="published",
+        payload=json.dumps(
+            {
+                "frontier_topic": {"title": "智能网络"},
+                "teaching_objectives": ["理解网络基础概念"],
+                "main_thread": "网络基础与智能网络前沿",
+            },
+            ensure_ascii=False,
+        ),
+        created_at=now,
+    )
+
+    admin_profile = DBUserProfile(
+        user_id="user-admin-demo",
+        real_name="系统管理员",
+        college="平台运维中心",
+        email="admin_demo@example.com",
+        created_at=now,
+        updated_at=now,
+    )
+
+    survey_template = DBSurveyTemplate(
+        id="survey-template-default",
+        name="默认课堂反馈模板",
+        description="用于内部测试的默认模板",
+        questions_json='[{"id":"q_rating","type":"rating","title":"本节课整体理解程度"},{"id":"q_choice","type":"choice","title":"你最需要加强的部分"},{"id":"q_text","type":"text","title":"其他建议"}]',
+        created_at=now,
+    )
+
+    db.add_all([teacher_user, teacher_profile, student_user, student_profile, admin_user, admin_profile, course, lesson_pack, survey_template])
     db.commit()

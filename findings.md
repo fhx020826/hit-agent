@@ -141,3 +141,83 @@
   - 人工测试点
   - 自动化优先级（P0 / P1 / P2）
 - 当前建议后续测试工作直接以该文档为基线继续推进，避免遗漏页面入口或把规划能力误判为已实现能力。
+
+### 2026-04-11 测试基线扩展
+- `backend/tests/conftest.py` 中的默认问卷模板种子原先使用了错误字段 `questions`。
+- 实际数据库模型字段为：
+  - `DBSurveyTemplate.questions_json`
+- 修正后，反馈实例与统计测试可以在测试库中稳定执行。
+- 已新增文件：
+  - `backend/tests/test_full_api_smoke.py`
+- 当前后端测试结果：
+  - `9 passed, 2 warnings in 55.15s`
+- 本轮新增覆盖的 API 模块包括：
+  - `profile`
+  - `settings`
+  - `agent-config`
+  - `lesson-packs`
+  - `admin`
+  - `materials`
+  - `discussions`
+  - `assignments`
+  - `feedback`
+  - `student`
+  - `users`
+  - `assignment-review`
+  - `material-update`
+- 当前 pytest 唯一剩余 warning 仍是：
+  - FastAPI `@app.on_event("startup")` 弃用提示
+
+### 2026-04-11 在线服务验证
+- 后端在线健康检查仍正常：
+  - `GET /api/health -> {"status":"ok","version":"0.8.0"}`
+- 前端以下路径当前均返回 `HTTP 200`：
+  - `/`
+  - `/teacher`
+  - `/student`
+  - `/admin/users`
+  - `/profile`
+  - `/settings`
+  - `/teacher/course`
+  - `/teacher/lesson-pack`
+  - `/teacher/materials`
+  - `/teacher/discussions`
+  - `/teacher/assignments`
+  - `/student/qa`
+  - `/student/assignments`
+- 本机 Playwright MCP 当前不能做真实浏览器交互。
+- 直接报错原因：
+  - `chrome executable not found`
+- 因此本轮前端只完成了“页面可达性检查”，未完成 DOM 级 UI 自动化。
+
+### 2026-04-11 在线真实教师/学生时序链路
+- 已直接对运行中的 `http://127.0.0.1:8000` 执行真实 API 流程，不依赖测试数据库。
+- 本轮临时账号：
+  - 教师：`teacher_e2e_20260411190348614820`
+  - 学生：`student_e2e_20260411190348614820`
+- 已成功完成：
+  - 教师注册
+  - 学生注册
+  - 课程创建
+  - 课程包生成与发布
+  - 学生创建问答会话并提问
+  - 教师发布作业
+  - 学生确认与提交作业
+  - 教师创建匿名反馈实例
+  - 学生提交匿名反馈
+  - 学生发起资料请求
+  - 教师查看通知与作业详情
+  - 教师查看反馈统计
+- 本轮在线真实链路产生的关键实体：
+  - `course-df829eee`
+  - `lp-d76851df`
+  - `chat-d4fbee6e`
+  - `q-01eeed07`
+  - `asg-15cdce5b`
+  - `sub-e70264fd`
+  - `survey-99ce6195`
+  - `req-57da28c5`
+- 关键结果：
+  - 教师通知数：`1`
+  - 教师视角已提交学生数：`1`
+  - 反馈参与人数：`1`

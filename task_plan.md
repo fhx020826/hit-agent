@@ -1,7 +1,7 @@
 # Task Plan
 
 ## Goal
-在 `/home/hxfeng/fhx-hit-agent` 内完成仓库落地、隔离环境初始化、基础文档建立，并基于真实代码输出当前项目完成情况、后续可优化方向，以及一份可直接用于内部测试的功能清单。
+在 `/home/hxfeng/fhx-hit-agent` 内完成仓库落地、隔离环境初始化、基础文档建立，并基于真实代码输出当前项目完成情况、后续可优化方向，以及一份可直接用于内部测试和自动化回归扩展的功能清单与测试基线。
 
 ## Phases
 - [x] Phase 1: 确认代理使用方式并验证外网访问
@@ -10,6 +10,8 @@
 - [x] Phase 4: 建立项目长期文档与规范文件
 - [x] Phase 5: 运行最小化环境自检并输出分析结论
 - [x] Phase 6: 基于真实代码整理内部功能测试矩阵
+- [x] Phase 7: 扩展后端主模块 API 冒烟测试
+- [x] Phase 8: 验证在线服务关键路径与真实教师/学生时序链路
 
 ## Constraints
 - 仅在 `/home/hxfeng/fhx-hit-agent` 中进行项目相关操作
@@ -22,3 +24,7 @@
 - `~/.bashrc` 中的 conda 初始化仍指向旧路径 `/home/dzmat/miniconda3/bin/conda`
 - `clash` / `proxy` 为交互式 shell 函数，非交互 shell 下默认不可直接调用
 - 仓库当前未发现自动化测试目录
+
+## Current Focus
+- 继续以 `docs/internal/internal-feature-test-matrix.md` 为基线补 P1 / P2 自动化测试
+- 如需继续做前端 UI 自动化，先补齐浏览器运行依赖
