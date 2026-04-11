@@ -38,6 +38,10 @@
 - 已完成第一优先级中的第 2 项的最小版本：
   - 新增后端最小冒烟测试
   - `pytest -q` 通过（4 passed）
+- 已补充内部功能测试基线文档：
+  - `docs/internal/internal-feature-test-matrix.md`
+  - 已覆盖认证、资料、问答、讨论、作业、反馈、管理员等真实功能
+  - 已按 P0 / P1 / P2 标注后续自动化优先级
 
 ### 关键命令
 - 代理验证：
@@ -48,5 +52,5 @@
   - `eval "$(/home/hxfeng/miniconda3/bin/conda shell.bash hook)" && conda activate fhx-hit-agent`
 
 ### 当前进行中
-- 汇总基于真实代码的完成度分析与后续优化建议
-- 准备整理并提交本轮初始化文档更新
+- 基于内部功能清单准备下一步自动化测试拆分
+- 准备整理并提交本轮文档更新

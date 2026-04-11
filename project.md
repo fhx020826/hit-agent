@@ -32,6 +32,8 @@
 - 多模型配置与模型列表下发
 - 基础管理员用户管理
 - README 和 docs 与当前实现对齐程度较高
+- 已建立内部功能盘点文档，可作为测试基线：
+  - `docs/internal/internal-feature-test-matrix.md`
 
 ### 已实现但还偏“工程初版”的部分
 - embedding 回填与重试机制已接入，但缺少更完整的可观测性
@@ -98,3 +100,13 @@
 - 当前仓库适合采用“个人协作仓库提交 + 上游仓库持续同步”的模式。
 - 相关流程文档见：
   - `docs/admin/hpc-collaboration-and-access.md`
+
+## 当前测试文档基线
+- 当前内部功能清单与人工测试基线见：
+  - `docs/internal/internal-feature-test-matrix.md`
+- 该文档已经把真实功能按：
+  - 页面入口
+  - 关键 API
+  - 人工测试点
+  - 自动化优先级
+ 进行了整理，后续应以此为准继续扩展测试，而不是凭印象补测。
