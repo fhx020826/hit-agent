@@ -123,7 +123,21 @@
   - `cd frontend && npm run lint` -> 通过
   - `cd frontend && npm run build` -> 通过
   - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts` -> `8 passed`
+- 新增复杂用户旅程浏览器回归：
+  - `frontend/tests/user-journeys.spec.ts`
+  - 覆盖“注册起步的完整教学闭环”和“问答归档生命周期”
+- 新增统一验证脚本：
+  - `scripts/verify-all.sh`
+  - 自动处理独立端口选择、后端 CORS 端口注入、生产模式前端启动与三组 Playwright 顺跑
+- 新增自动化测试目录文档：
+  - `docs/internal/automation-test-catalog.md`
+- 最新一键全量验证结果：
+  - `bash scripts/verify-all.sh` -> 通过
+  - `pytest -q` -> `13 passed`
+  - `npm run lint` -> 通过
+  - `npm run build` -> 通过
+  - `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts` -> `10 passed`
 
 ### 当前进行中
 - 更新项目维护文档
-- 准备提交并推送第二轮重构成果
+- 准备提交并推送本轮统一验证增强成果

@@ -73,23 +73,28 @@
 
 ### 自动化验证
 2026-04-12 最新验证结果：
+- 一键验证：
+  - `bash scripts/verify-all.sh` -> 通过
 - 后端：`cd backend && pytest -q` -> `13 passed`
 - 前端：`cd frontend && npm run lint` -> 通过
 - 前端：`cd frontend && npm run build` -> 通过
 - 浏览器原子/扩展回归：
-  - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts`
-  - 结果：`8 passed`
+  - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts`
+  - 结果：`10 passed`
 
 说明：
 - 浏览器验证在当前 HPC 机器上可稳定运行。
 - 当前稳定验证使用的是生产模式前端服务面；Next 开发服务器与 Playwright runner 在这台机器上存在不稳定组合，需要单独记录。
+- `scripts/verify-all.sh` 会自动寻找空闲验证端口，并把所选前端端口传回后端 CORS 配置，避免与常驻 `3000/8000` 服务冲突。
 - 最新一轮验证是在重启后的最新前后端服务上完成，不是基于旧进程。
 
 ### 文档与测试覆盖
 - 已有完整功能清单
 - 已有逐功能验证矩阵
+- 已有自动化测试目录文档：
+  - `docs/internal/automation-test-catalog.md`
 - 后端已覆盖主模块 API 冒烟与扩展兼容接口
-- 前端已覆盖真实浏览器原子交互与扩展交互
+- 前端已覆盖真实浏览器原子交互、扩展交互和复杂多步骤用户旅程
 
 ## 后端解耦进展
 
@@ -140,6 +145,7 @@
 - 继续第二轮后端深度拆分
 - 保持 `complete-feature-list` 与验证矩阵同步
 - 固化浏览器验证的稳定运行面
+- 维持 `verify-all.sh` 作为提交前统一准入入口
 
 ### 第二优先级
 - 引入数据库迁移

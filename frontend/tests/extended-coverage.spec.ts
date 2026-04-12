@@ -5,6 +5,7 @@ const advancedQuestion = `扩展问题中心问题 ${runId}`;
 const discussionMessage = `扩展讨论消息 ${runId}`;
 const liveMaterialName = `live-share-${runId}.txt`;
 const TOKEN_KEY = "hit-agent-token";
+const API_PORT = process.env.PLAYWRIGHT_API_PORT || "8000";
 
 async function waitForAuthEntry(page: Page) {
   const loginButton = page.getByRole("button", { name: /^(登录|Log In)$/ });
@@ -56,9 +57,9 @@ async function logout(page: Page) {
 
 async function fetchApi<T>(page: Page, path: string): Promise<T> {
   return page.evaluate(
-    async ({ apiPath, tokenKey }) => {
+    async ({ apiPath, tokenKey, apiPort }) => {
       const token = window.localStorage.getItem(tokenKey) || "";
-      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:8000${apiPath}`, {
+      const response = await fetch(`${window.location.protocol}//${window.location.hostname}:${apiPort}${apiPath}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!response.ok) {
@@ -66,7 +67,7 @@ async function fetchApi<T>(page: Page, path: string): Promise<T> {
       }
       return response.json();
     },
-    { apiPath: path, tokenKey: TOKEN_KEY },
+    { apiPath: path, tokenKey: TOKEN_KEY, apiPort: API_PORT },
   );
 }
 

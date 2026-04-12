@@ -1,10 +1,11 @@
 # HIT-Agent Complete Feature Verification Matrix
 
-Updated 2026-04-12 after rerunning the stable frontend and backend verification stacks.
+Updated 2026-04-12 after rerunning the unified frontend and backend verification stack.
 
 ## Verification Batch
 
-- Frontend live browser batch: `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts` -> `8 passed`
+- One-key verification: `bash scripts/verify-all.sh` -> passed
+- Frontend live browser batch: `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts` -> `10 passed`
 - Frontend lint batch: `npm run lint` -> passed
 - Frontend build batch: `npm run build` -> passed
 - Backend API batch: `pytest -q` -> `13 passed`

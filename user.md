@@ -48,8 +48,11 @@
   - `cd frontend && npm run build`
 - 浏览器回归：
   - `cd frontend && npm run test:e2e -- <args>`
+- 一键全量验证：
+  - `cd /home/hxfeng/fhx-hit-agent && bash scripts/verify-all.sh`
 - 当前 HPC 上更稳定的浏览器验证面是“生产模式前端服务 + Playwright runner”。
 - 如需严格复现当前稳定验证结果，优先让前端以 `next start` 运行在 `3000` 端口后再执行 `npm run test:e2e`。
+- `scripts/verify-all.sh` 会自动选择空闲验证端口，并在拉起后端时同步传递 `FRONTEND_PORT`，避免独立端口下的 CORS 问题。
 
 ### 一键启动
 - 服务器上一条命令启动前后端：

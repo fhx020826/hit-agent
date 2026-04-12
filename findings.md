@@ -218,6 +218,33 @@
   - `asg-15cdce5b`
   - `sub-e70264fd`
   - `survey-99ce6195`
+
+### 2026-04-12 统一验证入口与复杂旅程回归
+- 新增统一验证脚本：
+  - `scripts/verify-all.sh`
+- 新增复杂浏览器旅程回归：
+  - `frontend/tests/user-journeys.spec.ts`
+- 新增自动化测试目录文档：
+  - `docs/internal/automation-test-catalog.md`
+- 一键全量验证已通过：
+  - `bash scripts/verify-all.sh`
+  - 结果：
+    - `pytest -q` -> `13 passed`
+    - `npm run lint` -> 通过
+    - `npm run build` -> 通过
+    - `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts` -> `10 passed`
+
+### 2026-04-12 验证脚本中暴露并修复的真实问题
+- 初版 `verify-all.sh` 默认使用 `3100/8100` 作为独立验证端口，但 HPC 上历史进程占用了 `3100`。
+- 修复方式：
+  - 脚本改为自动向上寻找空闲端口，而不是直接失败。
+- 初版 `verify-all.sh` 拉起后端时没有同步注入 `FRONTEND_PORT`。
+- 影响：
+  - 后端 CORS 仍只按默认 `3000` 放行，导致独立端口前端在真实浏览器里注册/登录请求被浏览器拦截，表现为 `Failed to fetch`。
+- 修复方式：
+  - 启动 `uvicorn` 时显式传入 `FRONTEND_PORT=<selected frontend port>`。
+- 结论：
+  - 当前一键验证链路已能在独立端口环境下稳定完成真实浏览器全量回归。
   - `req-57da28c5`
 - 关键结果：
   - 教师通知数：`1`

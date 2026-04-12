@@ -1,7 +1,7 @@
 # Work Log
 
 ## 当前阶段
-第二轮后端深度拆分完成，当前进入“保持大文件继续瘦身 + 稳定回归面固化”阶段。
+第二轮后端深度拆分完成，且“统一全量验证入口 + 复杂用户旅程回归 + 自动化测试目录文档”已经补齐，当前进入“继续后端深拆与保持验证门禁稳定”阶段。
 
 ## 本轮完成
 
@@ -59,6 +59,9 @@
 
 ### 自动化验证
 本轮最新通过结果：
+- 一键全量：
+  - `bash scripts/verify-all.sh`
+  - 通过
 - 后端：
   - `cd backend && pytest -q`
   - `13 passed`
@@ -69,12 +72,26 @@
   - `cd frontend && npm run build`
   - 通过
 - 浏览器：
-  - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts`
-  - `8 passed`
+  - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts`
+  - `10 passed`
 - 服务运行面：
   - 前端生产模式 `next start` 运行在 `3000`
   - 后端 `uvicorn app.main:app --host 0.0.0.0 --port 8000` 运行在 `8000`
   - `GET /api/health` 返回 `{"status":"ok","version":"0.8.0"}`
+
+### 新增自动化能力
+- 新增统一验证脚本：
+  - `scripts/verify-all.sh`
+- 新增复杂浏览器旅程回归：
+  - `frontend/tests/user-journeys.spec.ts`
+- 新增自动化测试目录文档：
+  - `docs/internal/automation-test-catalog.md`
+- 为 Playwright API 直连增加动态端口支持：
+  - `frontend/tests/extended-coverage.spec.ts`
+  - `frontend/tests/user-journeys.spec.ts`
+- `verify-all.sh` 已处理两个真实工程问题：
+  - 自动寻找空闲验证端口，避免与常驻服务冲突
+  - 启动后端时同步注入 `FRONTEND_PORT`，避免独立端口下的 CORS 拦截
 
 ## 当前判断
 - 代码级功能清单和真实验证矩阵已经形成，后续不再需要凭印象补测。
@@ -84,10 +101,10 @@
 
 ## 进行中
 - 更新过时文档到当前真实状态
-- 准备提交并推送“第二轮后端拆分 + 全量稳定验证”这一轮成果
+- 准备提交并推送“统一验证入口 + 用户旅程回归 + 自动化目录文档”这一轮成果
 
 ## 下一步
-- 提交并推送本轮第二轮重构成果
+- 提交并推送本轮统一验证与回归增强成果
 - 继续评估 `materials.py`、`discussion.py` 的第三轮拆分
 - 视需要补数据库迁移、日志与可观测性基线
 
