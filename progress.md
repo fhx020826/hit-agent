@@ -38,13 +38,9 @@
 - 已完成第一优先级中的第 2 项的最小版本：
   - 新增后端最小冒烟测试
   - `pytest -q` 通过（4 passed）
-- 已补充内部功能测试基线文档：
-  - `docs/internal/internal-feature-test-matrix.md`
-  - 已覆盖认证、资料、问答、讨论、作业、反馈、管理员等真实功能
-  - 已按 P0 / P1 / P2 标注后续自动化优先级
-- 已补充新对话交接 Prompt 文档：
-  - `docs/internal/new-session-handoff-prompt.md`
-  - 可直接复制到下一轮对话继续推进测试与开发
+- 已补充内部功能测试基线文档，后续已被完整文档覆盖：
+  - 当前保留的完整功能清单：`docs/internal/complete-feature-list.md`
+  - 当前保留的完整验证矩阵：`docs/internal/complete-feature-verification-matrix.md`
 
 ### 关键命令
 - 代理验证：
@@ -78,8 +74,7 @@
   - 发布作业并完成学生提交
   - 创建匿名反馈实例并完成学生提交
   - 创建资料请求并查看教师通知
-- 新增内部测试结果记录：
-  - `docs/internal/internal-test-results-2026-04-11.md`
+- 形成阶段性内部测试记录，后续结果已并入 `findings.md`、`work.md` 与完整验证矩阵
 
 ### 当前进行中
 - 同步项目维护文档

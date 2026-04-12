@@ -256,7 +256,8 @@ npm run dev
 - 数据结构：`docs/data-model/schema-overview.md`
 - 用户手册：`docs/user-guide/`
 - 管理员维护：`docs/admin/admin-maintenance-guide.md`
-- 更新记录：`docs/changelog/current-updates.md`
+- 完整功能清单：`docs/internal/complete-feature-list.md`
+- 完整验证矩阵：`docs/internal/complete-feature-verification-matrix.md`
 
 ## 当前边界说明
 以下能力在当前版本中已经接入基础流程，但仍保留扩展空间，文档中也会据实说明：

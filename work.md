@@ -90,3 +90,19 @@
 - 提交并推送本轮第二轮重构成果
 - 继续评估 `materials.py`、`discussion.py` 的第三轮拆分
 - 视需要补数据库迁移、日志与可观测性基线
+
+## 文档清理
+- 已识别并清理过时或重复的交接/阶段性文档：
+  - 旧交接 prompt
+  - 旧完整交接快照
+  - 旧浏览器测试中断 handoff
+  - 旧阶段性内部测试结果
+  - 早期功能测试矩阵
+  - 旧的当前更新摘要
+- 当前应以以下文档为准：
+  - `project.md`
+  - `work.md`
+  - `progress.md`
+  - `findings.md`
+  - `docs/internal/complete-feature-list.md`
+  - `docs/internal/complete-feature-verification-matrix.md`

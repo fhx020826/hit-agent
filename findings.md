@@ -121,7 +121,9 @@
 
 ### 2026-04-11 内部功能测试基线
 - 已新增内部文档：
-  - `docs/internal/internal-feature-test-matrix.md`
+  - 当前完整保留版本为：
+    - `docs/internal/complete-feature-list.md`
+    - `docs/internal/complete-feature-verification-matrix.md`
 - 该文档已基于真实代码与现有说明文档梳理当前实现功能，覆盖：
   - 认证与账号体系
   - 个人资料与外观设置
