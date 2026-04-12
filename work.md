@@ -1,9 +1,32 @@
 # Work Log
 
 ## 当前阶段
-首轮后端解耦收尾、警告清零与验证基线固化阶段。下一步将进入第二轮后端深度拆分。
+第二轮后端深度拆分完成，当前进入“保持大文件继续瘦身 + 稳定回归面固化”阶段。
 
 ## 本轮完成
+
+### 第二轮后端拆分
+- 完成 Pydantic schema 第二轮拆分：
+  - `backend/app/models/common.py`
+  - `backend/app/models/auth.py`
+  - `backend/app/models/people.py`
+  - `backend/app/models/courses.py`
+  - `backend/app/models/materials.py`
+  - `backend/app/models/discussion.py`
+  - `backend/app/models/qa.py`
+  - `backend/app/models/assignments.py`
+  - `backend/app/models/feedback.py`
+- `backend/app/models/schemas.py` 已改为兼容 facade
+- 完成 SQLAlchemy ORM 模型第二轮拆分：
+  - `backend/app/db/models_people.py`
+  - `backend/app/db/models_courses.py`
+  - `backend/app/db/models_discussion.py`
+  - `backend/app/db/models_qa.py`
+  - `backend/app/db/models_assignments.py`
+  - `backend/app/db/models_feedback.py`
+  - `backend/app/db/models_materials.py`
+- `backend/app/db/models.py` 已改为兼容 facade
+- 将 `backend/app/routes/qa.py` 中的问答展示/序列化 helper 下沉到 `backend/app/services/qa_service.py`
 
 ### 后端结构
 - 完成第一轮后端模块化拆分：
@@ -25,6 +48,7 @@
   - 修正 `AuthModal` 成功路径下卸载后继续 `setState` 的浏览器 warning
 - 增加 `test:e2e` 脚本，统一 Playwright 运行入口
 - 修正原子/扩展测试中的认证等待、logout 稳定性和选择器歧义问题
+- 为前端 API 请求增加超时保护，避免首页身份识别因悬挂请求长期停在加载态
 
 ### 功能文档与验证文档
 - 形成代码对齐的完整功能清单：
@@ -47,18 +71,22 @@
 - 浏览器：
   - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts`
   - `8 passed`
+- 服务运行面：
+  - 前端生产模式 `next start` 运行在 `3000`
+  - 后端 `uvicorn app.main:app --host 0.0.0.0 --port 8000` 运行在 `8000`
+  - `GET /api/health` 返回 `{"status":"ok","version":"0.8.0"}`
 
 ## 当前判断
 - 代码级功能清单和真实验证矩阵已经形成，后续不再需要凭印象补测。
 - 当前项目的主要短板已从“没有自动化”转变为“需要继续把大文件拆薄、把迁移和可观测性补上”。
 - 浏览器自动化在这台 HPC 上可以跑通，但稳定验证面应优先使用生产模式前端。
-- 后端首轮解耦已经明显降低了核心单文件风险，但 `schemas.py` 与几个大路由仍然需要第二轮处理。
+- 第二轮已经把 schema、ORM 模型与 QA 路由进一步拆薄，后续重点收敛到 `materials.py`、`discussion.py` 等剩余大路由。
 
 ## 进行中
 - 更新过时文档到当前真实状态
-- 准备提交并推送“首轮重构 + 警告修复 + 完整验证文档”这一大轮成果
+- 准备提交并推送“第二轮后端拆分 + 全量稳定验证”这一轮成果
 
 ## 下一步
-- 提交并推送本轮基线
-- 继续第二轮后端深度拆分
-- 第二轮完成后再跑一轮全量验证并重启服务
+- 提交并推送本轮第二轮重构成果
+- 继续评估 `materials.py`、`discussion.py` 的第三轮拆分
+- 视需要补数据库迁移、日志与可观测性基线

@@ -277,3 +277,36 @@
 - `frontend/test-results/` 属于纯运行产物，不应提交。
 - `backend/.pytest_cache` 也应视为本地产物。
 - 当前已把这些路径加入 `.gitignore`。
+
+## 2026-04-12 第二轮深度拆分补充
+
+### 后端模块化
+- `backend/app/models/schemas.py` 已完成按领域拆分，并以 facade 保持原导入兼容。
+- `backend/app/db/models.py` 已完成按领域拆分，并以 facade 保持原导入兼容。
+- `backend/app/routes/qa.py` 中的序列化与 presenter helper 已下沉到 `backend/app/services/qa_service.py`。
+- 当前后端最大剩余结构热点主要集中在：
+  - `backend/app/routes/materials.py`
+  - `backend/app/routes/discussion.py`
+
+### 前端稳定性
+- 在 `frontend/src/lib/api.ts` 为请求层增加了超时保护。
+- 该修正的目标不是改变业务行为，而是避免鉴权初始化或文件请求在异常情况下长时间悬挂，拖住页面状态切换。
+
+### 最新全量验证
+- 在最新代码版本上重新启动服务后执行：
+  - `cd backend && pytest -q`
+  - `cd frontend && npm run lint`
+  - `cd frontend && npm run build`
+  - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts`
+- 最新结果：
+  - 后端：`13 passed`
+  - 前端 lint：通过
+  - 前端 build：通过
+  - 浏览器：`8 passed`
+
+### 服务面
+- 最新验证所依赖的在线服务是本轮代码重启后的新进程：
+  - 前端生产模式：`http://127.0.0.1:3000`
+  - 后端：`http://127.0.0.1:8000`
+- 健康检查：
+  - `GET /api/health -> {"status":"ok","version":"0.8.0"}`

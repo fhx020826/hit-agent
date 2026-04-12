@@ -11,6 +11,7 @@ function getDefaultApiBase() {
 
 const RESOLVED_API_BASE = process.env.NEXT_PUBLIC_API_BASE || getDefaultApiBase();
 const TOKEN_KEY = "hit-agent-token";
+const REQUEST_TIMEOUT_MS = 10_000;
 
 export { RESOLVED_API_BASE as API_BASE, TOKEN_KEY };
 
@@ -24,6 +25,24 @@ function resolveRequestUrl(path: string) {
   return `${RESOLVED_API_BASE}${path}`;
 }
 
+function createRequestSignal(externalSignal?: AbortSignal) {
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
+
+  return {
+    signal: controller.signal,
+    cleanup: () => globalThis.clearTimeout(timeoutId),
+  };
+}
+
 async function request<T>(path: string, options?: RequestInit, auth = true): Promise<T> {
   const headers = new Headers(options?.headers || {});
   if (!(options?.body instanceof FormData)) {
@@ -33,12 +52,22 @@ async function request<T>(path: string, options?: RequestInit, auth = true): Pro
     const token = getToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
-  const res = await fetch(`${RESOLVED_API_BASE}${path}`, { ...options, headers });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `接口请求失败：${res.status}`);
+  const { signal, cleanup } = createRequestSignal(options?.signal ?? undefined);
+  try {
+    const res = await fetch(`${RESOLVED_API_BASE}${path}`, { ...options, headers, signal });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `接口请求失败：${res.status}`);
+    }
+    return res.json();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("接口请求超时，请稍后重试");
+    }
+    throw error;
+  } finally {
+    cleanup();
   }
-  return res.json();
 }
 
 async function requestBinary(path: string, options?: RequestInit, auth = true): Promise<Response> {
@@ -47,12 +76,22 @@ async function requestBinary(path: string, options?: RequestInit, auth = true): 
     const token = getToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
-  const res = await fetch(resolveRequestUrl(path), { ...options, headers });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `接口请求失败：${res.status}`);
+  const { signal, cleanup } = createRequestSignal(options?.signal ?? undefined);
+  try {
+    const res = await fetch(resolveRequestUrl(path), { ...options, headers, signal });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `接口请求失败：${res.status}`);
+    }
+    return res;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("接口请求超时，请稍后重试");
+    }
+    throw error;
+  } finally {
+    cleanup();
   }
-  return res;
 }
 
 function getFilenameFromDisposition(disposition: string | null, fallback = "download") {

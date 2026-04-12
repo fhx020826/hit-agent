@@ -10,18 +10,103 @@ from sqlalchemy.orm import Session
 
 from ..database import (
     DBAppearanceSetting,
+    DBChatSession,
     DBCourse,
     DBLessonPack,
     DBMaterial,
     DBQuestion,
     DBQuestionAttachment,
+    DBQuestionFolder,
     DBQALog,
     DBTeacherNotification,
     DBUser,
     DBUserProfile,
 )
+from ..models.schemas import ChatSessionSummary, QuestionFolderItem, QuestionRecord, UploadedAttachment
 from .llm_service import ask_course_assistant
 from .rag_service import ensure_course_chunk_index, retrieve_relevant_chunks
+
+
+def attachment_download_url(attachment_id: str) -> str:
+    return f"/api/qa/attachments/{attachment_id}/download"
+
+
+def attachment_to_schema(row: DBQuestionAttachment) -> UploadedAttachment:
+    return UploadedAttachment(
+        id=row.id,
+        file_name=row.file_name,
+        file_type=row.file_type,
+        file_size=row.file_size,
+        parse_status=row.parse_status,
+        parse_summary=row.parse_summary,
+        created_at=row.created_at,
+        download_url=attachment_download_url(row.id),
+    )
+
+
+def question_to_schema(row: DBQuestion, db: Session) -> QuestionRecord:
+    attachments = db.query(DBQuestionAttachment).filter(DBQuestionAttachment.question_id == row.id).all()
+    user = db.query(DBUser).filter(DBUser.id == row.user_id).first()
+    profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == row.user_id).first()
+    folder = db.query(DBQuestionFolder).filter(DBQuestionFolder.id == (row.folder_id or "")).first() if row.folder_id else None
+    teacher_answer_content = row.teacher_answer_content or ""
+    teacher_answer_time = row.teacher_answer_time or ""
+    if row.teacher_reply_status == "pending":
+        teacher_answer_content = ""
+        teacher_answer_time = ""
+    return QuestionRecord(
+        id=row.id,
+        session_id=row.session_id,
+        course_id=row.course_id,
+        lesson_pack_id=row.lesson_pack_id,
+        question_text=row.question_text,
+        answer_target_type=row.answer_target_type,
+        selected_model=row.selected_model,
+        anonymous=bool(row.is_anonymous),
+        status=row.status,
+        teacher_reply_status=row.teacher_reply_status,
+        ai_answer_content=row.ai_answer_content,
+        ai_answer_time=row.ai_answer_time,
+        ai_answer_sources=json.loads(row.ai_answer_sources or "[]"),
+        teacher_answer_content=teacher_answer_content,
+        teacher_answer_time=teacher_answer_time,
+        has_attachments=bool(row.has_attachments),
+        attachment_count=row.attachment_count,
+        input_mode=row.input_mode,
+        collected=bool(row.collected),
+        folder_id=row.folder_id or "",
+        folder_name=folder.name if folder else "",
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        attachment_items=[attachment_to_schema(item) for item in attachments],
+        asker_display_name="匿名学生" if bool(row.is_anonymous) else (user.display_name if user else "未知用户"),
+        asker_class_name="" if bool(row.is_anonymous) else (profile.class_name if profile else ""),
+    )
+
+
+def session_to_schema(row: DBChatSession) -> ChatSessionSummary:
+    return ChatSessionSummary(
+        id=row.id,
+        course_id=row.course_id,
+        lesson_pack_id=row.lesson_pack_id,
+        title=row.title,
+        selected_model=row.selected_model,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+def folder_to_schema(row: DBQuestionFolder, db: Session) -> QuestionFolderItem:
+    count = db.query(DBQuestion).filter(DBQuestion.user_id == row.user_id, DBQuestion.folder_id == row.id).count()
+    return QuestionFolderItem(
+        id=row.id,
+        course_id=row.course_id,
+        name=row.name,
+        description=row.description or "",
+        question_count=count,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
 
 
 def build_course_context(course_id: str, lesson_pack_id: str, db: Session) -> tuple[str, str]:

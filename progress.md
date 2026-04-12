@@ -111,7 +111,24 @@
   - `npm run lint` -> 通过
   - `npm run build` -> 通过
   - `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts` -> `8 passed`
+- 已推送首轮重构与验证基线：
+  - `b2469fe refactor: modularize backend services and stabilize verification`
+- 完成第二轮后端深度拆分：
+  - `backend/app/models/schemas.py` 拆为多个 schema 模块并保留 facade
+  - `backend/app/db/models.py` 拆为多个 ORM 模块并保留 facade
+  - `backend/app/routes/qa.py` 中的展示/序列化 helper 下沉到 `backend/app/services/qa_service.py`
+- 为前端请求层补充超时保护：
+  - `frontend/src/lib/api.ts`
+  - 用于避免首页身份识别因悬挂请求长期停在加载态
+- 使用最新代码重新启动前后端服务：
+  - 前端生产模式 `next start` -> `3000`
+  - 后端 `uvicorn` -> `8000`
+- 在最新代码与最新服务面上再次完成全量验证：
+  - `cd backend && pytest -q` -> `13 passed`
+  - `cd frontend && npm run lint` -> 通过
+  - `cd frontend && npm run build` -> 通过
+  - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts` -> `8 passed`
 
 ### 当前进行中
-- 提交并推送首轮重构与文档基线
-- 准备进入第二轮后端深度拆分
+- 更新项目维护文档
+- 准备提交并推送第二轮重构成果

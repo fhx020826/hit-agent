@@ -82,7 +82,8 @@
 
 说明：
 - 浏览器验证在当前 HPC 机器上可稳定运行。
-- 本轮稳定验证使用的是生产模式前端服务面；Next 开发服务器与 Playwright runner 在这台机器上存在不稳定组合，需要单独记录。
+- 当前稳定验证使用的是生产模式前端服务面；Next 开发服务器与 Playwright runner 在这台机器上存在不稳定组合，需要单独记录。
+- 最新一轮验证是在重启后的最新前后端服务上完成，不是基于旧进程。
 
 ### 文档与测试覆盖
 - 已有完整功能清单
@@ -108,11 +109,15 @@
   - `backend/app/services/materials_service.py`
   - `backend/app/services/qa_service.py`
 
-### 仍需第二轮继续拆分
-- `backend/app/models/schemas.py` 仍偏大
-- `backend/app/routes/qa.py` 仍偏大
+### 第二轮已完成
+- `backend/app/models/schemas.py` 已拆为按领域组织的 schema 模块，并保留兼容 facade
+- `backend/app/db/models.py` 已拆为按领域组织的 ORM 模块，并保留兼容 facade
+- `backend/app/routes/qa.py` 的展示/序列化 helper 已下沉到 `backend/app/services/qa_service.py`
+
+### 仍需后续继续拆分
 - `backend/app/routes/materials.py` 仍偏大
 - `backend/app/routes/discussion.py` 仍偏大
+- 路由层仍有一部分查询、组装和 presenter 逻辑可继续下沉
 
 ## 当前工程判断
 
@@ -125,7 +130,7 @@
 ### 主要风险
 - SQLite 仍然只是开发/演示型数据库
 - 还没有数据库迁移体系
-- 后端仍有几块大文件需要继续拆分
+- 后端仍有少数大路由需要继续拆分
 - 日志、监控、可观测性仍然偏弱
 - 当前稳定浏览器验证依赖生产模式前端；开发模式测试面还要单独收敛
 

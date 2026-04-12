@@ -21,8 +21,6 @@ from ..database import (
     DBQALog,
     DBTeacherNotification,
     DBChatSession,
-    DBUser,
-    DBUserProfile,
     DBWeaknessAnalysis,
     QUESTION_UPLOAD_DIR,
     get_db,
@@ -48,11 +46,15 @@ from ..security import get_current_user, require_roles
 from ..services.llm_service import extract_text_from_file, generate_weakness_analysis, list_available_models
 from ..services.qa_service import (
     build_course_context,
+    folder_to_schema,
     generate_ai_answer,
     infer_question_input_mode,
     log_ai_answer,
     notify_teachers_for_question,
+    question_to_schema,
     resolve_question_attachments,
+    session_to_schema,
+    attachment_to_schema,
     teacher_course_ids,
 )
 
@@ -60,88 +62,6 @@ router = APIRouter(prefix="/api/qa", tags=["qa"])
 
 MAX_ATTACHMENT_SIZE = 15 * 1024 * 1024
 TOTAL_ATTACHMENT_LIMIT = 50 * 1024 * 1024
-
-
-def _attachment_download_url(attachment_id: str) -> str:
-    return f"/api/qa/attachments/{attachment_id}/download"
-
-
-def _attachment_to_schema(row: DBQuestionAttachment) -> UploadedAttachment:
-    return UploadedAttachment(
-        id=row.id,
-        file_name=row.file_name,
-        file_type=row.file_type,
-        file_size=row.file_size,
-        parse_status=row.parse_status,
-        parse_summary=row.parse_summary,
-        created_at=row.created_at,
-        download_url=_attachment_download_url(row.id),
-    )
-
-
-def _question_to_schema(row: DBQuestion, db: Session) -> QuestionRecord:
-    attachments = db.query(DBQuestionAttachment).filter(DBQuestionAttachment.question_id == row.id).all()
-    user = db.query(DBUser).filter(DBUser.id == row.user_id).first()
-    profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == row.user_id).first()
-    folder = db.query(DBQuestionFolder).filter(DBQuestionFolder.id == (row.folder_id or "")).first() if row.folder_id else None
-    teacher_answer_content = row.teacher_answer_content or ""
-    teacher_answer_time = row.teacher_answer_time or ""
-    if row.teacher_reply_status == "pending":
-        teacher_answer_content = ""
-        teacher_answer_time = ""
-    return QuestionRecord(
-        id=row.id,
-        session_id=row.session_id,
-        course_id=row.course_id,
-        lesson_pack_id=row.lesson_pack_id,
-        question_text=row.question_text,
-        answer_target_type=row.answer_target_type,
-        selected_model=row.selected_model,
-        anonymous=bool(row.is_anonymous),
-        status=row.status,
-        teacher_reply_status=row.teacher_reply_status,
-        ai_answer_content=row.ai_answer_content,
-        ai_answer_time=row.ai_answer_time,
-        ai_answer_sources=json.loads(row.ai_answer_sources or "[]"),
-        teacher_answer_content=teacher_answer_content,
-        teacher_answer_time=teacher_answer_time,
-        has_attachments=bool(row.has_attachments),
-        attachment_count=row.attachment_count,
-        input_mode=row.input_mode,
-        collected=bool(row.collected),
-        folder_id=row.folder_id or "",
-        folder_name=folder.name if folder else "",
-        created_at=row.created_at,
-        updated_at=row.updated_at,
-        attachment_items=[_attachment_to_schema(item) for item in attachments],
-        asker_display_name="匿名学生" if bool(row.is_anonymous) else (user.display_name if user else "未知用户"),
-        asker_class_name="" if bool(row.is_anonymous) else (profile.class_name if profile else ""),
-    )
-
-
-def _session_to_schema(row: DBChatSession) -> ChatSessionSummary:
-    return ChatSessionSummary(
-        id=row.id,
-        course_id=row.course_id,
-        lesson_pack_id=row.lesson_pack_id,
-        title=row.title,
-        selected_model=row.selected_model,
-        created_at=row.created_at,
-        updated_at=row.updated_at,
-    )
-
-
-def _folder_to_schema(row: DBQuestionFolder, db: Session) -> QuestionFolderItem:
-    count = db.query(DBQuestion).filter(DBQuestion.user_id == row.user_id, DBQuestion.folder_id == row.id).count()
-    return QuestionFolderItem(
-        id=row.id,
-        course_id=row.course_id,
-        name=row.name,
-        description=row.description or "",
-        question_count=count,
-        created_at=row.created_at,
-        updated_at=row.updated_at,
-    )
 
 
 @router.get("/models", response_model=list[ModelOption])
@@ -183,7 +103,7 @@ def upload_question_attachments(files: list[UploadFile] = File(...), current_use
             created_at=datetime.now().isoformat(),
         )
         db.add(row)
-        result.append(_attachment_to_schema(row))
+        result.append(attachment_to_schema(row))
     db.commit()
     return result
 
@@ -203,7 +123,7 @@ def create_session(body: ChatSessionCreate, current_user: dict = Depends(require
     db.add(row)
     db.commit()
     db.refresh(row)
-    return _session_to_schema(row)
+    return session_to_schema(row)
 
 
 @router.get("/sessions", response_model=list[ChatSessionSummary])
@@ -212,7 +132,7 @@ def list_sessions(course_id: str | None = None, current_user: dict = Depends(req
     if course_id:
         query = query.filter(DBChatSession.course_id == course_id)
     rows = query.order_by(DBChatSession.updated_at.desc()).all()
-    return [_session_to_schema(row) for row in rows]
+    return [session_to_schema(row) for row in rows]
 
 
 @router.get("/sessions/{session_id}", response_model=ChatSessionDetail)
@@ -223,8 +143,8 @@ def get_session(session_id: str, current_user: dict = Depends(get_current_user),
     if current_user["role"] == "student" and session.user_id != current_user["id"]:
         raise HTTPException(status_code=403, detail="无权访问该会话")
     questions = db.query(DBQuestion).filter(DBQuestion.session_id == session_id).order_by(DBQuestion.created_at.asc()).all()
-    payload = _session_to_schema(session).model_dump()
-    payload["questions"] = [_question_to_schema(row, db) for row in questions]
+    payload = session_to_schema(session).model_dump()
+    payload["questions"] = [question_to_schema(row, db) for row in questions]
     return ChatSessionDetail(**payload)
 
 
@@ -234,7 +154,7 @@ def list_question_folders(course_id: str | None = None, current_user: dict = Dep
     if course_id:
         query = query.filter(DBQuestionFolder.course_id == course_id)
     rows = query.order_by(DBQuestionFolder.updated_at.desc()).all()
-    return [_folder_to_schema(row, db) for row in rows]
+    return [folder_to_schema(row, db) for row in rows]
 
 
 @router.post("/folders", response_model=QuestionFolderItem)
@@ -253,7 +173,7 @@ def create_question_folder(body: QuestionFolderCreate, current_user: dict = Depe
     db.add(row)
     db.commit()
     db.refresh(row)
-    return _folder_to_schema(row, db)
+    return folder_to_schema(row, db)
 
 
 @router.put("/folders/{folder_id}", response_model=QuestionFolderItem)
@@ -268,7 +188,7 @@ def update_question_folder(folder_id: str, body: QuestionFolderUpdate, current_u
     row.updated_at = datetime.now().isoformat()
     db.commit()
     db.refresh(row)
-    return _folder_to_schema(row, db)
+    return folder_to_schema(row, db)
 
 
 @router.delete("/folders/{folder_id}")
@@ -394,7 +314,7 @@ def ask_question(body: StudentQuestionCreate, current_user: dict = Depends(requi
 
     db.commit()
     db.refresh(row)
-    return _question_to_schema(row, db)
+    return question_to_schema(row, db)
 
 
 @router.get("/history", response_model=list[QuestionRecord])
@@ -413,7 +333,7 @@ def list_question_history(
     if collected_only:
         query = query.filter(DBQuestion.collected == 1)
     rows = query.order_by(DBQuestion.updated_at.desc()).all()
-    return [_question_to_schema(row, db) for row in rows]
+    return [question_to_schema(row, db) for row in rows]
 
 
 @router.post("/questions/{question_id}/collect")
@@ -445,7 +365,7 @@ def assign_question_folder(question_id: str, body: QuestionFolderAssign, current
     row.updated_at = datetime.now().isoformat()
     db.commit()
     db.refresh(row)
-    return _question_to_schema(row, db)
+    return question_to_schema(row, db)
 
 
 @router.delete("/questions/{question_id}")
@@ -526,7 +446,7 @@ def list_teacher_questions(
     if course_id:
         query = query.filter(DBQuestion.course_id == course_id)
     rows = query.order_by(DBQuestion.created_at.desc()).all()
-    return [_question_to_schema(row, db) for row in rows]
+    return [question_to_schema(row, db) for row in rows]
 
 
 @router.post("/teacher/questions/{question_id}/reply", response_model=QuestionRecord)
@@ -547,7 +467,7 @@ def teacher_reply(question_id: str, body: TeacherReplyRequest, current_user: dic
     row.updated_at = now
     db.commit()
     db.refresh(row)
-    return _question_to_schema(row, db)
+    return question_to_schema(row, db)
 
 
 @router.get("/teacher/notifications", response_model=list[TeacherNotification])

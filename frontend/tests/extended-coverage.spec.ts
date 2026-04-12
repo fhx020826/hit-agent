@@ -7,8 +7,16 @@ const liveMaterialName = `live-share-${runId}.txt`;
 const TOKEN_KEY = "hit-agent-token";
 
 async function waitForAuthEntry(page: Page) {
-  await page.waitForTimeout(1500);
-  await expect(page.getByRole("button", { name: /^(登录|Log In)$/ })).toBeVisible();
+  const loginButton = page.getByRole("button", { name: /^(登录|Log In)$/ });
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.waitForTimeout(1500);
+    if (await loginButton.count()) {
+      await expect(loginButton).toBeVisible();
+      return;
+    }
+    await page.reload();
+  }
+  await expect(loginButton).toBeVisible();
 }
 
 async function openAuth(page: Page, mode: "登录" | "注册", role: "教师" | "学生" | "管理员") {

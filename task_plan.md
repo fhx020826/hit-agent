@@ -14,9 +14,9 @@
 - [x] Phase 5: 前端真实浏览器原子与扩展回归建立
 - [x] Phase 6: 第一轮后端结构拆分
 - [x] Phase 7: 当前 warning 清零并完成最新基线验证
-- [ ] Phase 8: 提交并推送第一轮重构与验证基线
-- [ ] Phase 9: 第二轮后端深度拆分
-- [ ] Phase 10: 第二轮全量回归与服务重启
+- [x] Phase 8: 提交并推送第一轮重构与验证基线
+- [x] Phase 9: 第二轮后端深度拆分
+- [x] Phase 10: 第二轮全量回归与服务重启
 
 ## Constraints
 - 仅在 `/home/hxfeng/fhx-hit-agent` 中操作
@@ -25,5 +25,5 @@
 - 不提交运行产物、缓存、测试中间文件
 
 ## Current Focus
-- 提交当前第一轮重构成果
-- 继续拆分 `schemas.py`、`qa.py`、`materials.py`、`discussion.py`
+- 继续评估 `materials.py`、`discussion.py` 等剩余大路由的下一轮拆分方案
+- 保持浏览器生产模式验证面稳定
