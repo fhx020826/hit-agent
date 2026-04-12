@@ -1,5 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
+// 避免 Node 在同时存在 NO_COLOR 与 FORCE_COLOR 时输出无关环境警告。
+if (process.env.FORCE_COLOR && process.env.NO_COLOR) {
+  delete process.env.NO_COLOR;
+}
+
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH || "/home/hxfeng/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome";
 
 export default defineConfig({

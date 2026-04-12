@@ -45,8 +45,16 @@ from ..models.schemas import (
     WeaknessAnalysisResponse,
 )
 from ..security import get_current_user, require_roles
-from ..services.llm_service import ask_course_assistant, extract_text_from_file, generate_weakness_analysis, list_available_models
-from ..services.rag_service import ensure_course_chunk_index, retrieve_relevant_chunks
+from ..services.llm_service import extract_text_from_file, generate_weakness_analysis, list_available_models
+from ..services.qa_service import (
+    build_course_context,
+    generate_ai_answer,
+    infer_question_input_mode,
+    log_ai_answer,
+    notify_teachers_for_question,
+    resolve_question_attachments,
+    teacher_course_ids,
+)
 
 router = APIRouter(prefix="/api/qa", tags=["qa"])
 
@@ -134,48 +142,6 @@ def _folder_to_schema(row: DBQuestionFolder, db: Session) -> QuestionFolderItem:
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
-
-
-def _build_course_context(course_id: str, lesson_pack_id: str, db: Session) -> tuple[str, str]:
-    parts = []
-    course = db.query(DBCourse).filter(DBCourse.id == course_id).first()
-    if course:
-        parts.append(f"课程名称：{course.name}")
-        parts.append(f"授课对象：{course.audience}")
-        parts.append(f"课程目标：{course.objectives}")
-        parts.append(f"前沿方向：{course.frontier_direction}")
-    lesson_pack = None
-    if lesson_pack_id:
-        lesson_pack = db.query(DBLessonPack).filter(DBLessonPack.id == lesson_pack_id).first()
-    if not lesson_pack and course_id:
-        lesson_pack = db.query(DBLessonPack).filter(DBLessonPack.course_id == course_id, DBLessonPack.status == "published").order_by(DBLessonPack.created_at.desc()).first()
-    if lesson_pack:
-        payload = json.loads(lesson_pack.payload) if isinstance(lesson_pack.payload, str) else lesson_pack.payload
-        parts.append("课程包内容：" + json.dumps(payload, ensure_ascii=False))
-    materials = db.query(DBMaterial).filter(DBMaterial.course_id == course_id).all() if course_id else []
-    if materials:
-        parts.append("教学资料摘要：")
-        for item in materials[:8]:
-            if item.content:
-                parts.append(f"[{item.filename}] {item.content[:2000]}")
-            else:
-                parts.append(f"[{item.filename}] 当前仅保存文件，暂无可解析文本。")
-    return (course.name if course else "未命名课程", "\n".join(parts))
-
-
-def _teacher_course_ids(current_user: dict, db: Session) -> list[str]:
-    owned_rows = db.query(DBCourse).filter(DBCourse.owner_user_id == current_user["id"]).all()
-    profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
-    common_courses = set(json.loads(profile.common_courses_json or "[]")) if profile and profile.common_courses_json else set()
-    all_rows = db.query(DBCourse).all() if common_courses else []
-    seen: set[str] = set()
-    result: list[str] = []
-    for row in owned_rows + [item for item in all_rows if item.name in common_courses]:
-        if row.id in seen:
-            continue
-        seen.add(row.id)
-        result.append(row.id)
-    return result
 
 
 @router.get("/models", response_model=list[ModelOption])
@@ -327,29 +293,19 @@ def ask_question(body: StudentQuestionCreate, current_user: dict = Depends(requi
     if not session:
         raise HTTPException(status_code=404, detail="问答会话不存在")
 
-    attachments = []
-    total_attachment_size = 0
-    for attachment_id in body.attachment_ids:
-        row = db.query(DBQuestionAttachment).filter(DBQuestionAttachment.id == attachment_id, DBQuestionAttachment.uploader_user_id == current_user["id"]).first()
-        if not row:
-            raise HTTPException(status_code=404, detail="存在无效附件")
-        total_attachment_size += int(row.file_size or 0)
-        attachments.append(row)
-    if total_attachment_size > TOTAL_ATTACHMENT_LIMIT:
-        raise HTTPException(status_code=400, detail="附件总大小超过限制")
+    attachments = resolve_question_attachments(
+        attachment_ids=body.attachment_ids,
+        user_id=current_user["id"],
+        total_attachment_limit=TOTAL_ATTACHMENT_LIMIT,
+        db=db,
+    )
 
     now = datetime.now().isoformat()
     question_id = f"q-{uuid4().hex[:8]}"
     history_rows = db.query(DBQuestion).filter(DBQuestion.session_id == body.session_id).order_by(DBQuestion.created_at.asc()).all()
-    course_name, course_context = _build_course_context(body.course_id or session.course_id, body.lesson_pack_id or session.lesson_pack_id, db)
-    history = [{"question": row.question_text, "answer": row.ai_answer_content or row.teacher_answer_content} for row in history_rows]
+    course_name, _course_context = build_course_context(body.course_id or session.course_id, body.lesson_pack_id or session.lesson_pack_id, db)
 
-    input_mode = "text"
-    if attachments and body.question.strip():
-        input_mode = "mixed"
-    elif attachments:
-        first_type = attachments[0].file_type.lower()
-        input_mode = "image" if first_type in {".jpg", ".jpeg", ".png", ".webp"} else ("archive" if first_type in {".zip", ".rar"} else "document")
+    input_mode = infer_question_input_mode(body.question, attachments)
 
     ai_answer_content = ""
     ai_answer_sources: list[str] = []
@@ -358,41 +314,21 @@ def ask_question(body: StudentQuestionCreate, current_user: dict = Depends(requi
     teacher_reply_status = "not_requested"
 
     if body.answer_target_type in {"ai", "both"}:
-        appearance = db.query(DBAppearanceSetting).filter(DBAppearanceSetting.user_role == current_user["role"], DBAppearanceSetting.user_id == current_user["id"]).first()
-        rag_query_parts: list[str] = []
-        if body.question.strip():
-            rag_query_parts.append(body.question.strip())
-        attachment_summaries = [f"{item.file_name}: {item.parse_summary}" for item in attachments if (item.parse_summary or "").strip()]
-        if attachment_summaries:
-            rag_query_parts.append("\n".join(attachment_summaries[:4]))
-        rag_query_text = "\n".join(rag_query_parts).strip() or "课程核心概念"
-        retrieved_chunks: list[dict] = []
-        try:
-            created_chunk_count = ensure_course_chunk_index(db, body.course_id or session.course_id or "")
-            if created_chunk_count > 0:
-                db.commit()
-            retrieved_chunks = retrieve_relevant_chunks(
-                db,
-                course_id=(body.course_id or session.course_id or ""),
-                query_text=rag_query_text,
-                top_k=6,
-            )
-        except Exception:
-            retrieved_chunks = []
-        ai_payload = ask_course_assistant(
-            question=body.question or "请结合上传附件帮我理解这份资料。",
-            course_name=course_name,
-            course_context=course_context,
-            history=history,
-            attachment_contexts=[{"file_name": item.file_name, "file_type": item.file_type, "file_path": item.file_path, "parse_summary": item.parse_summary} for item in attachments],
-            retrieved_chunks=retrieved_chunks,
-            model_key=body.selected_model or session.selected_model or "default",
-            language=(appearance.language if appearance and appearance.language else "zh-CN"),
+        ai_payload = generate_ai_answer(
+            question_text=body.question,
+            course_id=body.course_id or session.course_id or "",
+            lesson_pack_id=body.lesson_pack_id or session.lesson_pack_id or "",
+            selected_model=body.selected_model or session.selected_model or "default",
+            current_user=current_user,
+            history_rows=history_rows,
+            attachments=attachments,
+            db=db,
         )
+        course_name = ai_payload["course_name"]
         ai_answer_content = ai_payload["answer"]
         ai_answer_sources = ai_payload["sources"]
         ai_answer_time = now
-        body.selected_model = ai_payload.get("used_model_key") or body.selected_model
+        body.selected_model = ai_payload["used_model_key"] or body.selected_model
         status = "ai_answered" if body.answer_target_type == "ai" else "teacher_pending"
 
     if body.answer_target_type in {"teacher", "both"}:
@@ -434,42 +370,27 @@ def ask_question(body: StudentQuestionCreate, current_user: dict = Depends(requi
     session.selected_model = body.selected_model or session.selected_model
 
     if ai_answer_content:
-        profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
-        db.add(DBQALog(
+        log_ai_answer(
             lesson_pack_id=body.lesson_pack_id or session.lesson_pack_id or "",
-            student_id=current_user["id"],
-            student_name="匿名学生" if body.anonymous else current_user["display_name"],
-            student_grade="" if body.anonymous or not profile else profile.grade,
-            student_major="" if body.anonymous or not profile else profile.major,
-            student_gender="" if body.anonymous or not profile else profile.gender,
-            is_anonymous=1 if body.anonymous else 0,
-            question=body.question or "附件问答",
-            answer=ai_answer_content,
-            in_scope=1,
+            current_user=current_user,
+            anonymous=body.anonymous,
+            question_text=body.question,
+            answer_text=ai_answer_content,
             created_at=now,
-        ))
+            db=db,
+        )
 
     if body.answer_target_type in {"teacher", "both"}:
-        course = db.query(DBCourse).filter(DBCourse.id == (body.course_id or session.course_id)).first()
-        teachers = []
-        if course and course.owner_user_id:
-            owner = db.query(DBUser).filter(DBUser.id == course.owner_user_id, DBUser.role == "teacher", DBUser.status == "active").first()
-            if owner:
-                teachers = [owner]
-        if not teachers:
-            teachers = db.query(DBUser).filter(DBUser.role == "teacher", DBUser.status == "active").all()
-        student_profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
-        for teacher in teachers:
-            db.add(DBTeacherNotification(
-                id=f"notify-{uuid4().hex[:8]}",
-                teacher_id=teacher.id,
-                message_type="question",
-                related_question_id=question_id,
-                title="收到新的学生提问",
-                content=f"课程：{course_name}；时间：{now}；身份：{'匿名学生' if body.anonymous else current_user['display_name']}；是否已由 AI 回答：{'是' if body.answer_target_type in {'ai','both'} else '否'}；班级：{'' if body.anonymous or not student_profile else student_profile.class_name}",
-                is_read=0,
-                created_at=now,
-            ))
+        notify_teachers_for_question(
+            question_id=question_id,
+            course_id=body.course_id or session.course_id or "",
+            course_name=course_name,
+            answer_target_type=body.answer_target_type,
+            anonymous=body.anonymous,
+            current_user=current_user,
+            created_at=now,
+            db=db,
+        )
 
     db.commit()
     db.refresh(row)
@@ -593,10 +514,10 @@ def list_teacher_questions(
     current_user: dict = Depends(require_roles("teacher")),
     db: Session = Depends(get_db),
 ):
-    teacher_course_ids = _teacher_course_ids(current_user, db)
-    if not teacher_course_ids:
+    teacher_course_ids_list = teacher_course_ids(current_user, db)
+    if not teacher_course_ids_list:
         return []
-    query = db.query(DBQuestion).filter(DBQuestion.course_id.in_(teacher_course_ids))
+    query = db.query(DBQuestion).filter(DBQuestion.course_id.in_(teacher_course_ids_list))
     if status:
         if status in {"pending", "replied", "closed"}:
             query = query.filter(DBQuestion.teacher_reply_status == status)
@@ -610,8 +531,8 @@ def list_teacher_questions(
 
 @router.post("/teacher/questions/{question_id}/reply", response_model=QuestionRecord)
 def teacher_reply(question_id: str, body: TeacherReplyRequest, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
-    teacher_course_ids = _teacher_course_ids(current_user, db)
-    row = db.query(DBQuestion).filter(DBQuestion.id == question_id, DBQuestion.course_id.in_(teacher_course_ids)).first()
+    teacher_course_ids_list = teacher_course_ids(current_user, db)
+    row = db.query(DBQuestion).filter(DBQuestion.id == question_id, DBQuestion.course_id.in_(teacher_course_ids_list)).first()
     if not row:
         raise HTTPException(status_code=404, detail="问题不存在")
     now = datetime.now().isoformat()

@@ -41,6 +41,16 @@
   - `next: not found`
   - `npm ls next` 显示 `invalid`
 
+### 前端验证
+- lint：
+  - `cd frontend && npm run lint`
+- build：
+  - `cd frontend && npm run build`
+- 浏览器回归：
+  - `cd frontend && npm run test:e2e -- <args>`
+- 当前 HPC 上更稳定的浏览器验证面是“生产模式前端服务 + Playwright runner”。
+- 如需严格复现当前稳定验证结果，优先让前端以 `next start` 运行在 `3000` 端口后再执行 `npm run test:e2e`。
+
 ### 一键启动
 - 服务器上一条命令启动前后端：
   - `bash scripts/dev-up.sh`
@@ -53,7 +63,7 @@
 ### 后端测试
 - 安装测试依赖：
   - `pip install -r backend/requirements-dev.txt`
-- 运行最小后端冒烟测试：
+- 运行当前后端全量测试：
   - `cd backend && pytest -q`
 
 ## 已确认的环境坑位

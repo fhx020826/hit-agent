@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth-provider";
@@ -41,6 +41,7 @@ export default function SettingsPage() {
   const { user, loading, logout } = useAuth();
   const { language, setLanguage } = useLanguage();
   const [appearance, setAppearance] = useState({ mode: "day", accent: "blue", font: "default", skin: "clean", language: "zh-CN" });
+  const hasUnsavedAppearanceEditsRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [passwordForm, setPasswordForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
@@ -54,9 +55,14 @@ export default function SettingsPage() {
   }, [loading, router, user]);
 
   useEffect(() => {
+    hasUnsavedAppearanceEditsRef.current = false;
+  }, [user]);
+
+  useEffect(() => {
     if (!user) return;
     api.getMyAppearance()
       .then((result) => {
+        if (hasUnsavedAppearanceEditsRef.current) return;
         const next = { mode: result.mode, accent: result.accent, font: result.font, skin: result.skin, language: result.language || "zh-CN" };
         setAppearance(next);
         applyAppearance(next);
@@ -71,6 +77,7 @@ export default function SettingsPage() {
   }
 
   const updateAppearance = (key: "mode" | "accent" | "font" | "skin" | "language", value: string) => {
+    hasUnsavedAppearanceEditsRef.current = true;
     const next = { ...appearance, [key]: value };
     setAppearance(next);
     applyAppearance(next);

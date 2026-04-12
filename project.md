@@ -1,7 +1,7 @@
 # Project Overview
 
 ## 项目定位
-该仓库是一个“面向前沿学科的智能教学平台”，核心是教师教学全流程辅助，学生端围绕课程专属 AI 助教、作业、资料与反馈展开。项目当前已经不只是原型界面，而是包含真实前后端代码、账号体系、资料管理、问答链路与基础 RAG 能力的可运行系统。
+`fhx-hit-agent` 已经不是单纯原型，而是一个可运行的“面向前沿学科的智能教学平台”。核心目标是把教师的课程设计、资料更新、课堂互动、作业闭环和反馈分析放到同一套前后端系统里，学生端则围绕课程专属 AI 助教、资料、作业、反馈和讨论空间展开。
 
 ## 当前技术架构
 
@@ -10,132 +10,141 @@
 - React 19
 - TypeScript
 - App Router
-- Markdown / 数学公式渲染
+- Playwright 浏览器自动化
 
 ### 后端
 - FastAPI
 - SQLAlchemy
 - SQLite
-- `httpx` 调用外部模型接口
-- `pypdf` 解析 PDF 文本
+- `httpx`
+- `pypdf`
 
-## 当前完成情况
+### 本地运行与协作
+- 独立 conda 环境：`fhx-hit-agent`
+- 一键脚本：
+  - `scripts/dev-up.sh`
+  - `scripts/dev-down.sh`
+  - `scripts/dev-status.sh`
+- 双 remote：
+  - `origin=https://github.com/fhx020826/hit-agent.git`
+  - `upstream=https://github.com/wishmyself/hit-agent.git`
 
-### 已较完整落地的部分
-- 统一登录注册与角色化首页
-- 教师端 / 学生端 / 管理员端页面体系
-- 课程、课程包、问答会话、问题记录等核心数据链路
-- 课程资料上传与共享
-- 学生提问到 AI / 教师 / 双通道处理
-- 讨论空间与讨论消息结构
-- 课程资料分块、关键词召回、向量召回、RAG 融合检索
-- 多模型配置与模型列表下发
-- 基础管理员用户管理
-- README 和 docs 与当前实现对齐程度较高
-- 已建立内部功能盘点文档，可作为测试基线：
-  - `docs/internal/internal-feature-test-matrix.md`
+## 当前真实已实现能力
 
-### 已实现但还偏“工程初版”的部分
-- embedding 回填与重试机制已接入，但缺少更完整的可观测性
-- 教学分析、薄弱点分析、资料解析等能力已有链路，但深度与稳定性仍需结合真实场景验证
-- 前端页面数量已较多，但仓库内未看到统一的组件边界治理或系统化页面测试
+### 教师端
+- 课程创建与课程画像填写
+- 课程包生成、查看、发布
+- AI 助教配置
+- 教学资料上传、共享、资料请求处理
+- 课堂同步展示与实时批注
+- PPT / 教案更新建议与回退预览
+- 作业发布、学生提交查看、AI 辅助批改预览
+- 学生提问中心、通知、回复、状态流转
+- 匿名问卷触发与反馈分析
+- 课程讨论空间
 
-### 暂未看到的关键工程能力
-- 自动化测试体系
-- 数据库迁移体系
-- 明确的环境配置模板文件
-- CI/CD 或部署脚本
-- 结构化日志与监控
-- 权限/安全审计类文档
+### 学生端
+- 课程专属 AI 助教问答
+- 多轮会话、问题历史、收藏、文件夹归档
+- 问答附件上传
+- 课堂共享资料查看与资料请求
+- 作业确认、提交、重提、下载
+- 匿名课堂反馈提交与跳过
+- 薄弱点分析
+- 课程讨论空间与附件消息
+- 实时课堂同步查看
 
-## 主要工程判断
+### 管理员端
+- 用户列表、搜索、角色过滤
+- 新建用户
+- 删除用户
+- 更新用户资料
+
+### 兼容与支持接口
+- `/api/student/*`
+- `/api/users/*`
+- 资料下载、头像访问、课程详情、反馈模板等支持型接口
+
+完整代码基线文档：
+- `docs/internal/complete-feature-list.md`
+- `docs/internal/complete-feature-verification-matrix.md`
+
+## 当前工程化基线
+
+### 自动化验证
+2026-04-12 最新验证结果：
+- 后端：`cd backend && pytest -q` -> `13 passed`
+- 前端：`cd frontend && npm run lint` -> 通过
+- 前端：`cd frontend && npm run build` -> 通过
+- 浏览器原子/扩展回归：
+  - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts`
+  - 结果：`8 passed`
+
+说明：
+- 浏览器验证在当前 HPC 机器上可稳定运行。
+- 本轮稳定验证使用的是生产模式前端服务面；Next 开发服务器与 Playwright runner 在这台机器上存在不稳定组合，需要单独记录。
+
+### 文档与测试覆盖
+- 已有完整功能清单
+- 已有逐功能验证矩阵
+- 后端已覆盖主模块 API 冒烟与扩展兼容接口
+- 前端已覆盖真实浏览器原子交互与扩展交互
+
+## 后端解耦进展
+
+### 第一轮已完成
+- 数据库层已从单文件拆为：
+  - `backend/app/db/paths.py`
+  - `backend/app/db/session.py`
+  - `backend/app/db/models.py`
+  - `backend/app/db/bootstrap.py`
+- `backend/app/database.py` 保留为兼容导出 facade
+- LLM 服务已拆为：
+  - `backend/app/services/llm_runtime.py`
+  - `backend/app/services/file_extractors.py`
+  - `backend/app/services/llm_generation.py`
+- `backend/app/services/llm_service.py` 保留为兼容 facade
+- 已抽出：
+  - `backend/app/services/materials_service.py`
+  - `backend/app/services/qa_service.py`
+
+### 仍需第二轮继续拆分
+- `backend/app/models/schemas.py` 仍偏大
+- `backend/app/routes/qa.py` 仍偏大
+- `backend/app/routes/materials.py` 仍偏大
+- `backend/app/routes/discussion.py` 仍偏大
+
+## 当前工程判断
 
 ### 优点
-- 产品闭环比一般比赛原型完整，教师端与学生端功能链条清晰。
-- README、产品文档、更新记录与真实代码的一致性意识较强。
-- RAG、模型选择、附件上传、课程资料共享等模块已不是空壳。
-- 前端页面覆盖较广，适合继续做演示与迭代。
+- 功能闭环完整，教师与学生两端都不是空壳页面
+- 真实后端数据链路齐全
+- 浏览器自动化与 API 自动化都已建立
+- 文档开始从“功能概述”进化为“代码对齐 + 验证对齐”
 
 ### 主要风险
-- 后端数据模型全部堆在 `backend/app/database.py`，继续扩张后维护成本会明显升高。
-- SQLite 适合当前开发演示，但不适合更高并发和更复杂运维场景。
-- 缺少测试，意味着后续迭代容易引入回归。
-- 缺少迁移机制，数据库结构演化风险较高。
-- 文档虽然较多，但若后续迭代频繁，不主动清理会逐渐失真。
+- SQLite 仍然只是开发/演示型数据库
+- 还没有数据库迁移体系
+- 后端仍有几块大文件需要继续拆分
+- 日志、监控、可观测性仍然偏弱
+- 当前稳定浏览器验证依赖生产模式前端；开发模式测试面还要单独收敛
 
-## 当前建议的优化方向
+## 下一步优先级
 
 ### 第一优先级
-- 建立最小自动化测试：
-  - 后端核心 API 冒烟测试
-  - 前端关键页面渲染 / 交互测试
-- 建立数据库迁移机制
-- 梳理环境变量模板与本地启动脚本
+- 继续第二轮后端深度拆分
+- 保持 `complete-feature-list` 与验证矩阵同步
+- 固化浏览器验证的稳定运行面
 
 ### 第二优先级
-- 拆分后端数据模型与服务边界
-- 增强日志、错误追踪、外部模型调用观测
-- 对 RAG 检索效果和资料解析质量建立验证样例
+- 引入数据库迁移
+- 增强日志与错误追踪
+- 继续薄化路由层，提升服务层聚合度
 
 ### 第三优先级
-- 统一前端组件设计与状态管理边界
-- 梳理上传文件、缓存文件、历史结果的清理机制
-- 为部署、演示、维护建立更精简的运维文档
+- 梳理部署面与运行模式
+- 清理冗余 handoff / 中间文档
+- 继续扩大前端回归覆盖面
 
-## 本轮结论
-当前项目已经具备“可运行 + 有真实业务链路 + 文档较齐”的基础，完成度明显高于单纯原型；但从“持续开发的工程项目”角度看，测试、迁移、环境管理与可维护性仍是最值得优先补强的部分。
-
-## 当前环境验证
-- 后端依赖已在 `fhx-hit-agent` conda 环境中安装完成。
-- 最小导入检查通过：
-  - `from app.main import app`
-  - `from app.services.llm_service import list_available_models`
-  - `from app.services.rag_service import split_chunks`
-- 当前 `list_available_models()` 返回 `0`，说明本地开发环境尚未配置模型相关 API Key，这属于配置状态，不是代码导入错误。
-
-## 当前协作方式
-- 已保留双 remote：
-  - `origin` 指向个人协作仓库 `fhx020826/hit-agent`
-  - `upstream` 指向原始仓库 `wishmyself/hit-agent`
-- 当前仓库适合采用“个人协作仓库提交 + 上游仓库持续同步”的模式。
-- 相关流程文档见：
-  - `docs/admin/hpc-collaboration-and-access.md`
-
-## 当前测试文档基线
-- 当前内部功能清单与人工测试基线见：
-  - `docs/internal/internal-feature-test-matrix.md`
-- 该文档已经把真实功能按：
-  - 页面入口
-  - 关键 API
-  - 人工测试点
-  - 自动化优先级
-进行了整理，后续应以此为准继续扩展测试，而不是凭印象补测。
-
-## 当前验证状态（2026-04-11）
-
-### 后端自动化
-- 后端测试已从最小 4 条冒烟扩展到 9 条稳定通过。
-- 当前命令：
-  - `cd backend && pytest -q`
-- 当前结果：
-  - `9 passed, 2 warnings`
-
-### 在线服务
-- 后端健康检查在线：
-  - `http://127.0.0.1:8000/api/health`
-- 前端关键页面当前均可达：
-  - 首页、教师端、学生端、管理员页、资料页、讨论页、作业页等均返回 `HTTP 200`
-
-### 真实链路
-- 已在在线服务上完成一条真实教师/学生时序链路：
-  - 注册
-  - 课程创建
-  - 课程包生成与发布
-  - 学生问答
-  - 作业发布与提交
-  - 匿名反馈创建与提交
-  - 资料请求与教师通知查看
-
-### 当前剩余限制
-- 前端 DOM 级自动化暂未完成。
-- 原因不是业务代码报错，而是当前机器缺少 Playwright 依赖的 `chrome` 可执行文件。
+## 当前结论
+从功能完整性和验证基线看，项目已经具备较强的发布前检查基础；从持续迭代能力看，后端结构优化和迁移/可观测性建设仍是下一阶段重点。

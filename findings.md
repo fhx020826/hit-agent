@@ -221,3 +221,59 @@
   - 教师通知数：`1`
   - 教师视角已提交学生数：`1`
   - 反馈参与人数：`1`
+
+## 2026-04-12 重构与验证补充
+
+### 后端 warning
+- FastAPI 的 `@app.on_event("startup")` 已替换为 lifespan。
+- 最新结果：
+  - `cd backend && pytest -q`
+  - `13 passed`
+  - 当前不再有 pytest warning
+
+### 前端 warning 与稳定验证面
+- `npm run lint` 已无 warning / error。
+- `npm run build` 通过。
+- `next dev` 下的工作区 warning 已通过：
+  - `next dev --webpack`
+  - `outputFileTracingRoot`
+ 处理掉。
+- 结论：
+  - 当前 HPC 上浏览器自动化可用；
+  - 但稳定的 Playwright 证据面优先使用生产模式前端，而不是 Next 开发服务器。
+
+### 真实浏览器回归
+- 最新浏览器回归命令：
+  - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts`
+- 最新结果：
+  - `8 passed`
+- 本轮对测试本身做了稳定性修正：
+  - 认证入口等待
+  - logout 确认 token 已清空
+  - 登录 helper 显式等待 token 与角色跳转
+  - 宽泛文本选择器改为稳定 role selector
+
+### 真实前端问题
+- `frontend/src/components/auth-modal.tsx` 成功登录/注册后存在组件关闭边界下继续 `setState` 的浏览器 warning。
+- 已修复为：
+  - 成功路径只关闭 modal 并跳转
+  - 不再在成功后的卸载边界继续更新本地状态
+
+### 后端解耦状态
+- 已完成：
+  - `backend/app/db/*`
+  - `backend/app/services/llm_runtime.py`
+  - `backend/app/services/file_extractors.py`
+  - `backend/app/services/llm_generation.py`
+  - `backend/app/services/materials_service.py`
+  - `backend/app/services/qa_service.py`
+- 仍偏大的文件：
+  - `backend/app/models/schemas.py`
+  - `backend/app/routes/qa.py`
+  - `backend/app/routes/materials.py`
+  - `backend/app/routes/discussion.py`
+
+### 仓库清理结论
+- `frontend/test-results/` 属于纯运行产物，不应提交。
+- `backend/.pytest_cache` 也应视为本地产物。
+- 当前已把这些路径加入 `.gitignore`。

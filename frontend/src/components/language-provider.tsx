@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
@@ -33,13 +33,22 @@ function readCachedLanguage(): LanguageCode {
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const [language, setLanguageState] = useState<LanguageCode>(readCachedLanguage);
+  const manualOverrideRef = useRef(false);
+  const sessionKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const nextSessionKey = isAuthenticated && user ? `${user.role}:${user.account}` : null;
+    if (sessionKeyRef.current === nextSessionKey) return;
+    sessionKeyRef.current = nextSessionKey;
+    manualOverrideRef.current = false;
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;
     let alive = true;
     api.getMyAppearance()
       .then((result) => {
-        if (!alive) return;
+        if (!alive || manualOverrideRef.current) return;
         setLanguageState(normalizeLanguage(result.language));
       })
       .catch(() => undefined);
@@ -49,6 +58,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, user]);
 
   const setLanguage = (nextLanguage: LanguageCode) => {
+    manualOverrideRef.current = true;
     setLanguageState(nextLanguage);
     if (typeof document === "undefined") return;
     const nextAppearance = {

@@ -23,9 +23,16 @@ const questionText = `请解释 TCP 三次握手与四次挥手的区别 ${runId
 const materialRequestText = `请共享本节课讲义 ${runId}`;
 const teacherReplyText = `教师补充说明：TCP 建连与断连的状态迁移不同 ${runId}`;
 
+async function waitForAuthEntry(page: Page) {
+  await page.waitForTimeout(1500);
+  await expect(page.getByRole("button", { name: /^(登录|Log In)$/ })).toBeVisible();
+}
+
 async function openAuth(page: Page, mode: "登录" | "注册", role: "教师" | "学生" | "管理员") {
   await page.goto("/");
-  await page.getByRole("button", { name: mode }).click();
+  await waitForAuthEntry(page);
+  const triggerName = mode === "登录" ? /^(登录|Log In)$/ : /^(注册|Sign Up)$/;
+  await page.getByRole("button", { name: triggerName }).click();
   const modal = page.locator("div.fixed.inset-0").last();
   await expect(modal.getByRole("heading", { name: "登录平台账号" })).toBeVisible();
   if (mode === "注册") {
@@ -74,21 +81,21 @@ async function login(page: Page, role: "教师" | "学生" | "管理员", accoun
   await page.getByPlaceholder("建议使用学号、工号或易记账号").fill(account);
   await page.getByPlaceholder("请输入密码").fill(password);
   await page.getByRole("button", { name: "立即登录" }).click();
+  await page.waitForFunction(() => Boolean(window.localStorage.getItem("hit-agent-token")));
+  const expectedPath = role === "管理员" ? /\/admin\/users$/ : role === "教师" ? /\/teacher$/ : /\/student$/;
+  await expect(page).toHaveURL(expectedPath);
 }
 
 async function logout(page: Page) {
   await page.goto("/settings");
   const logoutButton = page.getByRole("button", { name: /退出登录|Log Out/ });
-  if (await logoutButton.isVisible()) {
-    await logoutButton.click();
-  }
-  await page.goto("/");
-  await page.evaluate(() => {
-    window.localStorage.clear();
-    window.sessionStorage.clear();
-  });
-  await page.reload();
-  await expect(page.getByRole("button", { name: "登录" })).toBeVisible();
+  await expect(logoutButton).toBeVisible();
+  await logoutButton.click();
+  await expect
+    .poll(async () => await page.evaluate(() => window.localStorage.getItem("hit-agent-token")))
+    .toBeNull();
+  await expect(page).toHaveURL(/\/$/);
+  await waitForAuthEntry(page);
 }
 
 test.describe.serial("atomic feature verification", () => {
@@ -100,7 +107,7 @@ test.describe.serial("atomic feature verification", () => {
     await logout(page);
 
     await login(page, "管理员", "admin_demo", "Admin123!");
-    await expect(page.getByText("用户管理与角色权限控制")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "用户管理与角色权限控制" })).toBeVisible();
 
     await page.getByLabel("账号").fill(adminCreatedAccount);
     await page.getByLabel("密码").fill(adminCreatedPassword);
@@ -125,7 +132,7 @@ test.describe.serial("atomic feature verification", () => {
 
   test("teacher profile settings course lesson-pack ai-config and material-update", async ({ page }) => {
     await login(page, "教师", teacherAccount, teacherPasswordInitial);
-    await expect(page.getByText("智能课程设计")).toBeVisible();
+    await expect(page.getByRole("link", { name: "智能课程设计", exact: true })).toBeVisible();
 
     await page.goto("/profile");
     await page.getByRole("button", { name: "森林风格" }).click();
@@ -148,7 +155,7 @@ test.describe.serial("atomic feature verification", () => {
 
     await logout(page);
     await login(page, "教师", teacherAccount, teacherPasswordUpdated);
-    await expect(page.getByText("智能课程设计")).toBeVisible();
+    await expect(page.getByRole("link", { name: "智能课程设计", exact: true })).toBeVisible();
 
     await page.goto("/teacher/course");
     await page.getByLabel("课程名称").fill(courseName);
@@ -186,7 +193,7 @@ test.describe.serial("atomic feature verification", () => {
 
   test("teacher materials assignments and feedback setup", async ({ page }) => {
     await login(page, "教师", teacherAccount, teacherPasswordUpdated);
-    await expect(page.getByText("智能课程设计")).toBeVisible();
+    await expect(page.getByRole("link", { name: "智能课程设计", exact: true })).toBeVisible();
 
     await page.goto("/teacher/materials");
     await page.getByLabel("所属课程").selectOption({ label: courseName });
@@ -284,7 +291,7 @@ test.describe.serial("atomic feature verification", () => {
 
   test("teacher question handling material request and feedback analytics", async ({ page }) => {
     await login(page, "教师", teacherAccount, teacherPasswordUpdated);
-    await expect(page.getByText("智能课程设计")).toBeVisible();
+    await expect(page.getByRole("link", { name: "智能课程设计", exact: true })).toBeVisible();
 
     await page.goto("/teacher/materials");
     await page.getByLabel("所属课程").selectOption({ label: courseName });

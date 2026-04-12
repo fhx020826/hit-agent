@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 import { API_BASE } from "@/lib/api";
@@ -36,9 +37,12 @@ export function AvatarBadge({
 
   if (isRemote) {
     return (
-      <img
+      <Image
         src={`${API_BASE}${avatarPath}`}
         alt={name || "avatar"}
+        width={96}
+        height={96}
+        unoptimized
         className={`${sizeClass} rounded-full border border-white/70 object-cover shadow-sm`}
         onError={() => setFailedAvatarPath(avatarPath ?? null)}
       />

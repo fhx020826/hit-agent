@@ -1,6 +1,9 @@
 # HIT-Agent Complete Feature List
 
-Auto-generated 2026-04-11. Every implemented feature, organized by role and page.
+Updated 2026-04-12. This is the code-grounded full feature inventory for the current repository state.
+
+Companion verification document:
+- `docs/internal/complete-feature-verification-matrix.md` maps every feature ID below to an independent test case ID, latest automated evidence, and verification status.
 
 ---
 
@@ -278,11 +281,115 @@ Auto-generated 2026-04-11. Every implemented feature, organized by role and page
 | F4 | File upload handling (multiple formats) | materials, assignments | HIGH |
 | F5 | Anonymous posting toggle | Q&A, discussions | HIGH |
 
+## G. Legacy Routes, Live Share Views, And Compatibility APIs
+
+### G1. Legacy Route Compatibility (Frontend)
+
+| # | Feature | Page/Route | Behavior | Test Priority |
+|---|---------|------------|----------|---------------|
+| G1.1 | Legacy student register route redirect | `/student/register` | Redirect to `/` | MEDIUM |
+| G1.2 | Legacy teacher register route redirect | `/teacher/register` | Redirect to `/` | MEDIUM |
+| G1.3 | Legacy student settings route redirect | `/student/settings` | Redirect to `/settings` | MEDIUM |
+| G1.4 | Legacy teacher settings route redirect | `/teacher/settings` | Redirect to `/settings` | MEDIUM |
+
+### G2. Teacher Live Share View (`/teacher/materials/live/[shareId]`)
+
+| # | Feature | Interaction | API | Test Priority |
+|---|---------|-------------|-----|---------------|
+| G2.1 | Resolve active live share by `shareId` | page load | `GET /api/materials/live/current` + `GET /api/materials/{course_id}` | HIGH |
+| G2.2 | Enter teacher live annotation board | route navigation | n/a | HIGH |
+| G2.3 | Open original shared material | button | `GET /api/materials/file/{material_id}` | MEDIUM |
+| G2.4 | Download original shared material | button | `GET /api/materials/file/{material_id}` | MEDIUM |
+| G2.5 | End live share and save annotations | button | `POST /api/materials/live/{share_id}/end` | HIGH |
+| G2.6 | End live share without saving annotations | button | `POST /api/materials/live/{share_id}/end` | HIGH |
+
+### G3. Student Live Share View (`/student/materials/live/[shareId]`)
+
+| # | Feature | Interaction | API | Test Priority |
+|---|---------|-------------|-----|---------------|
+| G3.1 | Resolve active live share by `shareId` | page load | `GET /api/materials/live/current` + `GET /api/materials/{course_id}` | HIGH |
+| G3.2 | Enter student live annotation board | route navigation | n/a | HIGH |
+| G3.3 | Receive teacher page sync updates | WebSocket / display | `/api/materials/live/{share_id}/ws` + `POST /api/materials/live/{share_id}/page` | HIGH |
+| G3.4 | Render teacher annotations in read-only mode | canvas overlay | `GET /api/materials/live/{share_id}/annotations` | HIGH |
+
+### G4. Live Annotation Board Shared Capabilities
+
+| # | Feature | Scope | API | Test Priority |
+|---|---------|-------|-----|---------------|
+| G4.1 | Load existing annotations by page | teacher/student live board | `GET /api/materials/live/{share_id}/annotations` | HIGH |
+| G4.2 | WebSocket sync for annotation/page/end events | teacher/student live board | `/api/materials/live/{share_id}/ws` | HIGH |
+| G4.3 | Teacher manual page sync | teacher live board | `POST /api/materials/live/{share_id}/page` | HIGH |
+| G4.4 | Teacher draw persistent annotations | teacher live board | `POST /api/materials/live/{share_id}/annotations` | HIGH |
+| G4.5 | Teacher draw temporary flash annotations | teacher live board | `POST /api/materials/live/{share_id}/annotations` | MEDIUM |
+| G4.6 | Multi-tool annotation support (pen/pencil/ballpen/highlighter/flash) | teacher live board | included in create annotation | MEDIUM |
+| G4.7 | Multi-color and line-width adjustment | teacher live board | included in create annotation | MEDIUM |
+| G4.8 | Protected preview/download of shared material inside board | teacher/student live board | `GET /api/materials/file/{material_id}` | MEDIUM |
+| G4.9 | Saved annotation version listing (backend support) | live share lifecycle | `GET /api/materials/live/{share_id}/versions` | MEDIUM |
+
+### G5. Advanced Discussion Workspace Capabilities (Teacher + Student)
+
+| # | Feature | Scope | API | Test Priority |
+|---|---------|-------|-----|---------------|
+| G5.1 | Load discussion space detail | teacher/student discussions | `GET /api/discussions/spaces/{space_id}` | HIGH |
+| G5.2 | Load paginated discussion messages | teacher/student discussions | `GET /api/discussions/spaces/{space_id}/messages` | HIGH |
+| G5.3 | Upload discussion attachments | teacher/student discussions | `POST /api/discussions/attachments` | HIGH |
+| G5.4 | Send anonymous discussion message | teacher/student discussions | `POST /api/discussions/messages` | HIGH |
+| G5.5 | Mention AI assistant in discussion message | teacher/student discussions | `POST /api/discussions/messages` | HIGH |
+| G5.6 | Search discussion messages by keyword | teacher/student discussions | `GET /api/discussions/search` | HIGH |
+| G5.7 | Search discussion messages by sender user | teacher/student discussions | `GET /api/discussions/search` | MEDIUM |
+| G5.8 | Search discussion messages by sender type | teacher/student discussions | `GET /api/discussions/search` | MEDIUM |
+| G5.9 | Open discussion attachments from message cards | teacher/student discussions | `GET /api/discussions/attachments/{attachment_id}/download` | MEDIUM |
+| G5.10 | View recent shared materials in space detail | teacher/student discussions | included in space detail | MEDIUM |
+| G5.11 | View member-specific discussion history (backend support) | discussion support API | `GET /api/discussions/spaces/{space_id}/members/{user_id}/messages` | MEDIUM |
+| G5.12 | View discussion message context thread (backend support) | discussion support API | `GET /api/discussions/messages/{message_id}/context` | MEDIUM |
+
+### G6. Question Center Advanced Capabilities
+
+| # | Feature | Scope | API | Test Priority |
+|---|---------|-------|-----|---------------|
+| G6.1 | Filter teacher questions by course | teacher question center | `GET /api/qa/teacher/questions` | HIGH |
+| G6.2 | Filter teacher questions by reply status | teacher question center | `GET /api/qa/teacher/questions` | HIGH |
+| G6.3 | Reopen question to pending state | teacher question center | `POST /api/qa/teacher/questions/{question_id}/reply` | HIGH |
+| G6.4 | Close question after handling | teacher question center | `POST /api/qa/teacher/questions/{question_id}/reply` | HIGH |
+| G6.5 | Mark teacher notification as unread again | teacher question center | `POST /api/qa/teacher/notifications/{notification_id}/read` | MEDIUM |
+| G6.6 | Open question attachments from teacher side | teacher question center | `GET /api/qa/attachments/{attachment_id}/download` | MEDIUM |
+| G6.7 | Open question attachments from student history | student history | `GET /api/qa/attachments/{attachment_id}/download` | MEDIUM |
+| G6.8 | Delete question folder | student history | `DELETE /api/qa/folders/{folder_id}` | MEDIUM |
+| G6.9 | Update question folder metadata (backend support) | question folder API | `PUT /api/qa/folders/{folder_id}` | MEDIUM |
+
+### G7. Compatibility And Backend-Support APIs
+
+| # | Feature | Scope | API | Test Priority |
+|---|---------|-------|-----|---------------|
+| G7.1 | Course detail query | backend support API | `GET /api/courses/{course_id}` | MEDIUM |
+| G7.2 | Legacy student published lesson pack list | compatibility API | `GET /api/student/lesson-packs` | MEDIUM |
+| G7.3 | Legacy student lesson pack detail | compatibility API | `GET /api/student/lesson-packs/{lp_id}` | MEDIUM |
+| G7.4 | Legacy student lesson pack QA | compatibility API | `POST /api/student/lesson-packs/{lp_id}/qa` | MEDIUM |
+| G7.5 | Shared appearance lookup by role/user | compatibility API | `GET /api/settings/{user_role}/{user_id}` | MEDIUM |
+| G7.6 | Shared appearance update by role/user | compatibility API | `PUT /api/settings/{user_role}/{user_id}` | MEDIUM |
+| G7.7 | Profile avatar asset retrieval | backend support API | `GET /api/profile/avatar/{user_id}/{filename}` | MEDIUM |
+| G7.8 | Teacher-side student directory | backend support API | `GET /api/profile/students` | MEDIUM |
+| G7.9 | Teacher-side teacher directory | backend support API | `GET /api/profile/teachers` | MEDIUM |
+| G7.10 | Legacy teacher list/create API | compatibility API | `GET /api/users/teachers` + `POST /api/users/teachers` | LOW |
+| G7.11 | Legacy student list/create API | compatibility API | `GET /api/users/students` + `POST /api/users/students` | LOW |
+| G7.12 | Admin user update API | backend support API | `PUT /api/admin/users/{user_id}` | MEDIUM |
+| G7.13 | Assignment submission file download | backend support API | `GET /api/assignments/submissions/{submission_id}/files/{token}` | MEDIUM |
+| G7.14 | Feedback template list | backend support API | `GET /api/feedback/templates` | MEDIUM |
+| G7.15 | Lesson pack generation endpoint | backend support API | `POST /api/lesson-packs/generate/{course_id}` | MEDIUM |
+| G7.16 | Chat session detail endpoint | backend support API | `GET /api/qa/sessions/{session_id}` | MEDIUM |
+| G7.17 | Toggle collected question endpoint | backend support API | `POST /api/qa/questions/{question_id}/collect` | MEDIUM |
+| G7.18 | Assign question to folder endpoint | backend support API | `PUT /api/qa/questions/{question_id}/folder` | MEDIUM |
+| G7.19 | Delete question endpoint | backend support API | `DELETE /api/qa/questions/{question_id}` | MEDIUM |
+| G7.20 | Material request state transition endpoint | backend support API | `POST /api/materials/requests/{request_id}/handle` | MEDIUM |
+| G7.21 | Assignment confirm endpoint | backend support API | `POST /api/assignments/{assignment_id}/confirm` | MEDIUM |
+| G7.22 | Assignment submit endpoint | backend support API | `POST /api/assignments/{assignment_id}/submit` | MEDIUM |
+| G7.23 | Teacher assignment detail endpoint | backend support API | `GET /api/assignments/teacher/{assignment_id}` | MEDIUM |
+| G7.24 | Feedback submission endpoint | backend support API | `POST /api/feedback/instances/{survey_instance_id}/submit` | MEDIUM |
+| G7.25 | Feedback skip endpoint | backend support API | `POST /api/feedback/instances/{survey_instance_id}/skip` | MEDIUM |
+| G7.26 | Feedback analytics endpoint | backend support API | `GET /api/feedback/analytics/{survey_instance_id}` | MEDIUM |
+
 ---
 
-## Summary Statistics
+## Audit Note
 
-- **Total features: 97**
-- **CRITICAL priority: 27**
-- **HIGH priority: 56**
-- **MEDIUM priority: 14**
+This document is maintained as a code-grounded inventory. If a route, page, or meaningful interaction exists in the repository, it must be represented here either as a user-facing feature, a live-share/discussion capability, or a compatibility/support API.

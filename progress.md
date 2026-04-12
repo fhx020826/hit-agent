@@ -84,3 +84,34 @@
 ### 当前进行中
 - 同步项目维护文档
 - 准备评估是否需要提交本轮测试与文档更新
+
+## 2026-04-12
+
+### 已完成
+- 完成首轮后端结构拆分：
+  - 数据库层拆为 `backend/app/db/*`
+  - LLM 能力拆为 `llm_runtime.py`、`file_extractors.py`、`llm_generation.py`
+  - 新增 `materials_service.py` 与 `qa_service.py`
+- 修复 FastAPI 启动弃用 warning：
+  - `backend/app/main.py` 改为 lifespan
+- 修复前端当前 warning / build 问题：
+  - `next.config.ts`
+  - `package.json`
+  - `playwright.config.ts`
+  - `material-update` / `materials` / `avatar-badge` / `language-provider`
+  - `auth-modal`
+- 完成完整功能清单与完整验证矩阵的基线整理：
+  - `docs/internal/complete-feature-list.md`
+  - `docs/internal/complete-feature-verification-matrix.md`
+- 新增扩展回归：
+  - `backend/tests/test_extended_feature_api.py`
+  - `frontend/tests/extended-coverage.spec.ts`
+- 最新验证结果：
+  - `pytest -q` -> `13 passed`
+  - `npm run lint` -> 通过
+  - `npm run build` -> 通过
+  - `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts` -> `8 passed`
+
+### 当前进行中
+- 提交并推送首轮重构与文档基线
+- 准备进入第二轮后端深度拆分

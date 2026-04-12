@@ -84,19 +84,13 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const resetAndClose = () => {
-    setError("");
-    setSubmitting(false);
-    onClose();
-  };
-
   const handleSubmit = async () => {
     setSubmitting(true);
     setError("");
     try {
       if (mode === "login") {
         const user = await login({ role, account: form.account.trim(), password: form.password });
-        resetAndClose();
+        onClose();
         router.push(user.role === "admin" ? "/admin/users" : user.role === "teacher" ? "/teacher" : "/student");
         return;
       }
@@ -137,11 +131,10 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
           linked_classes: role === "teacher" ? splitList(form.linkedClasses) : (form.className.trim() ? [form.className.trim()] : []),
         },
       });
-      resetAndClose();
+      onClose();
       router.push(user.role === "admin" ? "/admin/users" : user.role === "teacher" ? "/teacher" : "/student");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "提交失败，请稍后重试");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -155,7 +148,7 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
             <h2 className="mt-2 text-2xl font-bold text-slate-900">{mode === "login" ? "登录平台账号" : "注册平台账号"}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">{roleTips}</p>
           </div>
-          <button onClick={resetAndClose} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">关闭</button>
+          <button onClick={onClose} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">关闭</button>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">

@@ -21,7 +21,6 @@ export default function MaterialUpdatePage() {
   const [result, setResult] = useState<MaterialUpdateResult | null>(null);
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState("");
-  const canRun = Boolean(selectedModel || selectedModelInfo);
 
   const reload = async () => {
     const [courseList, updateList, modelList] = await Promise.all([api.listCourses(), api.listMaterialUpdates(), api.listModels().catch(() => [])]);
@@ -49,6 +48,7 @@ export default function MaterialUpdatePage() {
   }, [user]);
 
   const selectedModelInfo = useMemo(() => models.find((item) => item.key === selectedModel) || null, [models, selectedModel]);
+  const canRun = Boolean(selectedModel || selectedModelInfo);
 
   if (!user || user.role !== "teacher") return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载 PPT / 教案更新页面...</main>;
 

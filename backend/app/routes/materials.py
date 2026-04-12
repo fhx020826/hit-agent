@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import os
-import threading
-from collections import defaultdict
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -43,39 +40,10 @@ from ..models.schemas import (
 )
 from ..security import get_current_user, require_roles
 from ..services.llm_service import extract_text_from_file
+from ..services.materials_service import can_access_material, live_share_manager, push_live_event
 from ..services.rag_service import upsert_chunks_for_material
 
 router = APIRouter(prefix="/api/materials", tags=["materials"])
-
-
-class LiveShareManager:
-    def __init__(self) -> None:
-        self.connections: dict[str, list[WebSocket]] = defaultdict(list)
-
-    async def connect(self, share_id: str, websocket: WebSocket) -> None:
-        await websocket.accept()
-        self.connections[share_id].append(websocket)
-
-    def disconnect(self, share_id: str, websocket: WebSocket) -> None:
-        if share_id in self.connections and websocket in self.connections[share_id]:
-            self.connections[share_id].remove(websocket)
-
-    async def broadcast(self, share_id: str, payload: dict) -> None:
-        dead: list[WebSocket] = []
-        for connection in self.connections.get(share_id, []):
-            try:
-                await connection.send_json(payload)
-            except Exception:
-                dead.append(connection)
-        for item in dead:
-            self.disconnect(share_id, item)
-
-
-live_share_manager = LiveShareManager()
-
-
-def _push_live_event(share_id: str, payload: dict) -> None:
-    threading.Thread(target=lambda: asyncio.run(live_share_manager.broadcast(share_id, payload)), daemon=True).start()
 
 
 def _material_download_url(material_id: int) -> str:
@@ -160,17 +128,6 @@ def _version_to_schema(row: DBSavedAnnotationVersion) -> SavedAnnotationVersionI
     )
 
 
-def _can_access_material(row: DBMaterial, current_user: dict, db: Session) -> bool:
-    if current_user["role"] == "admin":
-        return True
-    if current_user["role"] == "teacher":
-        return row.uploader_user_id == current_user["id"] or bool(db.query(DBCourse).filter(DBCourse.id == row.course_id, DBCourse.owner_user_id == current_user["id"]).first())
-    if current_user["role"] == "student":
-        profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
-        return bool(row.allow_student_view) and (row.share_scope in {"course", "classroom"} or row.class_name in {"", profile.class_name if profile else ""})
-    return False
-
-
 @router.post("/upload/{course_id}", response_model=MaterialUploadResponse)
 def upload_material(course_id: str, file: UploadFile = File(...), current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
     course = db.query(DBCourse).filter(DBCourse.id == course_id).first()
@@ -220,7 +177,7 @@ def upload_material(course_id: str, file: UploadFile = File(...), current_user: 
 @router.get("/{course_id}", response_model=list[MaterialItem])
 def list_materials(course_id: str, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     rows = db.query(DBMaterial).filter(DBMaterial.course_id == course_id).order_by(DBMaterial.created_at.desc()).all()
-    visible = [row for row in rows if _can_access_material(row, current_user, db)]
+    visible = [row for row in rows if can_access_material(row, current_user, db)]
     return [_material_to_schema(row) for row in visible]
 
 
@@ -231,7 +188,7 @@ def download_material(material_id: int, current_user: dict = Depends(get_current
         raise HTTPException(status_code=404, detail="资料不存在")
     if not os.path.exists(row.file_path):
         raise HTTPException(status_code=404, detail="资料文件不存在")
-    if not _can_access_material(row, current_user, db):
+    if not can_access_material(row, current_user, db):
         raise HTTPException(status_code=403, detail="无权访问该资料")
     return FileResponse(row.file_path, filename=row.filename)
 
@@ -389,7 +346,7 @@ def start_live_share(body: LiveShareStartRequest, current_user: dict = Depends(r
     db.commit()
     db.refresh(share)
     payload = _live_share_to_schema(share, db)
-    _push_live_event(share.id, {"event": "share_started", "share": payload.model_dump()})
+    push_live_event(share.id, {"event": "share_started", "share": payload.model_dump()})
     return payload
 
 
@@ -401,7 +358,7 @@ def update_live_page(share_id: str, body: LiveSharePageUpdate, current_user: dic
     row.current_page = body.current_page
     db.commit()
     payload = _live_share_to_schema(row, db)
-    _push_live_event(share_id, {"event": "page_changed", "share": payload.model_dump()})
+    push_live_event(share_id, {"event": "page_changed", "share": payload.model_dump()})
     return payload
 
 
@@ -430,7 +387,7 @@ def create_annotation(share_id: str, body: AnnotationStrokeCreate, current_user:
     db.add(row)
     db.commit()
     payload = _annotation_to_schema(row)
-    _push_live_event(share_id, {"event": "annotation_created", "annotation": payload.model_dump()})
+    push_live_event(share_id, {"event": "annotation_created", "annotation": payload.model_dump()})
     return payload
 
 
@@ -493,7 +450,7 @@ def end_live_share(share_id: str, body: LiveShareCloseRequest, current_user: dic
 
     db.commit()
     payload = _live_share_to_schema(share, db)
-    _push_live_event(share_id, {"event": "share_ended", "share": payload.model_dump(), "save_mode": body.save_mode})
+    push_live_event(share_id, {"event": "share_ended", "share": payload.model_dump(), "save_mode": body.save_mode})
     return payload
 
 

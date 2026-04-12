@@ -1,6 +1,7 @@
 """FastAPI application entrypoint."""
 
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,10 +9,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import init_db
 from .routes import admin, agent_config, analytics, assignment_review, assignments, auth, courses, discussion, feedback, lesson_packs, material_update, materials, profile, qa, settings, student, users
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # 启动时完成数据库初始化，避免使用已弃用的 startup 事件装饰器。
+    init_db()
+    yield
+
+
 app = FastAPI(
     title="面向前沿学科的智能教学平台",
     version="0.8.0",
     description="面向前沿学科教学场景的教师教学全流程智能伙伴平台。",
+    lifespan=lifespan,
 )
 
 frontend_port = os.getenv("FRONTEND_PORT", "3000")
@@ -28,13 +37,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def startup() -> None:
-    init_db()
-
-
 app.include_router(auth.router)
 app.include_router(profile.router)
 app.include_router(settings.router)

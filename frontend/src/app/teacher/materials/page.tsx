@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { api, type ClassroomShare, type Course, type LiveShareRecord, type MaterialItem, type MaterialRequestItem } from "@/lib/api";
@@ -20,7 +20,7 @@ export default function TeacherMaterialsPage() {
   const [uploading, setUploading] = useState(false);
   const [liveShare, setLiveShare] = useState<LiveShareRecord | null>(null);
 
-  const load = async (courseId?: string) => {
+  const load = useCallback(async (courseId?: string) => {
     const courseList = await api.listCourses().catch(() => []);
     setCourses(courseList);
     const nextCourseId = courseId || selectedCourseId || courseList[0]?.id || "";
@@ -42,7 +42,7 @@ export default function TeacherMaterialsPage() {
       setRequests([]);
       setLiveShare(null);
     }
-  };
+  }, [selectedCourseId]);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "teacher")) router.push("/");
@@ -51,12 +51,12 @@ export default function TeacherMaterialsPage() {
   useEffect(() => {
     if (!user || user.role !== "teacher") return;
     void load();
-  }, [user]);
+  }, [user, load]);
 
   useEffect(() => {
     if (!selectedCourseId || !user || user.role !== "teacher") return;
     void load(selectedCourseId);
-  }, [selectedCourseId]);
+  }, [selectedCourseId, user, load]);
 
   const activeCourse = useMemo(() => courses.find((item) => item.id === selectedCourseId), [courses, selectedCourseId]);
 
