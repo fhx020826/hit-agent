@@ -18,6 +18,7 @@
 - [x] Phase 9: 第二轮后端深度拆分
 - [x] Phase 10: 第二轮全量回归与服务重启
 - [x] Phase 11: 统一验证入口、复杂用户旅程回归与自动化目录文档
+- [x] Phase 12: 第三轮 `materials` / `discussion` 路由深拆与全量回归
 
 ## Constraints
 - 仅在 `/home/hxfeng/fhx-hit-agent` 中操作
@@ -26,5 +27,5 @@
 - 不提交运行产物、缓存、测试中间文件
 
 ## Current Focus
-- 提交并推送本轮统一验证增强成果
-- 继续评估 `materials.py`、`discussion.py` 等剩余大路由的下一轮拆分方案
+- 本轮第三轮路由深拆与全量回归已经完成
+- 如需继续优化，评估 `materials_service.py` / `discussion_service.py` 再按子域拆分

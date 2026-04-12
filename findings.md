@@ -245,7 +245,39 @@
   - 启动 `uvicorn` 时显式传入 `FRONTEND_PORT=<selected frontend port>`。
 - 结论：
   - 当前一键验证链路已能在独立端口环境下稳定完成真实浏览器全量回归。
-  - `req-57da28c5`
+
+### 2026-04-12 第三轮路由深拆
+- `backend/app/routes/materials.py` 原先同时承担：
+  - 资料展示序列化
+  - 资料请求处理
+  - 课堂直播共享
+  - 批注版本保存
+- 本轮已下沉到：
+  - `backend/app/services/materials_service.py`
+- `backend/app/routes/discussion.py` 原先同时承担：
+  - 成员校验
+  - 空间详情拼装
+  - 消息序列化
+  - AI 跟帖生成
+  - 搜索 / 上下文回溯
+- 本轮已下沉到：
+  - `backend/app/services/discussion_service.py`
+- 大文件收缩结果：
+  - `materials.py`: `470 -> 193`
+  - `discussion.py`: `388 -> 104`
+- 验证结果：
+  - `pytest -q` -> `13 passed`
+  - `bash scripts/verify-all.sh` -> 通过
+
+### 2026-04-12 日志清理
+- 已清理旧验证日志目录内容：
+  - `/tmp/hit-agent-verify/*`
+- 当前只保留这轮最新回归重新生成的日志批次。
+  - `/tmp/hit-agent-verify/20260412-212334`
+- 最新一轮统一验证结果：
+  - `pytest -q` -> `13 passed`
+  - `bash scripts/verify-all.sh` -> 通过
+  - Playwright 三组浏览器回归 -> `10 passed`
 - 关键结果：
   - 教师通知数：`1`
   - 教师视角已提交学生数：`1`

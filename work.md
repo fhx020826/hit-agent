@@ -1,9 +1,29 @@
 # Work Log
 
 ## 当前阶段
-第二轮后端深度拆分完成，且“统一全量验证入口 + 复杂用户旅程回归 + 自动化测试目录文档”已经补齐，当前进入“继续后端深拆与保持验证门禁稳定”阶段。
+第三轮后端深度拆分已经完成，且“统一全量验证入口 + 复杂用户旅程回归 + 自动化测试目录文档 + materials/discussion 路由继续下沉”都已补齐，当前进入“保持验证门禁稳定并按需继续细化 service 子域”阶段。
 
 ## 本轮完成
+
+### 第三轮后端深度拆分
+- 继续收缩两块剩余大路由：
+  - `backend/app/routes/materials.py`
+  - `backend/app/routes/discussion.py`
+- `materials.py` 下沉到 `backend/app/services/materials_service.py` 的逻辑包括：
+  - 资料序列化
+  - 共享记录序列化
+  - 资料请求创建 / 列表 / 处理
+  - 课堂直播创建 / 翻页 / 批注 / 结束 / 版本列表
+- `discussion.py` 下沉到 `backend/app/services/discussion_service.py` 的逻辑包括：
+  - 空间成员校验
+  - 空间概要 / 详情组装
+  - 消息序列化
+  - 附件上传
+  - 发消息与 AI 跟帖
+  - 搜索 / 上下文 / 成员消息列表
+- 收缩结果：
+  - `backend/app/routes/materials.py`: `470 -> 193`
+  - `backend/app/routes/discussion.py`: `388 -> 104`
 
 ### 第二轮后端拆分
 - 完成 Pydantic schema 第二轮拆分：
@@ -79,6 +99,11 @@
   - 后端 `uvicorn app.main:app --host 0.0.0.0 --port 8000` 运行在 `8000`
   - `GET /api/health` 返回 `{"status":"ok","version":"0.8.0"}`
 
+### 日志清理
+- 已按你的要求清理旧验证日志：
+  - `/tmp/hit-agent-verify/*`
+- 当前只保留本轮最新一键验证新生成的一批日志，便于问题追踪。
+
 ### 新增自动化能力
 - 新增统一验证脚本：
   - `scripts/verify-all.sh`
@@ -97,15 +122,15 @@
 - 代码级功能清单和真实验证矩阵已经形成，后续不再需要凭印象补测。
 - 当前项目的主要短板已从“没有自动化”转变为“需要继续把大文件拆薄、把迁移和可观测性补上”。
 - 浏览器自动化在这台 HPC 上可以跑通，但稳定验证面应优先使用生产模式前端。
-- 第二轮已经把 schema、ORM 模型与 QA 路由进一步拆薄，后续重点收敛到 `materials.py`、`discussion.py` 等剩余大路由。
+- 第三轮已经把 `materials.py` 与 `discussion.py` 继续拆薄，路由层高耦合问题已明显缓解。
 
 ## 进行中
 - 更新过时文档到当前真实状态
-- 准备提交并推送“统一验证入口 + 用户旅程回归 + 自动化目录文档”这一轮成果
+- 准备提交并推送“第三轮路由深拆 + 全量回归通过”这一轮成果
 
 ## 下一步
-- 提交并推送本轮统一验证与回归增强成果
-- 继续评估 `materials.py`、`discussion.py` 的第三轮拆分
+- 提交并推送本轮第三轮后端深拆成果
+- 如需继续优化，优先细分 `materials_service.py` 与 `discussion_service.py`
 - 视需要补数据库迁移、日志与可观测性基线
 
 ## 文档清理

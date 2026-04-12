@@ -119,10 +119,16 @@
 - `backend/app/db/models.py` 已拆为按领域组织的 ORM 模块，并保留兼容 facade
 - `backend/app/routes/qa.py` 的展示/序列化 helper 已下沉到 `backend/app/services/qa_service.py`
 
+### 第三轮已完成
+- `backend/app/routes/materials.py` 的资料共享、资料请求、课堂直播、批注序列化等逻辑已下沉到 `backend/app/services/materials_service.py`
+- `backend/app/routes/discussion.py` 的空间访问控制、消息序列化、消息搜索、上下文回溯、AI 回复链路等逻辑已下沉到 `backend/app/services/discussion_service.py`
+- 大文件收缩效果：
+  - `backend/app/routes/materials.py`: `470 -> 193`
+  - `backend/app/routes/discussion.py`: `388 -> 104`
+
 ### 仍需后续继续拆分
-- `backend/app/routes/materials.py` 仍偏大
-- `backend/app/routes/discussion.py` 仍偏大
-- 路由层仍有一部分查询、组装和 presenter 逻辑可继续下沉
+- `materials_service.py` 与 `discussion_service.py` 现在承接了较多领域逻辑，后续可以继续再按“共享 / 请求 / 直播”和“空间 / 消息 / 搜索 / AI 回答”进一步细分
+- 当前剩余优化重点已经从“路由过厚”转向“service 内部再细分”和“数据库迁移 / 可观测性基线”
 
 ## 当前工程判断
 
@@ -135,14 +141,14 @@
 ### 主要风险
 - SQLite 仍然只是开发/演示型数据库
 - 还没有数据库迁移体系
-- 后端仍有少数大路由需要继续拆分
+- 路由层主要厚路由已完成三轮拆分，后续重点转向大 service 的再细分
 - 日志、监控、可观测性仍然偏弱
 - 当前稳定浏览器验证依赖生产模式前端；开发模式测试面还要单独收敛
 
 ## 下一步优先级
 
 ### 第一优先级
-- 继续第二轮后端深度拆分
+- 继续把 `materials_service.py` / `discussion_service.py` 进一步按子域细分
 - 保持 `complete-feature-list` 与验证矩阵同步
 - 固化浏览器验证的稳定运行面
 - 维持 `verify-all.sh` 作为提交前统一准入入口
@@ -158,4 +164,4 @@
 - 继续扩大前端回归覆盖面
 
 ## 当前结论
-从功能完整性和验证基线看，项目已经具备较强的发布前检查基础；从持续迭代能力看，后端结构优化和迁移/可观测性建设仍是下一阶段重点。
+从功能完整性、自动化验证深度和后端解耦程度看，当前代码已经完成你本轮提出的核心要求；下一阶段的重点不再是“把核心功能补齐”，而是“继续优化 service 粒度、迁移体系和可观测性”。

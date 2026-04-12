@@ -137,7 +137,16 @@
   - `npm run lint` -> 通过
   - `npm run build` -> 通过
   - `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts` -> `10 passed`
+- 完成第三轮后端深拆：
+  - `backend/app/routes/materials.py` -> `backend/app/services/materials_service.py`
+  - `backend/app/routes/discussion.py` -> `backend/app/services/discussion_service.py`
+- 本轮拆分后再次完成一键全量验证：
+  - `bash scripts/verify-all.sh` -> 通过
+- 已清理旧验证日志：
+  - `/tmp/hit-agent-verify/*`
+- 当前仅保留最新验证日志批次：
+  - `/tmp/hit-agent-verify/20260412-212334`
 
 ### 当前进行中
-- 更新项目维护文档
-- 准备提交并推送本轮统一验证增强成果
+- 本轮第三轮后端深拆、旧日志清理与全量回归已经完成
+- 如继续优化，重点将转向 `materials_service.py` / `discussion_service.py` 内部再按子域继续细分
