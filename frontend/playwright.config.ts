@@ -1,3 +1,5 @@
+import fs from "node:fs";
+
 import { defineConfig } from "@playwright/test";
 
 // 避免 Node 在同时存在 NO_COLOR 与 FORCE_COLOR 时输出无关环境警告。
@@ -5,7 +7,13 @@ if (process.env.FORCE_COLOR && process.env.NO_COLOR) {
   delete process.env.NO_COLOR;
 }
 
-const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH || "/home/hxfeng/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome";
+const configuredChromiumPath =
+  process.env.PLAYWRIGHT_CHROMIUM_PATH ||
+  "/home/hxfeng/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome";
+
+const launchOptions = fs.existsSync(configuredChromiumPath)
+  ? { executablePath: configuredChromiumPath }
+  : {};
 
 export default defineConfig({
   testDir: "./tests",
@@ -16,9 +24,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000",
     headless: true,
-    launchOptions: {
-      executablePath,
-    },
+    launchOptions,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },

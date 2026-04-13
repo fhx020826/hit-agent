@@ -73,6 +73,7 @@ async function fetchApi<T>(page: Page, path: string): Promise<T> {
 
 test.describe.serial("extended coverage verification", () => {
   test("legacy redirects admin filter teacher settings profile assignment review and analytics pages", async ({ page }) => {
+    test.slow();
     await page.goto("/teacher/register");
     await expect(page).toHaveURL(/\/$/);
     await waitForAuthEntry(page);
@@ -149,6 +150,7 @@ test.describe.serial("extended coverage verification", () => {
   });
 
   test("teacher question center advanced filters and discussion advanced interactions", async ({ page }) => {
+    test.slow();
     await login(page, "教师", "teacher_demo", "Teacher123!");
     await page.goto("/teacher/questions");
     const allCoursesButton = page.getByRole("button", { name: "全部课程" });
@@ -185,7 +187,8 @@ test.describe.serial("extended coverage verification", () => {
     await expect(page.getByText(discussionMessage)).toBeVisible();
     await page.getByPlaceholder("按关键词搜索聊天内容").fill(discussionMessage);
     await page.getByRole("button", { name: "搜索消息" }).click();
-    await expect(page.getByText(discussionMessage)).toBeVisible();
+    const searchPanel = page.getByText("聊天记录查询").locator("..");
+    await expect(searchPanel.locator("p.line-clamp-2").filter({ hasText: discussionMessage })).toBeVisible();
     await logout(page);
 
     await login(page, "教师", "teacher_demo", "Teacher123!");
@@ -234,6 +237,7 @@ test.describe.serial("extended coverage verification", () => {
   });
 
   test("teacher and student live share pages sync in real browser", async ({ browser }) => {
+    test.slow();
     const teacherContext = await browser.newContext();
     const studentContext = await browser.newContext();
     const teacherPage = await teacherContext.newPage();

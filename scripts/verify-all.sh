@@ -4,8 +4,8 @@ set -euo pipefail
 
 # 统一顺序执行后端、前端和真实浏览器回归，避免提交前人工漏跑。
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CONDA_BIN="/home/hxfeng/miniconda3/bin/conda"
-CONDA_ENV="fhx-hit-agent"
+CONDA_BIN="${VERIFY_CONDA_BIN:-${CONDA_EXE:-}}"
+CONDA_ENV="${VERIFY_CONDA_ENV:-fhx-hit-agent}"
 FRONTEND_PORT_BASE="${VERIFY_FRONTEND_PORT:-3100}"
 BACKEND_PORT_BASE="${VERIFY_BACKEND_PORT:-8100}"
 FRONTEND_PORT=""
@@ -36,12 +36,46 @@ require_cmd() {
 require_cmd bash
 require_cmd curl
 require_cmd npm
-require_cmd python
 require_cmd ss
 require_cmd tee
 
-if [[ ! -x "${CONDA_BIN}" ]]; then
-  echo "找不到 conda 可执行文件: ${CONDA_BIN}" >&2
+resolve_conda_bin() {
+  local candidate=""
+  local -a candidates=()
+
+  if [[ -n "${CONDA_BIN}" ]]; then
+    candidates+=("${CONDA_BIN}")
+  fi
+
+  if [[ -n "${CONDA_EXE:-}" ]]; then
+    candidates+=("${CONDA_EXE}")
+  fi
+
+  candidate="$(command -v conda 2>/dev/null || true)"
+  if [[ -n "${candidate}" ]]; then
+    candidates+=("${candidate}")
+  fi
+
+  candidates+=(
+    "${HOME}/miniconda3/bin/conda"
+    "${HOME}/mambaforge/bin/conda"
+    "/root/miniconda3/bin/conda"
+    "/opt/conda/bin/conda"
+    "/usr/local/miniconda3/bin/conda"
+  )
+
+  for candidate in "${candidates[@]}"; do
+    if [[ -n "${candidate}" && -x "${candidate}" ]]; then
+      echo "${candidate}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+if ! CONDA_BIN="$(resolve_conda_bin)"; then
+  echo "找不到 conda 可执行文件。请设置 VERIFY_CONDA_BIN 或先安装 conda。" >&2
   exit 1
 fi
 
@@ -87,7 +121,11 @@ wait_for_url() {
 
 run_in_conda() {
   local cmd="$1"
-  bash -lc "eval \"\$(${CONDA_BIN} shell.bash hook)\" && conda activate ${CONDA_ENV} && ${cmd}"
+  local conda_bin_escaped=""
+  local conda_env_escaped=""
+  printf -v conda_bin_escaped '%q' "${CONDA_BIN}"
+  printf -v conda_env_escaped '%q' "${CONDA_ENV}"
+  bash -lc "eval \"\$(${conda_bin_escaped} shell.bash hook)\" && conda activate ${conda_env_escaped} && ${cmd}"
 }
 
 ensure_frontend_dependencies() {

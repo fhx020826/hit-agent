@@ -7,6 +7,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SESSION_NAME="${SESSION_NAME:-hit-agent-dev}"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+CONDA_ENV="${CONDA_ENV:-fhx-hit-agent}"
 LOCAL_SSH_HOST="${LOCAL_SSH_HOST:-hpc}"
 RUNTIME_DIR="${RUNTIME_DIR:-/tmp/hit-agent-dev}"
 BACKEND_LOG="$RUNTIME_DIR/backend.log"
@@ -27,10 +28,48 @@ require_cmd curl
 require_cmd bash
 require_cmd npm
 
-CONDA_SH="/home/hxfeng/miniconda3/etc/profile.d/conda.sh"
+CONDA_SH="${DEV_CONDA_SH:-${CONDA_SH:-}}"
 
-if [[ ! -f "$CONDA_SH" ]]; then
-  echo "找不到 conda 初始化脚本: $CONDA_SH" >&2
+resolve_conda_sh() {
+  local candidate=""
+  local conda_bin=""
+  local -a candidates=()
+
+  if [[ -n "${CONDA_SH}" ]]; then
+    candidates+=("${CONDA_SH}")
+  fi
+
+  if [[ -n "${CONDA_EXE:-}" ]]; then
+    conda_bin="${CONDA_EXE}"
+  else
+    conda_bin="$(command -v conda 2>/dev/null || true)"
+  fi
+
+  if [[ -n "${conda_bin}" && -x "${conda_bin}" ]]; then
+    candidate="$(cd "$(dirname "${conda_bin}")/.." && pwd)/etc/profile.d/conda.sh"
+    candidates+=("${candidate}")
+  fi
+
+  candidates+=(
+    "${HOME}/miniconda3/etc/profile.d/conda.sh"
+    "${HOME}/mambaforge/etc/profile.d/conda.sh"
+    "/root/miniconda3/etc/profile.d/conda.sh"
+    "/opt/conda/etc/profile.d/conda.sh"
+    "/usr/local/miniconda3/etc/profile.d/conda.sh"
+  )
+
+  for candidate in "${candidates[@]}"; do
+    if [[ -n "${candidate}" && -f "${candidate}" ]]; then
+      echo "${candidate}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+if ! CONDA_SH="$(resolve_conda_sh)"; then
+  echo "找不到 conda 初始化脚本。请设置 DEV_CONDA_SH 或先安装 conda。" >&2
   exit 1
 fi
 
@@ -88,7 +127,7 @@ fi
 BACKEND_CMD="$(cat <<EOF
 cd '$ROOT_DIR' && \
 source '$CONDA_SH' && \
-conda activate fhx-hit-agent && \
+conda activate '${CONDA_ENV}' && \
 cd backend && \
 python -m uvicorn app.main:app --host 0.0.0.0 --port ${BACKEND_PORT} 2>&1 | tee '$BACKEND_LOG'
 EOF
@@ -97,7 +136,7 @@ EOF
 FRONTEND_CMD="$(cat <<EOF
 cd '$ROOT_DIR/frontend' && \
 if [[ ! -x node_modules/.bin/next ]]; then npm install --cache .npm-cache --registry=https://registry.npmjs.org/; fi && \
-npm run dev 2>&1 | tee '$FRONTEND_LOG'
+NEXT_PUBLIC_API_PORT='${BACKEND_PORT}' npm run dev 2>&1 | tee '$FRONTEND_LOG'
 EOF
 )"
 
