@@ -5,6 +5,30 @@
 
 ## 本轮完成
 
+### ECS 部署手册与服务器 Codex Prompt
+- 已确认当前仓库最新版本关系：
+  - 本地 `HEAD` = `origin/main` = `23dc5d3`
+  - `upstream/main` 更旧，为 `d266c78`
+- 结论：
+  - 当前真实最新部署基线应以 `origin/main` 为准
+- 已清理仓库内一张无关截图文件，避免后续误提交
+- 已系统梳理 ECS 部署前的真实阻塞点：
+  - `scripts/verify-all.sh` 写死本机 conda 路径
+  - `scripts/dev-up.sh` 写死本机 conda 初始化路径
+  - `frontend/playwright.config.ts` 写死本机 Chromium 路径
+  - ECS 当前缺少 `conda`、`node`、`npm`
+- 已新增两份部署文档：
+  - `docs/internal/ecs-deployment-runbook-2026-04-13.md`
+  - `docs/internal/ecs-server-codex-deploy-prompt-2026-04-13.md`
+- 文档中已明确：
+  - 当前服务器已完成到什么程度
+  - 还缺哪些运行环境
+  - 服务器 Codex 部署时必须先修哪些代码/脚本
+  - 必须如何拉取最新 `origin/main`
+  - 必须如何跑全量测试
+  - 必须如何创建长期运行服务
+  - 最终用户本地如何验收公网访问
+
 ### ECS 基础初始化、代理与 Codex 打通
 - 已验证阿里云 ECS 可通过公网 SSH 连接：
   - 目标 IP：`8.152.202.171`
@@ -158,11 +182,12 @@
 
 ## 进行中
 - 更新过时文档到当前真实状态
-- 准备提交并推送“ECS 基础初始化与连接文档补齐”这一轮成果
+- 准备提交并推送“ECS 部署手册与服务器 Codex Prompt”这一轮成果
 
 ## 下一步
-- 提交并推送本轮 ECS 初始化与文档更新
-- 在 ECS 上部署 `fhx-hit-agent` 的前后端正式运行面
+- 提交并推送本轮 ECS 部署手册与 Prompt 文档
+- 将 `docs/internal/ecs-server-codex-deploy-prompt-2026-04-13.md` 直接投喂给 ECS 上的 Codex
+- 在 ECS 上修复部署可移植性问题并正式部署 `fhx-hit-agent`
 - 为 ECS 部署补 systemd / 反向代理 / 域名与 HTTPS
 - 如需继续优化代码结构，优先细分 `materials_service.py` 与 `discussion_service.py`
 

@@ -410,6 +410,33 @@
   - `bubblewrap` 已安装
   - 远端直接执行 `codex exec --skip-git-repo-check -C /root "Reply with OK and nothing else."` 成功
 
+### 2026-04-13 ECS 正式部署前结论
+- 当前仓库最新版本关系已确认：
+  - 本地 `HEAD` 与 `origin/main` 完全一致
+  - 最新提交：`23dc5d3`
+  - `upstream/main` 更旧：`d266c78`
+- 因此正式部署必须以 `origin/main` 为准，而不是以 `upstream/main` 为准。
+- 当前 ECS 上虽然已经有 `clash/proxy/codex`，但还没有：
+  - `conda`
+  - `node`
+  - `npm`
+- 当前仓库存在三处真实的服务器可移植性阻塞：
+  1. `scripts/verify-all.sh` 写死 `/home/hxfeng/miniconda3/bin/conda`
+  2. `scripts/dev-up.sh` 写死 `/home/hxfeng/miniconda3/etc/profile.d/conda.sh`
+  3. `frontend/playwright.config.ts` 写死 `/home/hxfeng/.cache/ms-playwright/...`
+- 结论：
+  - 如果不先修上述路径问题，服务器上无法真实跑通 `bash scripts/verify-all.sh`
+  - 因此部署第一步不应是直接起服务，而应先做“仓库 ECS 可移植性修复 + 回归”
+- 已新增两份专门面向这次部署的文档：
+  - `docs/internal/ecs-deployment-runbook-2026-04-13.md`
+  - `docs/internal/ecs-server-codex-deploy-prompt-2026-04-13.md`
+- 其中 Prompt 已明确要求服务器 Codex：
+  - 先同步最新 `origin/main`
+  - 修复上述路径问题
+  - 安装 `conda`、`node`、`npm`
+  - 跑通 `bash scripts/verify-all.sh`
+  - 再创建长期运行服务并给出公网访问地址
+
 ### 服务面
 - 最新验证所依赖的在线服务是本轮代码重启后的新进程：
   - 前端生产模式：`http://127.0.0.1:3000`

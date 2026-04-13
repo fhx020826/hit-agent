@@ -190,7 +190,17 @@
   - `codex exec --skip-git-repo-check -C /root "Reply with OK and nothing else."`
 - 已更新内部文档：
   - `docs/internal/ecs-server-connection-guide.md`
+ - 已确认当前仓库版本关系：
+   - `HEAD == origin/main == 23dc5d3`
+   - `upstream/main == d266c78`
+ - 已新增 ECS 正式部署手册与可直接投喂服务器 Codex 的 Prompt：
+   - `docs/internal/ecs-deployment-runbook-2026-04-13.md`
+   - `docs/internal/ecs-server-codex-deploy-prompt-2026-04-13.md`
+ - 已明确当前正式部署前的真实阻塞点：
+   - `verify-all.sh` / `dev-up.sh` 的 conda 本机绝对路径
+   - `frontend/playwright.config.ts` 的 Chromium 本机绝对路径
+   - ECS 缺少 `conda`、`node`、`npm`
 
 ### 当前进行中
 - 同步本轮 ECS 初始化结果到长期维护文档
-- 准备提交并推送本轮文档更新
+- 准备提交并推送本轮部署手册与 Prompt 文档更新
