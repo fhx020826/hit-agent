@@ -219,6 +219,33 @@
   - `sub-e70264fd`
   - `survey-99ce6195`
 
+### 2026-04-13 准生产持久化判断
+- 当前项目最适合的近期路线不是立刻接入付费托管数据库，而是先做“单机准生产版”：
+  - SQLite 保留
+  - 数据目录外置
+  - 上传目录外置
+  - 备份恢复脚本固化
+  - 再配合 ECS 磁盘快照
+- 已新增 `HIT_AGENT_DATA_ROOT`，可以把运行数据统一外置到独立目录，而不是继续绑定仓库目录。
+- 已新增 `HIT_AGENT_DATABASE_URL`，为后续 PostgreSQL 迁移预留入口，但当前默认仍走 SQLite。
+- SQLite 当前已加固为：
+  - `WAL`
+  - `busy_timeout`
+  - `foreign_keys=ON`
+  - `synchronous=NORMAL`
+- 这套方案能显著提升“单机长期运行 + 重启不丢数据 + 重拉代码不影响数据”的稳定性，同时不引入新的长期数据库账单。
+
+### 2026-04-14 最新验证结论
+- 准生产简化版持久化改动已通过统一全量验证：
+  - `bash scripts/verify-all.sh`
+  - 结果：
+    - 后端 `16 passed`
+    - 浏览器 `10 passed`
+- 本轮唯一额外发现的问题不是业务回归，而是 Playwright 原子测试里一处文本选择器过宽：
+  - `frontend/tests/atomic-features.spec.ts`
+  - `生成课程包` 同时命中页面标题与加载提示
+- 该问题已通过精确 heading 断言修复，并完成全量回归复测。
+
 ### 2026-04-12 统一验证入口与复杂旅程回归
 - 新增统一验证脚本：
   - `scripts/verify-all.sh`

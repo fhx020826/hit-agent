@@ -6,6 +6,8 @@ SESSION_NAME="${SESSION_NAME:-hit-agent-dev}"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 RUNTIME_DIR="${RUNTIME_DIR:-/tmp/hit-agent-dev}"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DATA_ROOT="${HIT_AGENT_DATA_ROOT:-${ROOT_DIR}/backend/data}"
 
 show_port() {
   local port="$1"
@@ -40,5 +42,7 @@ else
   echo "- 前端: 未响应"
 fi
 
+echo
+echo "数据目录: ${DATA_ROOT}"
 echo
 echo "日志目录: ${RUNTIME_DIR}"

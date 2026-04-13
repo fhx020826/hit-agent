@@ -3,27 +3,46 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
-APP_DIR = os.path.dirname(os.path.dirname(__file__))
-DATA_DIR = os.path.join(APP_DIR, "..", "data")
-UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
-QUESTION_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "questions")
-ASSIGNMENT_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "assignments")
-PROFILE_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "profiles")
-MATERIAL_UPDATE_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "material_updates")
-MATERIAL_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "materials")
-DISCUSSION_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "discussions")
+APP_DIR = Path(__file__).resolve().parents[1]
+DEFAULT_DATA_DIR = (APP_DIR / ".." / "data").resolve()
+DATA_ROOT_ENV_VAR = "HIT_AGENT_DATA_ROOT"
 
-for path in [
-    DATA_DIR,
-    UPLOAD_DIR,
-    QUESTION_UPLOAD_DIR,
-    ASSIGNMENT_UPLOAD_DIR,
-    PROFILE_UPLOAD_DIR,
-    MATERIAL_UPDATE_UPLOAD_DIR,
-    MATERIAL_UPLOAD_DIR,
-    DISCUSSION_UPLOAD_DIR,
-]:
-    os.makedirs(path, exist_ok=True)
 
-DB_PATH = os.path.join(DATA_DIR, "app.db")
+def _resolve_data_dir() -> Path:
+    raw = os.getenv(DATA_ROOT_ENV_VAR, "").strip()
+    if not raw:
+        return DEFAULT_DATA_DIR
+    return Path(raw).expanduser().resolve()
+
+
+_DATA_DIR_PATH = _resolve_data_dir()
+_UPLOAD_DIR_PATH = _DATA_DIR_PATH / "uploads"
+_BACKUP_DIR_PATH = _DATA_DIR_PATH / "backups"
+
+_RUNTIME_DIRECTORIES = {
+    "data": _DATA_DIR_PATH,
+    "uploads": _UPLOAD_DIR_PATH,
+    "backups": _BACKUP_DIR_PATH,
+    "questions": _UPLOAD_DIR_PATH / "questions",
+    "assignments": _UPLOAD_DIR_PATH / "assignments",
+    "profiles": _UPLOAD_DIR_PATH / "profiles",
+    "material_updates": _UPLOAD_DIR_PATH / "material_updates",
+    "materials": _UPLOAD_DIR_PATH / "materials",
+    "discussions": _UPLOAD_DIR_PATH / "discussions",
+}
+
+for path in _RUNTIME_DIRECTORIES.values():
+    path.mkdir(parents=True, exist_ok=True)
+
+DATA_DIR = str(_RUNTIME_DIRECTORIES["data"])
+UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["uploads"])
+BACKUP_DIR = str(_RUNTIME_DIRECTORIES["backups"])
+QUESTION_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["questions"])
+ASSIGNMENT_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["assignments"])
+PROFILE_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["profiles"])
+MATERIAL_UPDATE_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["material_updates"])
+MATERIAL_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["materials"])
+DISCUSSION_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["discussions"])
+DB_PATH = str(_DATA_DIR_PATH / "app.db")

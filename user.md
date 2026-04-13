@@ -65,6 +65,7 @@
   - `cd frontend && npm run build`
 - 浏览器回归：
   - `cd frontend && npm run test:e2e -- <args>`
+- 如果本机没有 Playwright Chromium，`npm run test:e2e` 现在会先自动安装缺失浏览器，再启动测试。
 - 一键全量验证：
   - `cd /home/hxfeng/fhx-hit-agent && bash scripts/verify-all.sh`
 - 当前 HPC 上更稳定的浏览器验证面是“生产模式前端服务 + Playwright runner”。
@@ -79,12 +80,23 @@
 - 查看状态：
   - `bash scripts/dev-status.sh`
 - `dev-up.sh` 会打印你本地 Windows 需要执行的 SSH 端口转发命令
+- 如需外置数据目录后启动：
+  - `export HIT_AGENT_DATA_ROOT=/srv/hit-agent-data && bash scripts/dev-up.sh`
 
 ### 后端测试
 - 安装测试依赖：
   - `pip install -r backend/requirements-dev.txt`
 - 运行当前后端全量测试：
   - `cd backend && pytest -q`
+
+### 数据备份与恢复
+- 备份：
+  - `bash scripts/data-backup.sh`
+- 恢复：
+  - `bash scripts/data-restore.sh --yes <backup.tar.gz>`
+- 如需针对独立数据目录执行：
+  - `export HIT_AGENT_DATA_ROOT=/srv/hit-agent-data`
+  - 然后再执行备份或恢复脚本
 
 ## 已确认的环境坑位
 - `~/.bashrc` 中现有 conda 初始化指向旧路径 `/home/dzmat/miniconda3/bin/conda`，直接 `conda activate` 会失败。

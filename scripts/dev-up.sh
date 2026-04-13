@@ -12,6 +12,7 @@ LOCAL_SSH_HOST="${LOCAL_SSH_HOST:-hpc}"
 RUNTIME_DIR="${RUNTIME_DIR:-/tmp/hit-agent-dev}"
 BACKEND_LOG="$RUNTIME_DIR/backend.log"
 FRONTEND_LOG="$RUNTIME_DIR/frontend.log"
+DATA_ROOT="${HIT_AGENT_DATA_ROOT:-${ROOT_DIR}/backend/data}"
 
 mkdir -p "$RUNTIME_DIR"
 
@@ -93,6 +94,7 @@ print_footer() {
 - tmux 会话: ${SESSION_NAME}
 - 后端地址: http://127.0.0.1:${BACKEND_PORT}
 - 前端地址: http://127.0.0.1:${FRONTEND_PORT}
+- 数据目录: ${DATA_ROOT}
 
 服务器上查看日志:
 - tmux attach -t ${SESSION_NAME}

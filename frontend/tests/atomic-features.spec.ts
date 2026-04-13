@@ -174,7 +174,7 @@ test.describe.serial("atomic feature verification", () => {
     await page.getByLabel("课程目标").fill("理解 TCP 与 UDP 的差异");
     await page.getByLabel("拟融入的前沿方向").fill("智能网络调度");
     await page.getByRole("button", { name: "创建并生成课程包" }).click();
-    await expect(page.getByText("生成课程包")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "生成课程包", exact: true })).toBeVisible();
     await expect(page.getByText("已完成生成")).toBeVisible({ timeout: 30000 });
     await page.getByRole("button", { name: /发布给学生|已发布给学生/ }).click();
     await expect(page.getByRole("button", { name: "已发布给学生" })).toBeVisible();

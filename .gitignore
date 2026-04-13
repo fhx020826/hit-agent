@@ -25,7 +25,9 @@ node-v24.14.1-win-x64.zip
 Thumbs.db
 
 # Data & uploads (runtime generated)
+backend/data/
 backend/data/uploads/
+backend/data/backups/
 backend/data/*.db
 backend/data/*.sqlite
 

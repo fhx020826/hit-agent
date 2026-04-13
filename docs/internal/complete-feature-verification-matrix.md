@@ -1,6 +1,6 @@
 # HIT-Agent Complete Feature Verification Matrix
 
-Updated 2026-04-12 after rerunning the unified frontend and backend verification stack.
+Updated 2026-04-14 after rerunning the unified frontend and backend verification stack.
 
 ## Verification Batch
 
@@ -8,7 +8,7 @@ Updated 2026-04-12 after rerunning the unified frontend and backend verification
 - Frontend live browser batch: `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts` -> `10 passed`
 - Frontend lint batch: `npm run lint` -> passed
 - Frontend build batch: `npm run build` -> passed
-- Backend API batch: `pytest -q` -> `13 passed`
+- Backend API batch: `pytest -q` -> `16 passed`
 - Current backend pytest warning count: `0`
 
 ## Matrix Rules

@@ -126,12 +126,19 @@ ECS 当前仍缺少真正部署应用所需的运行环境：
 
 ### 3. 后端数据库与上传目录会自动初始化
 
-后端当前使用 repo 相对路径：
+后端现在支持独立数据根目录：
 
-- 数据库：`backend/data/app.db`
-- 上传目录：`backend/data/uploads/*`
+- 环境变量：`HIT_AGENT_DATA_ROOT`
+- 默认值：`<repo>/backend/data`
+- 数据库：`${HIT_AGENT_DATA_ROOT}/app.db`
+- 上传目录：`${HIT_AGENT_DATA_ROOT}/uploads/*`
+- 备份目录：`${HIT_AGENT_DATA_ROOT}/backups/*`
 
-只要部署目录固定且不要乱删 `backend/data`，就能保持数据持久化。
+推荐服务器部署时显式设置：
+
+- `HIT_AGENT_DATA_ROOT=/srv/hit-agent-data`
+
+这样即使后续重拉代码、切换发布目录，只要 `/srv/hit-agent-data` 不动，用户数据和上传文件都会保留。
 
 ### 4. 无 LLM Key 也可以先部署
 

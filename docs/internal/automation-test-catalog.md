@@ -1,6 +1,6 @@
 # HIT-Agent Automation Test Catalog
 
-Updated 2026-04-12 after `bash scripts/verify-all.sh` completed successfully.
+Updated 2026-04-14 after `bash scripts/verify-all.sh` completed successfully.
 
 ## Unified Entry
 
@@ -16,7 +16,7 @@ Updated 2026-04-12 after `bash scripts/verify-all.sh` completed successfully.
     - `tests/extended-coverage.spec.ts`
     - `tests/user-journeys.spec.ts`
 - Latest one-key result:
-  - backend `13 passed`
+  - backend `16 passed`
   - browser `10 passed`
 
 ## Backend Suites
@@ -55,6 +55,15 @@ Updated 2026-04-12 after `bash scripts/verify-all.sh` completed successfully.
   - Purpose: verify discussion attachments, AI mention flow, live-share creation, sync data, annotation persistence, and protected downloads.
 - `test_feedback_skip_and_pending_visibility`
   - Purpose: verify survey pending visibility, skip semantics, and analytics edge behavior.
+
+### `backend/tests/test_runtime_storage.py`
+
+- `test_runtime_paths_follow_data_root_env`
+  - Purpose: verify the backend runtime data directory can be relocated through `HIT_AGENT_DATA_ROOT`.
+- `test_sqlite_engine_enables_pragmas`
+  - Purpose: verify SQLite runtime hardening is active, including `WAL`, `busy_timeout`, and `foreign_keys`.
+- `test_backup_and_restore_scripts_round_trip`
+  - Purpose: verify `scripts/data-backup.sh` and `scripts/data-restore.sh` can round-trip database and upload files.
 
 ## Frontend Suites
 

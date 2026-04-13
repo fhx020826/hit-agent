@@ -19,6 +19,20 @@
 - `httpx`
 - `pypdf`
 
+### 当前准生产持久化方案
+- 支持通过 `HIT_AGENT_DATA_ROOT` 把数据目录从仓库中外置
+- 默认本地开发仍落在 `backend/data`
+- 准生产推荐目录：
+  - 数据库：`${HIT_AGENT_DATA_ROOT}/app.db`
+  - 上传文件：`${HIT_AGENT_DATA_ROOT}/uploads/`
+  - 备份：`${HIT_AGENT_DATA_ROOT}/backups/`
+- SQLite 连接已增加：
+  - `WAL`
+  - `busy_timeout`
+  - `foreign_keys=ON`
+  - `synchronous=NORMAL`
+- 同时预留 `HIT_AGENT_DATABASE_URL`，后续可平滑切到 PostgreSQL
+
 ### 本地运行与协作
 - 独立 conda 环境：`fhx-hit-agent`
 - 一键脚本：
@@ -72,10 +86,10 @@
 ## 当前工程化基线
 
 ### 自动化验证
-2026-04-12 最新验证结果：
+2026-04-14 最新验证结果：
 - 一键验证：
   - `bash scripts/verify-all.sh` -> 通过
-- 后端：`cd backend && pytest -q` -> `13 passed`
+- 后端：`cd backend && pytest -q` -> `16 passed`
 - 前端：`cd frontend && npm run lint` -> 通过
 - 前端：`cd frontend && npm run build` -> 通过
 - 浏览器原子/扩展回归：
@@ -87,6 +101,10 @@
 - 当前稳定验证使用的是生产模式前端服务面；Next 开发服务器与 Playwright runner 在这台机器上存在不稳定组合，需要单独记录。
 - `scripts/verify-all.sh` 会自动寻找空闲验证端口，并把所选前端端口传回后端 CORS 配置，避免与常驻 `3000/8000` 服务冲突。
 - 最新一轮验证是在重启后的最新前后端服务上完成，不是基于旧进程。
+- 新增持久化专项测试：
+  - `backend/tests/test_runtime_storage.py`
+  - 覆盖数据目录环境变量、SQLite PRAGMA、备份恢复脚本轮转
+- `frontend/package.json` 的 `test:e2e` 现在会在浏览器缺失时自动安装 Playwright Chromium，降低新机器首次回归失败概率。
 
 ### 文档与测试覆盖
 - 已有完整功能清单
@@ -157,6 +175,7 @@
 - 引入数据库迁移
 - 增强日志与错误追踪
 - 继续薄化路由层，提升服务层聚合度
+- 在准生产阶段先固化独立数据目录、备份恢复与快照策略，再视并发压力决定 PostgreSQL 迁移窗口
 
 ### 第三优先级
 - 梳理部署面与运行模式

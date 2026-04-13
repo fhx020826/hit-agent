@@ -5,6 +5,54 @@
 
 ## 本轮完成
 
+### 准生产简化版持久化加固
+- 已完成服务端数据目录外置能力：
+  - 新增环境变量 `HIT_AGENT_DATA_ROOT`
+  - 默认仍兼容本地开发目录 `backend/data`
+  - 可直接切换到独立目录，例如 `/srv/hit-agent-data`
+- 已完成 SQLite 连接加固：
+  - `journal_mode=WAL`
+  - `busy_timeout`
+  - `foreign_keys=ON`
+  - `synchronous=NORMAL`
+- 已预留数据库 URL 环境变量：
+  - `HIT_AGENT_DATABASE_URL`
+  - 后续切换 PostgreSQL 时无需再重写业务层导入路径
+- 已新增数据备份脚本：
+  - `scripts/data-backup.sh`
+- 已新增数据恢复脚本：
+  - `scripts/data-restore.sh`
+- 备份脚本特性：
+  - 使用 SQLite backup API 做热备份
+  - 同时打包上传目录
+  - 自动写入 `manifest.json`
+- 恢复脚本特性：
+  - 支持从 `.tar.gz` 备份包或已解压目录恢复
+  - 恢复前自动保存当前数据库和上传目录的 pre-restore 备份
+- 已新增持久化专项测试：
+  - `backend/tests/test_runtime_storage.py`
+  - 当前覆盖：
+    - 数据目录环境变量重定向
+    - SQLite PRAGMA 加固项生效
+    - 备份/恢复脚本回环验证
+- 已更新一键启动/状态脚本输出：
+  - `scripts/dev-up.sh`
+  - `scripts/dev-status.sh`
+  - 现在会显示当前有效数据目录
+- 已更新 `.gitignore`，避免默认开发态下 `backend/data/backups/` 污染工作区
+- 本轮最新统一验证结果：
+  - `bash scripts/verify-all.sh` -> 通过
+  - `pytest -q` -> `16 passed`
+  - `Playwright` -> `10 passed`
+- 本轮顺手修正一条真实浏览器回归问题：
+  - `frontend/tests/atomic-features.spec.ts`
+  - 原因是 `生成课程包` 断言命中标题和状态提示两处文本
+  - 现已改为按 heading 角色精确断言，避免 strict mode 歧义
+- 已加固 Playwright 浏览器供应链：
+  - `frontend/scripts/ensure-playwright-browser.sh`
+  - `frontend/package.json` 的 `test:e2e` 会自动补装 Chromium
+  - `frontend/playwright.config.ts` 不再依赖单一硬编码用户目录，改为自动搜索已安装 Chromium
+
 ### ECS 正式部署实测与资源瓶颈确认
 - 已直接通过 SSH 接管远端 ECS `8.152.202.171` 进行正式部署尝试。
 - 已确认远端当前真实资源：
