@@ -1,12 +1,12 @@
-﻿"use client";
+"use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 import { SignalStrip, WorkspaceSection } from "@/components/workspace-panels";
 import { WorkspaceHero, WorkspacePage } from "@/components/workspace-shell";
-import { api, type LessonPack } from "@/lib/api";
+import { api, type LessonPack, type TaskJobRecord } from "@/lib/api";
 
 export default function GenerateLessonPackPage() {
   return (
@@ -22,15 +22,57 @@ function GenerateContent() {
   const [loading, setLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [pack, setPack] = useState<LessonPack | null>(null);
+  const [job, setJob] = useState<TaskJobRecord | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!courseId) return;
+    let cancelled = false;
     setLoading(true);
-    api.generateLessonPack(courseId)
-      .then(setPack)
-      .catch((e) => alert(`生成失败：${e.message}`))
-      .finally(() => setLoading(false));
+    setPack(null);
+    setJob(null);
+    setErrorMessage("");
+    api.createLessonPackJob(courseId)
+      .then((submittedJob) => {
+        if (cancelled) return;
+        setJob(submittedJob);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setErrorMessage(error instanceof Error ? error.message : "课程包生成失败，请稍后重试。");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [courseId]);
+
+  useEffect(() => {
+    if (!job) return;
+    if (job.status === "succeeded") {
+      const nextPack = getLessonPackFromJob(job);
+      if (nextPack) {
+        setPack(nextPack);
+        setErrorMessage("");
+      }
+      return;
+    }
+    if (job.status === "failed") {
+      setErrorMessage(job.error_message || job.message || "课程包生成失败，请稍后重试。");
+      return;
+    }
+    const timer = window.setTimeout(async () => {
+      try {
+        const nextJob = await api.getTaskJob(job.id);
+        setJob(nextJob);
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "课程包任务状态刷新失败。");
+      }
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [job]);
 
   const handlePublish = async () => {
     if (!pack) return;
@@ -51,7 +93,7 @@ function GenerateContent() {
         title={<h1>生成课程包</h1>}
         description={
           <p>
-            这里会调用后端模型生成结构化课程包。如果已经配置了真实模型密钥，就会直接走模型；否则会自动降级到示例数据，方便继续调页面流程。
+            课程包生成已切换为后台异步任务。页面会自动轮询任务进度，你可以等待结构化结果返回后继续发布，也便于后续扩展统一任务中心。
           </p>
         }
         actions={
@@ -62,14 +104,33 @@ function GenerateContent() {
       />
 
       {loading ? (
-        <WorkspaceSection tone="teacher" title="模型正在生成课程包，请稍等...">
-          <div className="py-12 text-center text-slate-500">模型正在生成课程包，请稍等...</div>
+        <WorkspaceSection tone="teacher" title="模型正在提交课程包任务，请稍等...">
+          <div className="py-12 text-center text-slate-500">模型正在提交课程包任务，请稍等...</div>
+        </WorkspaceSection>
+      ) : null}
+
+      {job && !pack ? (
+        <WorkspaceSection tone="teacher" title={job.status === "queued" ? "课程包任务已入队，正在等待后台执行..." : "模型正在后台生成课程包..."}>
+          <SignalStrip
+            tone="teacher"
+            items={[
+              { label: "任务状态", value: job.status === "queued" ? "排队中" : job.status === "running" ? "执行中" : job.status, note: job.message || "后台任务会自动继续推进。" },
+              { label: "进度", value: `${job.progress}%`, note: "当前页面会自动轮询任务状态，无需手动刷新。" },
+              { label: "任务编号", value: job.id, note: "这为后续扩展统一后台任务中心预留了基础。 " },
+            ]}
+          />
         </WorkspaceSection>
       ) : null}
 
       {!loading && !pack && !courseId ? (
         <WorkspaceSection tone="teacher" title="请从课程列表中选择一门课程，再进入课程包生成流程。">
           <div className="empty-state">请从课程列表中选择一门课程，再进入课程包生成流程。</div>
+        </WorkspaceSection>
+      ) : null}
+
+      {errorMessage ? (
+        <WorkspaceSection tone="teacher" title="课程包生成失败">
+          <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm leading-7 text-rose-700">{errorMessage}</div>
         </WorkspaceSection>
       ) : null}
 
@@ -105,6 +166,12 @@ function GenerateContent() {
       ) : null}
     </WorkspacePage>
   );
+}
+
+function getLessonPackFromJob(job: TaskJobRecord): LessonPack | null {
+  const candidate = job.result.lesson_pack;
+  if (!candidate || typeof candidate !== "object") return null;
+  return candidate as LessonPack;
 }
 
 function PackSummary({ payload }: { payload: Record<string, unknown> }) {

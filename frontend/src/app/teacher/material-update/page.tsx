@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { useAuth } from "@/components/auth-provider";
 import { WorkspacePage } from "@/components/workspace-shell";
-import { api, type Course, type MaterialUpdateResult, type ModelOption } from "@/lib/api";
+import { api, type Course, type MaterialUpdateResult, type ModelOption, type TaskJobRecord } from "@/lib/api";
 
 export default function MaterialUpdatePage() {
   const router = useRouter();
@@ -20,11 +21,21 @@ export default function MaterialUpdatePage() {
   const [selectedModel, setSelectedModel] = useState("default");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [result, setResult] = useState<MaterialUpdateResult | null>(null);
+  const [activeJob, setActiveJob] = useState<TaskJobRecord | null>(null);
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState("");
 
-  const reload = async () => {
-    const [courseList, updateList, modelList] = await Promise.all([api.listCourses(), api.listMaterialUpdates(), api.listModels().catch(() => [])]);
+  const loadPageData = async () => {
+    const [courseList, updateList, modelList] = await Promise.all([
+      api.listCourses(),
+      api.listMaterialUpdates(),
+      api.listModels().catch(() => []),
+    ]);
+    return { courseList, updateList, modelList };
+  };
+
+  const applyPageData = (data: { courseList: Course[]; updateList: MaterialUpdateResult[]; modelList: ModelOption[] }) => {
+    const { courseList, updateList, modelList } = data;
     setCourses(courseList);
     setHistory(updateList);
     setModels(modelList);
@@ -41,15 +52,72 @@ export default function MaterialUpdatePage() {
 
   useEffect(() => {
     if (!user || user.role !== "teacher") return;
-    reload().catch(() => {
-      setCourses([]);
-      setHistory([]);
-      setModels([]);
-    });
+    let cancelled = false;
+    void loadPageData()
+      .then((data) => {
+        if (cancelled) return;
+        applyPageData(data);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCourses([]);
+        setHistory([]);
+        setModels([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
-  const selectedModelInfo = useMemo(() => models.find((item) => item.key === selectedModel) || null, [models, selectedModel]);
+  useEffect(() => {
+    if (!activeJob || !["queued", "running"].includes(activeJob.status)) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const nextJob = await api.getTaskJob(activeJob.id);
+        if (cancelled) return;
+        setActiveJob(nextJob);
+        if (nextJob.status === "succeeded") {
+          const nextResult = getMaterialUpdateFromJob(nextJob);
+          if (nextResult) {
+            setResult(nextResult);
+            setMessage(
+              nextResult.model_status === "failed"
+                ? nextResult.summary
+                : `后台任务已完成，本次实际使用模型：${nextResult.used_model_name || nextResult.selected_model}。`,
+            );
+          } else {
+            setMessage("任务已完成，但未解析出结构化结果。");
+          }
+          setRunning(false);
+          void loadPageData()
+            .then((data) => {
+              if (!cancelled) applyPageData(data);
+            })
+            .catch(() => undefined);
+        }
+        if (nextJob.status === "failed") {
+          setRunning(false);
+          setMessage(nextJob.error_message || nextJob.message || "生成失败，请稍后重试");
+        }
+      } catch (error) {
+        if (cancelled) return;
+        setRunning(false);
+        setMessage(error instanceof Error ? error.message : "任务状态刷新失败，请稍后重试");
+      }
+    }, 1200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [activeJob]);
+
+  const selectedModelInfo = useMemo(
+    () => models.find((item) => item.key === selectedModel) || null,
+    [models, selectedModel],
+  );
   const canRun = Boolean(selectedModel || selectedModelInfo);
+  const activeJobLabel = activeJob?.status === "queued" ? "排队中" : activeJob?.status === "running" ? "执行中" : activeJob?.status === "failed" ? "失败" : "已完成";
 
   if (!user || user.role !== "teacher") {
     return (
@@ -67,7 +135,7 @@ export default function MaterialUpdatePage() {
             <div>
               <p className="text-sm font-semibold text-slate-500">PPT / 教案更新</p>
               <h2 className="mt-2 text-2xl font-black text-slate-900">在旧材料基础上快速补入近年热点、案例和前沿内容</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">生成前会先读取你当前选择的模型，再把旧材料摘要、教师补充说明和课程上下文一起送入真实模型推理。</p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">该页面已经改为后台异步任务流。提交后会先返回任务编号，再由页面自动轮询结果，减少模型推理时的阻塞感。</p>
             </div>
             <div className="relative w-full max-w-sm">
               <p className="text-sm font-semibold text-slate-500">当前模型</p>
@@ -130,25 +198,44 @@ export default function MaterialUpdatePage() {
               try {
                 setRunning(true);
                 setMessage("");
-                const next = selectedFile
-                  ? await api.uploadMaterialUpdate({ course_id: courseId || undefined, title, instructions, selected_model: selectedModel || "default", file: selectedFile })
-                  : await api.previewMaterialUpdate({ course_id: courseId || undefined, title, instructions, material_text: materialText, selected_model: selectedModel || "default" });
-                setResult(next);
-                setMessage(next.model_status === "failed" ? next.summary : `已生成更新建议，本次实际使用模型：${next.used_model_name || next.selected_model}。`);
-                await reload();
+                setResult(null);
+                const nextJob = selectedFile
+                  ? await api.createMaterialUpdateUploadJob({ course_id: courseId || undefined, title, instructions, selected_model: selectedModel || "default", file: selectedFile })
+                  : await api.createMaterialUpdatePreviewJob({ course_id: courseId || undefined, title, instructions, material_text: materialText, selected_model: selectedModel || "default" });
+                setActiveJob(nextJob);
+                setMessage(nextJob.message || "任务已提交，正在等待后台执行。");
               } catch (error) {
-                setMessage(error instanceof Error ? error.message : "生成失败，请稍后重试");
-              } finally {
                 setRunning(false);
+                setMessage(error instanceof Error ? error.message : "生成失败，请稍后重试");
               }
             }}
             disabled={running || !canRun}
             className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {running ? "生成中..." : "生成更新建议"}
+            {running ? (activeJob?.status === "queued" ? "排队中..." : "生成中...") : "生成更新建议"}
           </button>
         </div>
         <p className={`mt-3 text-sm ${message.includes("不可用") || message.includes("失败") ? "text-rose-700" : "text-slate-600"}`}>{message || (selectedModelInfo ? "建议优先补充文字说明，模型会据此更准确生成前沿更新方案。" : "当前没有模型清单时，会使用默认标识请求后端，并返回明确的诊断或回退建议。")}</p>
+
+        {activeJob ? (
+          <div className="mt-5 rounded-[28px] border border-[var(--active-border)] bg-[var(--active-surface)] px-5 py-5 shadow-[var(--active-shadow)]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-500">后台任务</p>
+                <h3 className="mt-2 text-lg font-bold text-slate-900">{activeJobLabel} · {activeJob.progress}%</h3>
+                <p className="mt-2 text-sm leading-7 text-slate-600">{activeJob.message || "页面会自动刷新后台任务状态。"}</p>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${activeJob.status === "failed" ? "bg-rose-100 text-rose-700" : activeJob.status === "succeeded" ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700"}`}>
+                {activeJob.status === "queued" ? "等待执行" : activeJob.status === "running" ? "后台处理中" : activeJob.status === "failed" ? "任务失败" : "任务完成"}
+              </span>
+            </div>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/80">
+              <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, activeJob.progress))}%` }} />
+            </div>
+            <p className="mt-3 text-xs text-slate-500">任务编号：{activeJob.id}</p>
+            {activeJob.error_message ? <p className="mt-2 text-sm text-rose-700">{activeJob.error_message}</p> : null}
+          </div>
+        ) : null}
       </section>
 
       <section className="glass-panel rounded-[32px] px-5 py-6 md:px-6">
@@ -187,4 +274,10 @@ export default function MaterialUpdatePage() {
       </section>
     </WorkspacePage>
   );
+}
+
+function getMaterialUpdateFromJob(job: TaskJobRecord): MaterialUpdateResult | null {
+  const candidate = job.result.material_update;
+  if (!candidate || typeof candidate !== "object") return null;
+  return candidate as MaterialUpdateResult;
 }

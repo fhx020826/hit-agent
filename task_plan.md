@@ -24,6 +24,7 @@
 - [x] Phase 15: 在 ECS 上直接尝试正式部署并确认真实硬件瓶颈
 - [x] Phase 16: 准生产简化版持久化加固（外置数据目录 / SQLite 加固 / 备份恢复）
 - [x] Phase 17: 前端统一设计语言重构（桌面/移动差异化 + 测试同步更新 + 全量回归）
+- [x] Phase 18: 轻量异步任务中心第一阶段（lesson pack / material-update 异步化 + 全量回归）
 
 ## Constraints
 - 仅在 `/home/hxfeng/fhx-hit-agent` 中操作
@@ -32,11 +33,10 @@
 - 不提交运行产物、缓存、测试中间文件
 
 ## Current Focus
-- 准生产简化版持久化加固已完成并通过统一全量验证
-- 前端统一设计语言重构已完成，剩余真实功能页也已全部接入统一 workspace 壳层，并已再次通过 `verify-all`
-- 备份/恢复脚本的解释器兼容问题已修复，并重新纳入统一回归
-- 自动化测试已同步到新的页面语义，不再依赖旧 DOM 层级
-- 阿里云 ECS 的 SSH / 代理 / Codex 基础运维面已打通
-- 已完成正式部署前的运行手册与 Prompt 整理
-- 已确认当前 `2C/2G` ECS 在完整自动化验证要求下存在真实资源瓶颈
-- 下一阶段优先把当前最新代码重新部署到服务器独立数据目录，再继续 systemd 常驻与公网交付
+- 轻量异步任务中心第一阶段已完成并通过统一全量验证
+- lesson pack / material-update 已切到后台任务流，旧同步接口仍保留兼容
+- 当前下一优先级：
+  - 把 `assignment-review` 纳入异步任务中心
+  - 继续细分 `materials_service.py` / `discussion_service.py`
+  - 维持 `verify-all.sh` 作为提交前统一门禁
+  - 等本地继续优化收敛后，再统一部署到 ECS

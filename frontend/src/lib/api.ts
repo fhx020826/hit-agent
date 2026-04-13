@@ -215,6 +215,23 @@ export interface LessonPack {
   created_at: string;
 }
 
+export type TaskJobStatus = "queued" | "running" | "succeeded" | "failed";
+
+export interface TaskJobRecord {
+  id: string;
+  job_type: string;
+  course_id: string;
+  status: TaskJobStatus;
+  progress: number;
+  message: string;
+  error_message: string;
+  result: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  started_at: string;
+  finished_at: string;
+}
+
 export interface AgentConfig {
   course_id: string;
   scope_rules: string;
@@ -627,8 +644,16 @@ export const api = {
   createCourse: (payload: Omit<Course, "id" | "owner_user_id" | "created_at">) => request<Course>("/api/courses", { method: "POST", body: JSON.stringify(payload) }),
   listLessonPacks: (courseId?: string) => request<LessonPack[]>(`/api/lesson-packs${courseId ? `?course_id=${courseId}` : ""}`),
   generateLessonPack: (courseId: string) => request<LessonPack>(`/api/lesson-packs/generate/${courseId}`, { method: "POST" }),
+  createLessonPackJob: (courseId: string) => request<TaskJobRecord>(`/api/task-jobs/lesson-pack-generate/${courseId}`, { method: "POST" }),
   getLessonPack: (id: string) => request<LessonPack>(`/api/lesson-packs/${id}`),
   publishLessonPack: (id: string) => request<LessonPack>(`/api/lesson-packs/${id}/publish`, { method: "POST" }),
+  getTaskJob: (jobId: string) => request<TaskJobRecord>(`/api/task-jobs/${jobId}`),
+  listTaskJobs: (params?: { jobType?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.jobType) q.set("job_type", params.jobType);
+    if (params?.limit) q.set("limit", String(params.limit));
+    return request<TaskJobRecord[]>(`/api/task-jobs${q.toString() ? `?${q.toString()}` : ""}`);
+  },
   uploadMaterial: async (courseId: string, file: File) => {
     const form = new FormData();
     form.append("file", file);
@@ -739,6 +764,7 @@ export const api = {
   previewAssignmentReview: (payload: { course_id?: string; assignment_type: string; title: string; requirements?: string; submission_text: string }) => request<AssignmentReviewResponse>("/api/assignment-review/preview", { method: "POST", body: JSON.stringify(payload) }),
 
   previewMaterialUpdate: (payload: { course_id?: string; title?: string; instructions?: string; material_text?: string; selected_model?: string }) => request<MaterialUpdateResult>("/api/material-update/preview", { method: "POST", body: JSON.stringify(payload) }),
+  createMaterialUpdatePreviewJob: (payload: { course_id?: string; title?: string; instructions?: string; material_text?: string; selected_model?: string }) => request<TaskJobRecord>("/api/task-jobs/material-update/preview", { method: "POST", body: JSON.stringify(payload) }),
   uploadMaterialUpdate: async (payload: { course_id?: string; title?: string; instructions?: string; selected_model?: string; file: File }) => {
     const form = new FormData();
     if (payload.course_id) form.append("course_id", payload.course_id);
@@ -747,6 +773,15 @@ export const api = {
     if (payload.selected_model) form.append("selected_model", payload.selected_model);
     form.append("file", payload.file);
     return request<MaterialUpdateResult>("/api/material-update/upload", { method: "POST", body: form });
+  },
+  createMaterialUpdateUploadJob: async (payload: { course_id?: string; title?: string; instructions?: string; selected_model?: string; file: File }) => {
+    const form = new FormData();
+    if (payload.course_id) form.append("course_id", payload.course_id);
+    if (payload.title) form.append("title", payload.title);
+    if (payload.instructions) form.append("instructions", payload.instructions);
+    if (payload.selected_model) form.append("selected_model", payload.selected_model);
+    form.append("file", payload.file);
+    return request<TaskJobRecord>("/api/task-jobs/material-update/upload", { method: "POST", body: form });
   },
   listMaterialUpdates: () => request<MaterialUpdateResult[]>("/api/material-update"),
 

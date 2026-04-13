@@ -23,6 +23,10 @@
 - SQLite
 - `httpx`
 - `pypdf`
+- 轻量异步任务中心：
+  - 进程内 `ThreadPoolExecutor`
+  - `task_jobs` 数据表持久化任务状态
+  - 支持任务提交、轮询、失败落库、重启中断标记
 
 ### 当前准生产持久化方案
 - 支持通过 `HIT_AGENT_DATA_ROOT` 把数据目录从仓库中外置
@@ -60,10 +64,12 @@
 ### 教师端
 - 课程创建与课程画像填写
 - 课程包生成、查看、发布
+- 课程包异步生成任务提交与状态轮询
 - AI 助教配置
 - 教学资料上传、共享、资料请求处理
 - 课堂同步展示与实时批注
 - PPT / 教案更新建议与回退预览
+- PPT / 教案更新异步预览 / 上传任务提交与状态轮询
 - 作业发布、学生提交查看、AI 辅助批改预览
 - 学生提问中心、通知、回复、状态流转
 - 匿名问卷触发与反馈分析
@@ -90,6 +96,12 @@
 - `/api/student/*`
 - `/api/users/*`
 - 资料下载、头像访问、课程详情、反馈模板等支持型接口
+- 通用任务接口：
+  - `POST /api/task-jobs/lesson-pack-generate/{course_id}`
+  - `POST /api/task-jobs/material-update/preview`
+  - `POST /api/task-jobs/material-update/upload`
+  - `GET /api/task-jobs/{job_id}`
+  - `GET /api/task-jobs`
 
 完整代码基线文档：
 - `docs/internal/complete-feature-list.md`
@@ -101,7 +113,7 @@
 2026-04-14 最新验证结果：
 - 一键验证：
   - `bash scripts/verify-all.sh` -> 通过
-- 后端：`cd backend && pytest -q` -> `16 passed`
+- 后端：`cd backend && pytest -q` -> `22 passed`
 - 前端：`cd frontend && npm run lint` -> 通过
 - 前端：`cd frontend && npm run build` -> 通过
 - 浏览器原子/扩展回归：
@@ -109,7 +121,8 @@
   - 结果：`10 passed`
 - 本轮说明：
   - 前端已完成统一设计语言重构后再次全量回归
-  - 浏览器测试中一处管理员页和一处课程创建页的旧选择器假设已同步修正
+  - 新增轻量异步任务中心后，课程包生成和 PPT / 教案更新已切到后台任务流
+  - 新增 `backend/tests/test_task_jobs.py`，覆盖异步提交、轮询完成、异步上传与失败态回落
   - 当前测试更强调“功能语义稳定”而不是“旧布局层级不变”
 
 说明：
@@ -160,6 +173,17 @@
   - `backend/app/routes/materials.py`: `470 -> 193`
   - `backend/app/routes/discussion.py`: `388 -> 104`
 
+### 第四轮已完成
+- 新增 `backend/app/db/models_tasks.py` 与 `backend/app/models/tasks.py`
+- 新增 `backend/app/services/task_jobs.py`
+- 新增 `backend/app/services/task_job_handlers.py`
+- 新增 `backend/app/routes/task_jobs.py`
+- lesson pack 与 material-update 已从“页面直等同步接口”升级为“后台任务提交 + 轮询拿结果”
+- 当前保持：
+  - 老同步接口仍保留，兼容已有调用
+  - 新前端默认走异步任务接口
+  - 服务重启会把遗留 `queued/running` 任务标记为失败，避免脏状态长期滞留
+
 ### 仍需后续继续拆分
 - `materials_service.py` 与 `discussion_service.py` 现在承接了较多领域逻辑，后续可以继续再按“共享 / 请求 / 直播”和“空间 / 消息 / 搜索 / AI 回答”进一步细分
 - 当前剩余优化重点已经从“路由过厚”转向“service 内部再细分”和“数据库迁移 / 可观测性基线”
@@ -185,6 +209,7 @@
 
 ### 第一优先级
 - 继续把 `materials_service.py` / `discussion_service.py` 进一步按子域细分
+- 把 `assignment-review` 也并入异步任务中心，减少长文本批改预览阻塞
 - 保持 `complete-feature-list` 与验证矩阵同步
 - 固化浏览器验证的稳定运行面
 - 维持 `verify-all.sh` 作为提交前统一准入入口

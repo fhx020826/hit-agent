@@ -7,3 +7,4 @@ from .models_feedback import *  # noqa: F401,F403
 from .models_materials import *  # noqa: F401,F403
 from .models_people import *  # noqa: F401,F403
 from .models_qa import *  # noqa: F401,F403
+from .models_tasks import *  # noqa: F401,F403

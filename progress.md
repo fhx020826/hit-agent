@@ -216,14 +216,45 @@
   - `44de8c2 test: stabilize ecs deployment verification`
 - 已在 ECS 上基于 `44de8c2` 真实执行：
   - `bash scripts/verify-all.sh`
-- 当前真实进度：
+  - 当前真实进度：
   - 后端 `pytest` 通过
+
+## 2026-04-14
+
+### 已完成
+- 新增轻量异步任务中心基础设施：
+  - `backend/app/db/models_tasks.py`
+  - `backend/app/models/tasks.py`
+  - `backend/app/services/task_jobs.py`
+  - `backend/app/services/task_job_handlers.py`
+  - `backend/app/routes/task_jobs.py`
+- 把两条重计算链路接入异步任务中心：
+  - 课程包生成
+  - PPT / 教案更新预览 / 上传
+- 保留旧同步接口用于兼容已有调用，同时让教师端页面默认走异步任务接口。
+- 新增异步任务专项后端回归：
+  - `backend/tests/test_task_jobs.py`
+- 更新前端 API 与页面：
+  - `frontend/src/lib/api.ts`
+  - `frontend/src/app/teacher/lesson-pack/page.tsx`
+  - `frontend/src/app/teacher/material-update/page.tsx`
+- 重启本地开发服务：
+  - `scripts/dev-down.sh`
+  - `scripts/dev-up.sh`
+- 完成最新统一全量验证：
+  - `bash scripts/verify-all.sh` -> 通过
+  - `pytest -q` -> `22 passed`
+  - `Playwright` -> `10 passed`
+- 最新统一验证日志目录：
+  - `/tmp/hit-agent-verify/20260414-040104`
+
+### 当前进行中
+- 同步功能清单、验证矩阵、自动化测试目录文档与项目总览
+- 准备提交并推送“异步任务中心第一阶段”代码与文档更新
   - 前端 `lint` 通过
   - 前端 `build` 通过
-  - 原子浏览器测试 5 条通过
-- 当前阻塞：
-  - 在继续执行扩展覆盖 / 后续浏览器测试时，ECS 进入严重卡顿
-  - 连新的 SSH `echo ping` 轻量探针都在 10~20 秒窗口内超时
-- 当前判断：
-  - 这台 `2C/2G` ECS 在完整部署验证阶段资源明显不足
-  - 在不放松“必须全量验证”的前提下，当前不适合继续强行完成正式上线
+  - Playwright 三组浏览器回归 `10 passed`
+  - 最新 `verify-all.sh` 批次已刷新为 `/tmp/hit-agent-verify/20260414-040104`
+- 当前状态：
+  - 本地异步任务中心第一阶段已经完成，代码与文档已对齐到最新验证结果
+  - 下一步是提交并推送本轮代码，然后进入 `assignment-review` 异步化

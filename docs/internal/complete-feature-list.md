@@ -1,6 +1,6 @@
 # HIT-Agent Complete Feature List
 
-Updated 2026-04-12. This is the code-grounded full feature inventory for the current repository state.
+Updated 2026-04-14. This is the code-grounded full feature inventory for the current repository state.
 
 Companion verification document:
 - `docs/internal/complete-feature-verification-matrix.md` maps every feature ID below to an independent test case ID, latest automated evidence, and verification status.
@@ -78,10 +78,12 @@ Companion verification document:
 
 | # | Feature | Interaction | API | Test Priority |
 |---|---------|-------------|-----|---------------|
-| D3.1 | Generate lesson pack | auto on page load | `POST /api/lesson-packs/{course_id}/generate` | CRITICAL |
-| D3.2 | View generated content (objectives, outline, etc.) | display | n/a | HIGH |
-| D3.3 | Publish lesson pack | button | `POST /api/lesson-packs/{lp_id}/publish` | CRITICAL |
-| D3.4 | View lesson pack detail | link | `GET /api/lesson-packs/{lp_id}` | HIGH |
+| D3.1 | Generate lesson pack (legacy sync endpoint) | direct request | `POST /api/lesson-packs/generate/{course_id}` | HIGH |
+| D3.2 | Submit lesson pack background task | auto on page load | `POST /api/task-jobs/lesson-pack-generate/{course_id}` | CRITICAL |
+| D3.3 | Poll lesson pack task state | auto polling | `GET /api/task-jobs/{job_id}` | CRITICAL |
+| D3.4 | View generated content (objectives, outline, etc.) | display | n/a | HIGH |
+| D3.5 | Publish lesson pack | button | `POST /api/lesson-packs/{lp_id}/publish` | CRITICAL |
+| D3.6 | View lesson pack detail | link | `GET /api/lesson-packs/{lp_id}` | HIGH |
 
 ### D4. AI Assistant Config (`/teacher/ai-config`)
 
@@ -123,11 +125,14 @@ Companion verification document:
 | D6.3 | Provide material text (optional) | textarea | n/a | HIGH |
 | D6.4 | Upload old material file (optional) | file input | `POST /api/material-update/upload` | MEDIUM |
 | D6.5 | Select AI model | dropdown/button | `GET /api/qa/models` | HIGH |
-| D6.6 | Generate update preview (text-only) | button | `POST /api/material-update/preview` | CRITICAL |
-| D6.7 | Generate update with file upload | button | `POST /api/material-update/upload` | HIGH |
-| D6.8 | View update result (summary, suggestions, draft pages) | display | n/a | HIGH |
-| D6.9 | View update history | display list | `GET /api/material-update` | HIGH |
-| D6.10 | Default/fallback mode when no model available | auto-fallback | `POST /api/material-update/preview` with "default" | HIGH |
+| D6.6 | Generate update preview (legacy sync endpoint) | direct request | `POST /api/material-update/preview` | HIGH |
+| D6.7 | Generate update with file upload (legacy sync endpoint) | direct request | `POST /api/material-update/upload` | HIGH |
+| D6.8 | Submit update preview background task | button | `POST /api/task-jobs/material-update/preview` | CRITICAL |
+| D6.9 | Submit update upload background task | button | `POST /api/task-jobs/material-update/upload` | HIGH |
+| D6.10 | Poll update task state | auto polling | `GET /api/task-jobs/{job_id}` | CRITICAL |
+| D6.11 | View update result (summary, suggestions, draft pages) | display | n/a | HIGH |
+| D6.12 | View update history | display list | `GET /api/material-update` | HIGH |
+| D6.13 | Default/fallback mode when no model available | auto-fallback | sync or async request with `selected_model="default"` | HIGH |
 
 ### D7. Assignments (`/teacher/assignments`)
 
@@ -387,6 +392,19 @@ Companion verification document:
 | G7.24 | Feedback submission endpoint | backend support API | `POST /api/feedback/instances/{survey_instance_id}/submit` | MEDIUM |
 | G7.25 | Feedback skip endpoint | backend support API | `POST /api/feedback/instances/{survey_instance_id}/skip` | MEDIUM |
 | G7.26 | Feedback analytics endpoint | backend support API | `GET /api/feedback/analytics/{survey_instance_id}` | MEDIUM |
+
+## H. Async Task Center
+
+### H1. Generic Background Task Flow (`/api/task-jobs`)
+
+| # | Feature | Interaction | API | Test Priority |
+|---|---------|-------------|-----|---------------|
+| H1.1 | Create lesson-pack generation task | page auto-submit | `POST /api/task-jobs/lesson-pack-generate/{course_id}` | CRITICAL |
+| H1.2 | Create material-update preview task | button | `POST /api/task-jobs/material-update/preview` | CRITICAL |
+| H1.3 | Create material-update upload task | button | `POST /api/task-jobs/material-update/upload` | HIGH |
+| H1.4 | Query single task state | polling | `GET /api/task-jobs/{job_id}` | CRITICAL |
+| H1.5 | List current user task history | page support / debug | `GET /api/task-jobs` | MEDIUM |
+| H1.6 | Mark stale queued/running jobs as failed after restart | app startup recovery | `TaskJobService.recover_incomplete_jobs()` | HIGH |
 
 ---
 

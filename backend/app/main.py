@@ -7,13 +7,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import init_db
-from .routes import admin, agent_config, analytics, assignment_review, assignments, auth, courses, discussion, feedback, lesson_packs, material_update, materials, profile, qa, settings, student, users
+from .routes import admin, agent_config, analytics, assignment_review, assignments, auth, courses, discussion, feedback, lesson_packs, material_update, materials, profile, qa, settings, student, task_jobs, users
+from .services.task_jobs import TaskJobService
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(app: FastAPI):
     # 启动时完成数据库初始化，避免使用已弃用的 startup 事件装饰器。
     init_db()
-    yield
+    task_job_service = getattr(app.state, "task_jobs", None)
+    if task_job_service is None:
+        task_job_service = TaskJobService()
+        app.state.task_jobs = task_job_service
+    task_job_service.start()
+    try:
+        yield
+    finally:
+        task_job_service.shutdown()
 
 
 app = FastAPI(
@@ -48,6 +57,7 @@ app.include_router(agent_config.router)
 app.include_router(qa.router)
 app.include_router(assignments.router)
 app.include_router(material_update.router)
+app.include_router(task_jobs.router)
 app.include_router(feedback.router)
 app.include_router(analytics.router)
 app.include_router(student.router)

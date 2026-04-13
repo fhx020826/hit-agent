@@ -1,6 +1,6 @@
 # HIT-Agent Automation Test Catalog
 
-Updated 2026-04-14 after the unified frontend redesign and a fresh `bash scripts/verify-all.sh` pass.
+Updated 2026-04-14 after the async task center rollout and a fresh `bash scripts/verify-all.sh` pass.
 
 ## Unified Entry
 
@@ -16,8 +16,9 @@ Updated 2026-04-14 after the unified frontend redesign and a fresh `bash scripts
     - `tests/extended-coverage.spec.ts`
     - `tests/user-journeys.spec.ts`
 - Latest one-key result:
-  - backend `16 passed`
+  - backend `22 passed`
   - browser `10 passed`
+  - log dir `/tmp/hit-agent-verify/20260414-040104`
 - Validation policy after the frontend redesign:
   - tests should verify real functionality, not preserve old DOM nesting
   - selectors should prefer labels, roles, headings, and stable button names
@@ -68,6 +69,17 @@ Updated 2026-04-14 after the unified frontend redesign and a fresh `bash scripts
   - Purpose: verify SQLite runtime hardening is active, including `WAL`, `busy_timeout`, and `foreign_keys`.
 - `test_backup_and_restore_scripts_round_trip`
   - Purpose: verify `scripts/data-backup.sh` and `scripts/data-restore.sh` can round-trip database and upload files.
+
+### `backend/tests/test_task_jobs.py`
+
+- `test_async_lesson_pack_job_submission_and_polling`
+  - Purpose: verify lesson-pack generation can be submitted as a background task and polled to a persisted final result.
+- `test_async_material_update_preview_job_submission_and_polling`
+  - Purpose: verify material-update preview can be submitted as a background task and polled to a persisted final result.
+- `test_async_material_update_upload_job_submission_and_polling`
+  - Purpose: verify material-update upload can be submitted as a background task and polled to a persisted final result.
+- `test_async_job_marks_failed_when_background_handler_raises`
+  - Purpose: verify task failures do not hang in `running`, and instead land in a visible `failed` state with an error message.
 
 ## Frontend Suites
 

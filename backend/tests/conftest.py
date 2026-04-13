@@ -18,6 +18,7 @@ if str(BACKEND_ROOT) not in sys.path:
 from app import database, main
 from app.database import Base, DBCourse, DBLessonPack, DBSurveyTemplate, DBUser, DBUserProfile
 from app.security import hash_password
+from app.services.task_jobs import TaskJobService
 
 
 @pytest.fixture()
@@ -43,11 +44,13 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[TestCli
 
     monkeypatch.setattr(main, "init_db", lambda: None)
     main.app.dependency_overrides[database.get_db] = override_get_db
+    main.app.state.task_jobs = TaskJobService(session_factory=session_local, max_workers=1)
 
     with TestClient(main.app) as test_client:
         yield test_client
 
     main.app.dependency_overrides.clear()
+    main.app.state.task_jobs = None
     Base.metadata.drop_all(bind=engine)
     engine.dispose()
 

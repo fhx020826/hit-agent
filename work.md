@@ -1,9 +1,67 @@
 # Work Log
 
 ## 当前阶段
-第三轮后端深度拆分已经完成，前端也已完成“统一设计语言 + 桌面/移动差异化工作台”重构，并再次跑通全量验证；当前进入“维持统一验证门禁稳定，并继续把共享设计组件与 service 子域做细”阶段。
+第三轮后端深度拆分已经完成，前端也已完成“统一设计语言 + 桌面/移动差异化工作台”重构；本轮已继续完成“轻量异步任务中心”第一阶段落地，并再次跑通全量验证。当前进入“继续把重计算链路异步化，并把 service 子域继续细分”阶段。
 
 ## 本轮完成
+
+### 轻量异步任务中心第一阶段
+- 已新增通用任务中心后端能力：
+  - `backend/app/db/models_tasks.py`
+  - `backend/app/models/tasks.py`
+  - `backend/app/services/task_jobs.py`
+  - `backend/app/services/task_job_handlers.py`
+  - `backend/app/routes/task_jobs.py`
+- 已新增通用异步任务接口：
+  - `POST /api/task-jobs/lesson-pack-generate/{course_id}`
+  - `POST /api/task-jobs/material-update/preview`
+  - `POST /api/task-jobs/material-update/upload`
+  - `GET /api/task-jobs/{job_id}`
+  - `GET /api/task-jobs`
+- 当前任务中心设计取舍：
+  - 使用进程内后台线程池，不引入 Redis / Celery
+  - 任务状态持久化到 `task_jobs` 表
+  - 服务重启时会把遗留 `queued / running` 任务标记为失败，避免脏任务长期挂起
+- 已把两条最重链路切到异步任务流：
+  - 教师课程包生成页 `/teacher/lesson-pack`
+  - 教师 PPT / 教案更新页 `/teacher/material-update`
+- 已保留旧同步接口，避免影响现有兼容调用：
+  - `POST /api/lesson-packs/generate/{course_id}`
+  - `POST /api/material-update/preview`
+  - `POST /api/material-update/upload`
+- 已同步更新前端 API 层：
+  - `frontend/src/lib/api.ts`
+- 已同步更新教师端页面：
+  - `frontend/src/app/teacher/lesson-pack/page.tsx`
+  - `frontend/src/app/teacher/material-update/page.tsx`
+- 已新增后端异步专项测试：
+  - `backend/tests/test_task_jobs.py`
+  - 覆盖：
+    - 课程包异步任务提交与轮询完成
+    - 材料更新异步任务提交与轮询完成
+    - 材料更新上传异步任务提交与轮询完成
+    - 后台 handler 异常时任务落为 `failed`
+
+### 本轮最新验证
+- `cd backend && pytest -q` -> `22 passed`
+- `cd frontend && npm run lint` -> 通过
+- `cd frontend && npm run build` -> 通过
+- `bash scripts/verify-all.sh` -> 通过
+- 最新统一验证日志：
+  - `/tmp/hit-agent-verify/20260414-040104`
+- 最新浏览器结果：
+  - `atomic-features`：`5 passed`
+  - `extended-coverage`：`3 passed`
+  - `user-journeys`：`2 passed`
+  - 合计：`10 passed`
+
+### 本轮真实问题与处理
+- 原子浏览器回归初次失败并不是功能缺陷，而是 3000/8000 上仍运行旧进程。
+- 失败证据显示新前端已请求 `/api/task-jobs/...`，但旧后端返回 `{"detail":"Not Found"}`。
+- 已执行：
+  - `scripts/dev-down.sh`
+  - `scripts/dev-up.sh`
+- 在最新本地服务与 `verify-all.sh` 的独立生产模式服务面上，异步任务中心相关页面与完整流程均已复测通过。
 
 ### 统一前端设计语言重构
 - 已完成共享前端设计层搭建：
@@ -57,7 +115,7 @@
   - 不再为迁就旧测试而反向牺牲前端结构优化
 
 ### 前端重构后的最新验证
-- 本轮已重新通过：
+- 此前已通过：
   - `cd frontend && npm run lint`
   - `cd frontend && npm run build`
   - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts`

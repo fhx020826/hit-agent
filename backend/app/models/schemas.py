@@ -9,3 +9,4 @@ from .feedback import *  # noqa: F401,F403
 from .materials import *  # noqa: F401,F403
 from .people import *  # noqa: F401,F403
 from .qa import *  # noqa: F401,F403
+from .tasks import *  # noqa: F401,F403

@@ -1,7 +1,6 @@
 ﻿from __future__ import annotations
 
 import json
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,7 +9,7 @@ from sqlalchemy.orm import Session
 from ..database import DBCourse, DBLessonPack, get_db
 from ..models.schemas import Course, LessonPack, LessonPackUpdate
 from ..security import get_current_user, require_roles
-from ..services.llm_service import generate_lesson_pack as llm_generate_lesson_pack
+from ..services.task_job_handlers import generate_lesson_pack_for_course
 from ..services.rag_service import upsert_chunks_for_lesson_pack
 
 router = APIRouter(prefix="/api/lesson-packs", tags=["lesson-packs"])
@@ -26,18 +25,7 @@ def generate_lesson_pack(course_id: str, current_user: dict = Depends(require_ro
     row = db.query(DBCourse).filter(DBCourse.id == course_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="课程不存在")
-    course = Course(id=row.id, name=row.name, audience=row.audience, student_level=row.student_level, chapter=row.chapter, objectives=row.objectives, duration_minutes=row.duration_minutes, frontier_direction=row.frontier_direction, owner_user_id=row.owner_user_id or "", created_at=row.created_at)
-    lp = llm_generate_lesson_pack(course)
-    db_lp = DBLessonPack(id=lp.id, course_id=lp.course_id, version=lp.version, status=lp.status, payload=json.dumps(lp.payload, ensure_ascii=False), created_at=lp.created_at)
-    db.add(db_lp)
-    db.commit()
-    db.refresh(db_lp)
-    try:
-        upsert_chunks_for_lesson_pack(db, db_lp)
-        db.commit()
-    except Exception:
-        db.rollback()
-    return _db_to_lp(db_lp)
+    return generate_lesson_pack_for_course(db, row.id)
 
 
 @router.get("", response_model=list[LessonPack])
