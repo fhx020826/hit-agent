@@ -18,6 +18,16 @@ const THEME_PRESETS = [
   { mode: "eye-care", accent: "green", font: "default", skin: "gentle", language: "zh-CN", labelZh: "护眼温和", labelEn: "Eye-care Gentle" },
 ] as const;
 
+type NavItem = {
+  href: string;
+  label: string;
+  note?: string;
+};
+
+function isActivePath(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`) || pathname.startsWith(`${href}?`);
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -29,40 +39,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [quickSkinOpenPath, setQuickSkinOpenPath] = useState<string | null>(null);
   const [teacherUnread, setTeacherUnread] = useState(0);
 
-  const teacherNav = useMemo(
+  const teacherNav = useMemo<NavItem[]>(
     () => [
-      { href: "/teacher", label: pick(language, "教师工作台", "Teacher Workspace") },
-      { href: "/teacher/course", label: pick(language, "智能课程设计", "Course Design") },
-      { href: "/teacher/ai-config", label: pick(language, "AI 助教配置", "AI Assistant Setup") },
-      { href: "/teacher/assignments", label: pick(language, "作业任务管理", "Assignments") },
-      { href: "/teacher/discussions", label: pick(language, "课程讨论空间", "Discussion Spaces") },
-      { href: "/teacher/questions", label: pick(language, "学生提问中心", "Student Questions") },
-      { href: "/teacher/materials", label: pick(language, "教学资料库", "Teaching Materials") },
-      { href: "/teacher/material-update", label: pick(language, "PPT / 教案更新", "PPT / Lesson Update") },
-      { href: "/teacher/feedback", label: pick(language, "匿名问卷分析", "Feedback Analytics") },
+      { href: "/teacher", label: pick(language, "教师工作台", "Teacher Workspace"), note: pick(language, "总览", "Overview") },
+      { href: "/teacher/course", label: pick(language, "智能课程设计", "Course Design"), note: pick(language, "设计", "Design") },
+      { href: "/teacher/lesson-pack", label: pick(language, "课程包生成", "Lesson Packs"), note: pick(language, "课程包", "Packs") },
+      { href: "/teacher/ai-config", label: pick(language, "AI 助教配置", "AI Assistant Setup"), note: pick(language, "配置", "Setup") },
+      { href: "/teacher/assignments", label: pick(language, "作业任务管理", "Assignments"), note: pick(language, "作业", "Tasks") },
+      { href: "/teacher/discussions", label: pick(language, "课程讨论空间", "Discussion Spaces"), note: pick(language, "讨论", "Discussion") },
+      { href: "/teacher/questions", label: pick(language, "学生提问中心", "Student Questions"), note: pick(language, "答疑", "Q&A") },
+      { href: "/teacher/materials", label: pick(language, "教学资料库", "Teaching Materials"), note: pick(language, "资料", "Materials") },
+      { href: "/teacher/material-update", label: pick(language, "PPT / 教案更新", "PPT / Lesson Update"), note: pick(language, "更新", "Update") },
+      { href: "/teacher/feedback", label: pick(language, "匿名问卷分析", "Feedback Analytics"), note: pick(language, "反馈", "Feedback") },
     ],
     [language],
   );
 
-  const studentNav = useMemo(
+  const studentNav = useMemo<NavItem[]>(
     () => [
-      { href: "/student", label: pick(language, "学生学习台", "Student Workspace") },
-      { href: "/student/qa", label: pick(language, "课程专属 AI 助教", "Course AI Assistant") },
-      { href: "/student/questions", label: pick(language, "学习问答记录", "Q&A History") },
-      { href: "/student/discussions", label: pick(language, "课程讨论空间", "Discussion Spaces") },
-      { href: "/student/materials", label: pick(language, "课堂共享资料", "Shared Materials") },
-      { href: "/student/weakness", label: pick(language, "薄弱点分析", "Weakness Analysis") },
-      { href: "/student/assignments", label: pick(language, "作业任务中心", "Assignment Center") },
-      { href: "/student/feedback", label: pick(language, "匿名课堂反馈", "Anonymous Feedback") },
+      { href: "/student", label: pick(language, "学生学习台", "Student Workspace"), note: pick(language, "总览", "Overview") },
+      { href: "/student/qa", label: pick(language, "课程专属 AI 助教", "Course AI Assistant"), note: pick(language, "提问", "Ask") },
+      { href: "/student/questions", label: pick(language, "学习问答记录", "Q&A History"), note: pick(language, "归档", "Archive") },
+      { href: "/student/discussions", label: pick(language, "课程讨论空间", "Discussion Spaces"), note: pick(language, "讨论", "Discuss") },
+      { href: "/student/materials", label: pick(language, "课堂共享资料", "Shared Materials"), note: pick(language, "资料", "Materials") },
+      { href: "/student/weakness", label: pick(language, "薄弱点分析", "Weakness Analysis"), note: pick(language, "诊断", "Insights") },
+      { href: "/student/assignments", label: pick(language, "作业任务中心", "Assignment Center"), note: pick(language, "作业", "Assignments") },
+      { href: "/student/feedback", label: pick(language, "匿名课堂反馈", "Anonymous Feedback"), note: pick(language, "反馈", "Feedback") },
     ],
     [language],
   );
 
-  const adminNav = useMemo(
+  const adminNav = useMemo<NavItem[]>(
     () => [
-      { href: "/admin/users", label: pick(language, "用户管理", "User Management") },
-      { href: "/teacher/discussions", label: pick(language, "讨论空间总览", "Discussion Overview") },
-      { href: "/teacher/materials", label: pick(language, "资料共享总览", "Material Overview") },
+      { href: "/admin/users", label: pick(language, "用户管理", "User Management"), note: pick(language, "账号", "Accounts") },
+      { href: "/teacher/discussions", label: pick(language, "讨论空间总览", "Discussion Overview"), note: pick(language, "讨论", "Discuss") },
+      { href: "/teacher/materials", label: pick(language, "资料共享总览", "Material Overview"), note: pick(language, "资料", "Materials") },
     ],
     [language],
   );
@@ -72,30 +83,55 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return user.role === "admin" ? adminNav : user.role === "teacher" ? teacherNav : studentNav;
   }, [adminNav, studentNav, teacherNav, user]);
 
+  const activeItem = useMemo(() => {
+    return navItems.find((item) => isActivePath(pathname, item.href)) ?? navItems[0] ?? null;
+  }, [navItems, pathname]);
+
+  const mobileNav = useMemo(() => {
+    if (!navItems.length) return [];
+    const core = navItems.slice(0, 4);
+    if (activeItem && !core.some((item) => item.href === activeItem.href)) {
+      return [navItems[0], ...core.slice(1, 3), activeItem];
+    }
+    return core;
+  }, [activeItem, navItems]);
+
+  const unreadCount = user?.role === "teacher" ? teacherUnread : 0;
+  const roleLabel = user?.role === "admin" ? t(language, "admin") : user?.role === "teacher" ? t(language, "teacher") : t(language, "student");
+  const roleHint = user?.role === "admin" ? t(language, "adminRoleHint") : user?.role === "teacher" ? t(language, "teacherRoleHint") : t(language, "studentRoleHint");
+  const appRole = user?.role ?? "guest";
+  const menuOpen = menuOpenPath === pathname;
+  const quickSkinOpen = quickSkinOpenPath === pathname;
+
   useEffect(() => {
     if (!user || user.role !== "teacher") return;
     let alive = true;
     api.listTeacherNotifications()
       .then((items) => {
-        if (alive) setTeacherUnread(items.filter((item) => !item.is_read).length);
+        if (alive) {
+          setTeacherUnread(items.filter((item) => !item.is_read).length);
+        }
       })
       .catch(() => {
-        if (alive) setTeacherUnread(0);
+        if (alive) {
+          setTeacherUnread(0);
+        }
       });
     return () => {
       alive = false;
     };
   }, [pathname, user]);
 
-  const unreadCount = user?.role === "teacher" ? teacherUnread : 0;
-
   const openAuth = (mode: "login" | "register") => {
     setAuthMode(mode);
     setAuthOpen(true);
   };
 
-  const menuOpen = menuOpenPath === pathname;
-  const quickSkinOpen = quickSkinOpenPath === pathname;
+  const handleLogout = async () => {
+    await logout();
+    setMenuOpenPath(null);
+    router.push("/");
+  };
 
   const applyPreset = async (preset: { mode: string; accent: string; font: string; skin: string; language: string }) => {
     applyAppearance(preset);
@@ -106,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       try {
         await api.updateMyAppearance(preset);
       } catch {
-        // ignore sync failure
+        // 忽略外观同步失败，不阻塞本地切换
       }
     }
   };
@@ -124,113 +160,192 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       try {
         await api.updateMyAppearance(nextAppearance);
       } catch {
-        // ignore sync failure
+        // 忽略语言同步失败，不影响当前界面切换
       }
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    setMenuOpenPath(null);
-    router.push("/");
-  };
+  const homeHref = isAuthenticated
+    ? user?.role === "admin"
+      ? "/admin/users"
+      : user?.role === "teacher"
+        ? "/teacher"
+        : "/student"
+    : "/";
 
-  const userRoleLabel = user?.role === "admin" ? t(language, "admin") : user?.role === "teacher" ? t(language, "teacher") : t(language, "student");
-  const roleHint = user?.role === "admin" ? t(language, "adminRoleHint") : user?.role === "teacher" ? t(language, "teacherRoleHint") : t(language, "studentRoleHint");
+  const contextTitle = activeItem?.label || pick(language, "平台总览", "Platform Overview");
+  const contextNote = isAuthenticated
+    ? pick(
+        language,
+        `当前处于${roleLabel}工作区，右上角统一管理账号与外观，左侧保留完整流程导航。`,
+        `You are in the ${roleLabel.toLowerCase()} workspace. Use the top-right controls for account and appearance, and the left rail for the full workflow.`,
+      )
+    : pick(
+        language,
+        "统一账号入口与角色工作台已经收拢到同一套界面中，登录后会自动进入对应角色视图。",
+        "The unified entry and all role workspaces now share one interface. After login, the correct role view opens automatically.",
+      );
 
   return (
     <>
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-4 pb-8 pt-5 md:px-6">
-        <header className="glass-panel rounded-[28px] px-5 py-4 md:px-7">
-          <div className="flex flex-wrap items-center gap-4">
-            <Link href={isAuthenticated ? (user?.role === "admin" ? "/admin/users" : user?.role === "teacher" ? "/teacher" : "/student") : "/"} className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">{t(language, "platformTag")}</p>
-              <h1 className="mt-1 truncate text-2xl font-black tracking-tight text-slate-900">{t(language, "platformTitle")}</h1>
-            </Link>
+      <div className="app-shell shell-frame" data-app-role={appRole}>
+        {isAuthenticated && navItems.length > 0 ? (
+          <aside className="shell-sidebar">
+            <div className="shell-sidebar-inner">
+              <div className="shell-sidebar-copy">
+                <div>
+                  <span className="shell-brand-chip">
+                    <span className="shell-brand-dot" />
+                    {t(language, "platformTag")}
+                  </span>
+                  <div className="shell-title">{t(language, "platformTitle")}</div>
+                  <p className="shell-subtitle">
+                    {pick(
+                      language,
+                      "把课程设计、课堂实施、资料共享、作业闭环与教学反馈压缩进一个持续在线的教学工作台。",
+                      "Course design, classroom delivery, material sharing, assignment loops and feedback now live in one continuous teaching workspace.",
+                    )}
+                  </p>
+                </div>
 
-            {isAuthenticated && navItems.length > 0 ? (
-              <nav className="hidden flex-wrap items-center gap-2 xl:flex">
-                {navItems.map((item) => {
-                  const active = pathname === item.href;
-                  return (
-                    <Link key={item.href} href={item.href} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${active ? "ui-pill-active" : "ui-pill"}`}>
-                      {item.label}
-                      {item.href === "/teacher/questions" && unreadCount > 0 ? ` (${unreadCount})` : ""}
-                    </Link>
-                  );
-                })}
-              </nav>
-            ) : null}
+                <div className="shell-role-card">
+                  <p className="shell-role-label">{pick(language, "当前视角", "Current Lens")}</p>
+                  <p className="shell-role-value">{roleLabel}</p>
+                  <p className="shell-role-note">{roleHint}</p>
+                </div>
 
-            <div className="ml-auto flex items-center gap-2">
-              <button onClick={() => setQuickSkinOpenPath((prev) => (prev === pathname ? null : pathname))} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">
-                {t(language, "appearance")}
-              </button>
-              {!loading && !isAuthenticated ? (
-                <>
-                  <button onClick={() => openAuth("login")} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">
-                    {t(language, "login")}
-                  </button>
-                  <button onClick={() => openAuth("register")} className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90">
-                    {t(language, "register")}
-                  </button>
-                </>
-              ) : null}
-              {!loading && isAuthenticated && user ? (
-                <button onClick={() => setMenuOpenPath((prev) => (prev === pathname ? null : pathname))} className="flex items-center gap-3 rounded-full border border-white/70 bg-white/80 px-2 py-2 shadow-sm transition hover:bg-white">
-                  <AvatarBadge name={user.display_name || user.account} avatarPath={user.profile.avatar_path} size="sm" />
-                  <div className="hidden text-left md:block">
-                    <p className="text-sm font-semibold text-slate-900">{user.display_name || user.account}</p>
-                    <p className="text-xs text-slate-500">{userRoleLabel}</p>
-                  </div>
-                </button>
-              ) : null}
+                <nav className="shell-nav">
+                  {navItems.map((item) => {
+                    const active = isActivePath(pathname, item.href);
+                    const showUnread = item.href === "/teacher/questions" && unreadCount > 0;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`shell-nav-link ${active ? "shell-nav-link-active" : ""}`}
+                      >
+                        <span>{item.label}</span>
+                        {showUnread ? <span className="shell-nav-count">{unreadCount}</span> : null}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              <div className="shell-sidebar-footer">
+                <div className="shell-footnote">
+                  {pick(
+                    language,
+                    "工作台默认保留当前真实功能，不改接口，只重写呈现层与操作路径。",
+                    "The workspace keeps the real feature set intact. Only the presentation layer and interaction path change.",
+                  )}
+                </div>
+                <Link className="ui-pill rounded-full px-4 py-3 text-sm font-semibold text-center" href="/settings">
+                  {t(language, "settingsCenter")}
+                </Link>
+              </div>
             </div>
-          </div>
+          </aside>
+        ) : null}
 
-          {isAuthenticated && navItems.length > 0 ? (
-            <nav className="mt-4 flex flex-wrap gap-2 xl:hidden">
-              {navItems.map((item) => {
-                const active = pathname === item.href;
-                return (
-                  <Link key={item.href} href={item.href} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${active ? "ui-pill-active" : "ui-pill"}`}>
-                    {item.label}
-                    {item.href === "/teacher/questions" && unreadCount > 0 ? ` (${unreadCount})` : ""}
+        <div className="shell-main">
+          <header className="shell-topbar glass-panel">
+            <div className="shell-topbar-inner">
+              <div className="shell-context">
+                <div className="shell-context-row">
+                  <Link href={homeHref} className="shell-context-chip">
+                    {isAuthenticated ? roleLabel : pick(language, "公共入口", "Entry")}
                   </Link>
-                );
-              })}
-            </nav>
-          ) : null}
-        </header>
+                  {activeItem?.note ? <span className="shell-context-chip">{activeItem.note}</span> : null}
+                </div>
+                <div className="shell-context-title">{contextTitle}</div>
+                <p className="shell-context-note">{contextNote}</p>
+              </div>
 
-        <div className="flex-1 pt-5">{children}</div>
+              <div className="shell-topbar-actions">
+                <button onClick={() => setQuickSkinOpenPath((prev) => (prev === pathname ? null : pathname))} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">
+                  {t(language, "appearance")}
+                </button>
+                {!loading && !isAuthenticated ? (
+                  <>
+                    <button onClick={() => openAuth("login")} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">
+                      {t(language, "login")}
+                    </button>
+                    <button onClick={() => openAuth("register")} className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90">
+                      {t(language, "register")}
+                    </button>
+                  </>
+                ) : null}
+                {!loading && isAuthenticated && user ? (
+                  <button onClick={() => setMenuOpenPath((prev) => (prev === pathname ? null : pathname))} className="shell-profile-button">
+                    <AvatarBadge name={user.display_name || user.account} avatarPath={user.profile.avatar_path} size="sm" />
+                    <span className="shell-profile-text">
+                      <span className="shell-profile-name">{user.display_name || user.account}</span>
+                      <span className="shell-profile-role">{roleLabel}</span>
+                    </span>
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </header>
+
+          <div className="shell-content">{children}</div>
+        </div>
       </div>
 
+      {isAuthenticated && mobileNav.length > 0 ? (
+        <nav className="shell-mobile-nav">
+          {mobileNav.map((item) => {
+            const active = isActivePath(pathname, item.href);
+            const showUnread = item.href === "/teacher/questions" && unreadCount > 0;
+            return (
+              <Link key={item.href} href={item.href} className={`shell-mobile-link ${active ? "shell-mobile-link-active" : ""}`}>
+                <span>{item.label}</span>
+                <span className="shell-mobile-link-meta">{showUnread ? unreadCount : item.note}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
+
       {quickSkinOpen ? (
-        <div className="fixed right-4 top-20 z-[85] w-[min(28rem,calc(100vw-2rem))] rounded-[28px] border border-slate-200 bg-white/95 p-5 shadow-[0_28px_60px_rgba(20,33,61,0.22)] backdrop-blur-xl">
+        <div className="fixed right-4 top-20 z-[85] w-[min(30rem,calc(100vw-2rem))] rounded-[28px] border border-slate-200 bg-white/96 p-5 shadow-[0_28px_60px_rgba(20,33,61,0.22)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-slate-900">{t(language, "quickTheme")}</p>
               <p className="mt-1 text-xs leading-6 text-slate-500">
-                {pick(language, "设置入口统一收纳在右上角，语言与外观会按账号分别保存。", "Theme and language are grouped in the top-right menu and saved per account.")}
+                {pick(language, "快速切换模式、配色和语言，完整设置仍保留在设置中心。", "Switch modes, palette and language here. The full configuration still lives in Settings.")}
               </p>
             </div>
             <button onClick={() => setQuickSkinOpenPath(null)} className="ui-pill rounded-full px-3 py-1.5 text-xs font-semibold">
               {t(language, "close")}
             </button>
           </div>
-          <div className="mt-4 flex flex-wrap gap-3">
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {THEME_PRESETS.map((preset) => (
-              <button key={`${preset.mode}-${preset.accent}`} onClick={() => void applyPreset(preset)} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">
-                {pick(language, preset.labelZh, preset.labelEn)}
+              <button key={`${preset.mode}-${preset.accent}`} onClick={() => void applyPreset(preset)} className="section-card rounded-[22px] px-4 py-4 text-left transition hover:-translate-y-0.5">
+                <p className="text-sm font-semibold text-slate-900">{pick(language, preset.labelZh, preset.labelEn)}</p>
+                <p className="mt-1 text-xs leading-6 text-slate-500">
+                  {preset.mode === "day"
+                    ? pick(language, "适合常规教学与日间浏览。", "Best for regular teaching and daytime browsing.")
+                    : preset.mode === "night"
+                      ? pick(language, "更适合长时间夜间使用。", "Optimized for longer night sessions.")
+                      : pick(language, "降低视觉刺激，适合轻阅读。", "Reduced visual intensity for gentler reading.")}
+                </p>
               </button>
             ))}
           </div>
-          <div className="mt-5 rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4">
+
+          <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
             <p className="text-sm font-semibold text-slate-900">{pick(language, "语言", "Language")}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {LANGUAGE_OPTIONS.map((item) => (
-                <button key={item.value} onClick={() => void handleLanguageChange(item.value)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${language === item.value ? "ui-pill-active" : "ui-pill"}`}>
+                <button
+                  key={item.value}
+                  onClick={() => void handleLanguageChange(item.value)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${language === item.value ? "ui-pill-active" : "ui-pill"}`}
+                >
                   {item.label}
                 </button>
               ))}
@@ -243,7 +358,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       ) : null}
 
       {menuOpen && user ? (
-        <div className="fixed right-4 top-20 z-[90] w-[min(24rem,calc(100vw-2rem))] rounded-[28px] border border-slate-200 bg-white/96 p-4 shadow-[0_28px_60px_rgba(20,33,61,0.24)] backdrop-blur-xl">
+        <div className="fixed right-4 top-20 z-[90] w-[min(26rem,calc(100vw-2rem))] rounded-[28px] border border-slate-200 bg-white/96 p-4 shadow-[0_28px_60px_rgba(20,33,61,0.24)] backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <AvatarBadge name={user.display_name || user.account} avatarPath={user.profile.avatar_path} size="lg" />
@@ -259,7 +374,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="mt-4 rounded-[22px] bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            <p><span className="font-semibold text-slate-900">{pick(language, "当前角色：", "Current role: ")}</span>{userRoleLabel}</p>
+            <p><span className="font-semibold text-slate-900">{pick(language, "当前角色：", "Current role: ")}</span>{roleLabel}</p>
             <p><span className="font-semibold text-slate-900">{pick(language, "当前头像：", "Avatar: ")}</span>{pick(language, user.profile.avatar_path ? "已设置自定义头像" : "使用默认头像", user.profile.avatar_path ? "Custom avatar set" : "Using default avatar")}</p>
           </div>
 

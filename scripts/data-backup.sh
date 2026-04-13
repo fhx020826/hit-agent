@@ -26,7 +26,9 @@ mkdir -p "${BACKUP_DIR}"
 
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "${PYTHON_BIN}" ]]; then
-  if command -v python3 >/dev/null 2>&1; then
+  if [[ -n "${CONDA_PREFIX:-}" && -x "${CONDA_PREFIX}/bin/python" ]]; then
+    PYTHON_BIN="${CONDA_PREFIX}/bin/python"
+  elif command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN="python3"
   elif command -v python >/dev/null 2>&1; then
     PYTHON_BIN="python"
@@ -42,7 +44,7 @@ export DATA_ROOT
 export UPLOAD_DIR
 export BACKUP_STAMP
 
-"${PYTHON_BIN}" - <<'PY'
+PYTHONNOUSERSITE=1 "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 import shutil

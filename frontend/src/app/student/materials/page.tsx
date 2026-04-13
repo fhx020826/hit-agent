@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type ClassroomShare, type Course, type LiveShareRecord, type MaterialItem } from "@/lib/api";
 
 const DEFAULT_REQUEST_TEXT = "希望教师共享本节课使用的 PPT、讲义或相关补充资料。";
@@ -95,11 +96,15 @@ export default function StudentMaterialsPage() {
   };
 
   if (!user || user.role !== "student") {
-    return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载课堂共享资料...</main>;
+    return (
+      <WorkspacePage tone="student">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载课堂共享资料...</div>
+      </WorkspacePage>
+    );
   }
 
   return (
-    <main className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+    <WorkspacePage tone="student" className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
       <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
         <div className="border-b border-slate-200 pb-5">
           <p className="text-sm font-semibold text-slate-500">课堂共享资料</p>
@@ -200,7 +205,6 @@ export default function StudentMaterialsPage() {
           </button>
         </div>
       </section>
-    </main>
+    </WorkspacePage>
   );
 }
-

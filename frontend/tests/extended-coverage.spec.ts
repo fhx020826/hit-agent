@@ -84,11 +84,11 @@ test.describe.serial("extended coverage verification", () => {
 
     await login(page, "管理员", "admin_demo", "Admin123!");
     await page.goto("/admin/users");
-    const managementSection = page.getByRole("heading", { name: "用户管理与角色权限控制" }).locator("..").locator("..");
-    await managementSection.getByRole("combobox").first().selectOption("teacher");
+    await expect(page.getByText("用户管理与角色权限控制")).toBeVisible();
+    await page.getByLabel("角色筛选").selectOption("teacher");
     await page.getByRole("button", { name: "搜索" }).click();
-    await expect(managementSection.getByText("teacher_demo")).toBeVisible();
-    await expect(managementSection.getByText("student_demo")).toHaveCount(0);
+    await expect(page.getByText("teacher_demo")).toBeVisible();
+    await expect(page.getByText("student_demo")).toHaveCount(0);
     await logout(page);
 
     await login(page, "教师", "teacher_demo", "Teacher123!");

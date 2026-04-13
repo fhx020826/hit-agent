@@ -1,9 +1,74 @@
 # Work Log
 
 ## 当前阶段
-第三轮后端深度拆分已经完成，且“统一全量验证入口 + 复杂用户旅程回归 + 自动化测试目录文档 + materials/discussion 路由继续下沉”都已补齐，当前进入“保持验证门禁稳定并按需继续细化 service 子域”阶段。
+第三轮后端深度拆分已经完成，前端也已完成“统一设计语言 + 桌面/移动差异化工作台”重构，并再次跑通全量验证；当前进入“维持统一验证门禁稳定，并继续把共享设计组件与 service 子域做细”阶段。
 
 ## 本轮完成
+
+### 统一前端设计语言重构
+- 已完成共享前端设计层搭建：
+  - `frontend/src/app/globals.css`
+  - `frontend/src/components/app-shell.tsx`
+  - `frontend/src/components/workspace-shell.tsx`
+  - `frontend/src/components/workspace-panels.tsx`
+- 已把首页改成海报式入口页，不再是平均化功能说明页。
+- 已把教师端、学生端、管理员端工作台统一为：
+  - 桌面端：左侧主导航 + 顶部上下文条 + 主工作区
+  - 移动端：底部主导航 + 更聚焦的单列任务流
+- 已完成重点页面重构：
+  - `/`
+  - `/teacher`
+  - `/student`
+  - `/admin/users`
+  - `/teacher/course`
+  - `/teacher/lesson-pack`
+  - `/teacher/ai-config`
+  - `/teacher/feedback`
+- 第二轮已把剩余真实功能页全部接入统一 workspace 壳层，包括：
+  - `/profile`
+  - `/settings`
+  - `/student/assignments`
+  - `/student/discussions`
+  - `/student/feedback`
+  - `/student/materials`
+  - `/student/materials/live/[shareId]`
+  - `/student/qa`
+  - `/student/questions`
+  - `/student/weakness`
+  - `/teacher/assignment-review`
+  - `/teacher/assignments`
+  - `/teacher/discussions`
+  - `/teacher/lesson-pack/[id]`
+  - `/teacher/material-update`
+  - `/teacher/materials`
+  - `/teacher/materials/live/[shareId]`
+  - `/teacher/questions`
+- 当前未纳入该壳层的只剩 4 个 legacy redirect 路由：
+  - `/student/register`
+  - `/student/settings`
+  - `/teacher/register`
+  - `/teacher/settings`
+- 已同步更新自动化测试，不再让测试依赖旧 DOM 层级：
+  - `frontend/tests/atomic-features.spec.ts`
+  - `frontend/tests/extended-coverage.spec.ts`
+- 当前测试原则已明确改为：
+  - 优先验证功能是否正确
+  - 选择器尽量依赖显式标签、按钮名、页面语义
+  - 不再为迁就旧测试而反向牺牲前端结构优化
+
+### 前端重构后的最新验证
+- 本轮已重新通过：
+  - `cd frontend && npm run lint`
+  - `cd frontend && npm run build`
+  - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts`
+  - `cd frontend && npm run test:e2e -- tests/extended-coverage.spec.ts`
+  - `cd frontend && npm run test:e2e -- tests/user-journeys.spec.ts`
+  - `bash scripts/verify-all.sh`
+- 最新浏览器结果：
+  - `atomic-features`：`5 passed`
+  - `extended-coverage`：`3 passed`
+  - `user-journeys`：`2 passed`
+  - 合计：`10 passed`
 
 ### 准生产简化版持久化加固
 - 已完成服务端数据目录外置能力：
@@ -44,6 +109,12 @@
   - `bash scripts/verify-all.sh` -> 通过
   - `pytest -q` -> `16 passed`
   - `Playwright` -> `10 passed`
+- 最新一键验证日志：
+  - `/tmp/hit-agent-verify/20260414-024000`
+- 本轮还修复了一条真实工程问题，而非 UI 选择器问题：
+  - `scripts/data-backup.sh` 在部分环境下会被 user-site 污染，导入异常 `sqlite3` 包
+  - 现已改为优先使用 `${CONDA_PREFIX}/bin/python`，并强制 `PYTHONNOUSERSITE=1`
+  - `backend/tests/test_runtime_storage.py::test_backup_and_restore_scripts_round_trip` 已复跑通过
 - 本轮顺手修正一条真实浏览器回归问题：
   - `frontend/tests/atomic-features.spec.ts`
   - 原因是 `生成课程包` 断言命中标题和状态提示两处文本
@@ -243,6 +314,11 @@
   - 前端生产模式 `next start` 运行在 `3000`
   - 后端 `uvicorn app.main:app --host 0.0.0.0 --port 8000` 运行在 `8000`
   - `GET /api/health` 返回 `{"status":"ok","version":"0.8.0"}`
+
+### 当前结论
+- 这轮前端重构没有破坏真实功能链路。
+- 前端页面已经从“玻璃卡片堆叠 + 模块清单”升级为“统一工作台 + 角色差异化语气 + 移动端短路径任务流”。
+- 自动化测试也已同步更新到新的页面语义，不再被旧布局结构绑定。
 
 ### 日志清理
 - 已按你的要求清理旧验证日志：

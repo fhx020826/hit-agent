@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type ClassroomShare, type Course, type LiveShareRecord, type MaterialItem, type MaterialRequestItem } from "@/lib/api";
 
 export default function TeacherMaterialsPage() {
@@ -129,11 +130,15 @@ export default function TeacherMaterialsPage() {
   };
 
   if (!user || user.role !== "teacher") {
-    return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载教学资料库...</main>;
+    return (
+      <WorkspacePage tone="teacher">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载教学资料库...</div>
+      </WorkspacePage>
+    );
   }
 
   return (
-    <main className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+    <WorkspacePage tone="teacher" className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
       <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
         <div className="border-b border-slate-200 pb-5">
           <p className="text-sm font-semibold text-slate-500">教学资料库</p>
@@ -248,6 +253,6 @@ export default function TeacherMaterialsPage() {
           </div>
         </div>
       </section>
-    </main>
+    </WorkspacePage>
   );
 }

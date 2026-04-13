@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api } from "@/lib/api";
 import { applyAppearance, persistAppearance } from "@/lib/appearance";
 import { LANGUAGE_OPTIONS, pick } from "@/lib/i18n";
@@ -72,8 +73,14 @@ export default function SettingsPage() {
       .catch(() => undefined);
   }, [setLanguage, user]);
 
+  const tone = user?.role === "teacher" ? "teacher" : user?.role === "student" ? "student" : "admin";
+
   if (!user) {
-    return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载设置中心...", "Loading settings...")}</main>;
+    return (
+      <WorkspacePage tone="public">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载设置中心...", "Loading settings...")}</div>
+      </WorkspacePage>
+    );
   }
 
   const updateAppearance = (key: "mode" | "accent" | "font" | "skin" | "language", value: string) => {
@@ -117,7 +124,7 @@ export default function SettingsPage() {
   const roleLabel = user.role === "teacher" ? pick(language, "教师", "Teacher") : user.role === "student" ? pick(language, "学生", "Student") : pick(language, "管理员", "Admin");
 
   return (
-    <main className="space-y-5">
+    <WorkspacePage tone={tone} className="space-y-5">
       <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
           <div>
@@ -240,6 +247,6 @@ export default function SettingsPage() {
           </button>
         </div>
       </section>
-    </main>
+    </WorkspacePage>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type Course, type MaterialUpdateResult, type ModelOption } from "@/lib/api";
 
 export default function MaterialUpdatePage() {
@@ -50,10 +51,16 @@ export default function MaterialUpdatePage() {
   const selectedModelInfo = useMemo(() => models.find((item) => item.key === selectedModel) || null, [models, selectedModel]);
   const canRun = Boolean(selectedModel || selectedModelInfo);
 
-  if (!user || user.role !== "teacher") return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载 PPT / 教案更新页面...</main>;
+  if (!user || user.role !== "teacher") {
+    return (
+      <WorkspacePage tone="teacher">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载 PPT / 教案更新页面...</div>
+      </WorkspacePage>
+    );
+  }
 
   return (
-    <main className="grid gap-5 xl:grid-cols-[1.04fr_0.96fr]">
+    <WorkspacePage tone="teacher" className="grid gap-5 xl:grid-cols-[1.04fr_0.96fr]">
       <section className="glass-panel rounded-[32px] px-5 py-6 md:px-6">
         <div className="sticky-toolbar top-20 z-20 mb-5 rounded-[28px] px-4 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -178,6 +185,6 @@ export default function MaterialUpdatePage() {
           ))}
         </div>
       </section>
-    </main>
+    </WorkspacePage>
   );
 }

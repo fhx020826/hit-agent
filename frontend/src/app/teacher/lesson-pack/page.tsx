@@ -3,6 +3,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+
+import { SignalStrip, WorkspaceSection } from "@/components/workspace-panels";
+import { WorkspaceHero, WorkspacePage } from "@/components/workspace-shell";
 import { api, type LessonPack } from "@/lib/api";
 
 export default function GenerateLessonPackPage() {
@@ -41,50 +44,72 @@ function GenerateContent() {
   };
 
   return (
-    <main className="min-h-screen px-6 py-8">
-      <div className="glass-panel mx-auto max-w-6xl rounded-[32px] px-8 py-8 md:px-10">
-        <div className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-200 pb-8">
-          <div>
-            <p className="text-sm font-semibold text-slate-400">课程包生成结果</p>
-            <h1 className="mt-3 text-3xl font-extrabold text-slate-900 md:text-4xl">生成课程包</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">这里会调用后端模型生成结构化课程包。如果已经配置了真实模型密钥，就会直接走模型；否则会自动降级到示例数据，方便继续调页面流程。</p>
-          </div>
-          <Link href="/teacher" className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">返回教师工作台</Link>
-        </div>
+    <WorkspacePage tone="teacher">
+      <WorkspaceHero
+        tone="teacher"
+        eyebrow="课程包生成结果"
+        title={<h1>生成课程包</h1>}
+        description={
+          <p>
+            这里会调用后端模型生成结构化课程包。如果已经配置了真实模型密钥，就会直接走模型；否则会自动降级到示例数据，方便继续调页面流程。
+          </p>
+        }
+        actions={
+          <Link href="/teacher" className="ui-pill rounded-full px-5 py-3 text-sm font-semibold">
+            返回教师工作台
+          </Link>
+        }
+      />
 
-        {loading && <div className="py-20 text-center text-slate-500">模型正在生成课程包，请稍等...</div>}
+      {loading ? (
+        <WorkspaceSection tone="teacher" title="模型正在生成课程包，请稍等...">
+          <div className="py-12 text-center text-slate-500">模型正在生成课程包，请稍等...</div>
+        </WorkspaceSection>
+      ) : null}
 
-        {!loading && !pack && !courseId && <div className="section-card mt-8 rounded-[24px] p-10 text-center text-slate-500">请从课程列表中选择一门课程，再进入课程包生成流程。</div>}
+      {!loading && !pack && !courseId ? (
+        <WorkspaceSection tone="teacher" title="请从课程列表中选择一门课程，再进入课程包生成流程。">
+          <div className="empty-state">请从课程列表中选择一门课程，再进入课程包生成流程。</div>
+        </WorkspaceSection>
+      ) : null}
 
-        {pack && (
-          <div className="mt-8 space-y-6">
-            <div className="section-card rounded-[28px] p-6 md:p-8">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-teal-700">已完成生成</p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-900">{((pack.payload?.frontier_topic as Record<string, string>)?.name || "未命名课程包")}（第 {pack.version} 版）</h2>
-                  <p className="mt-2 text-sm text-slate-500">当前状态：{pack.status === "published" ? "已发布" : "草稿"}</p>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <button onClick={handlePublish} disabled={publishing || pack.status === "published"} className="rounded-full bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50">
-                    {pack.status === "published" ? "已发布给学生" : publishing ? "发布中..." : "发布给学生"}
-                  </button>
-                  <Link href={`/teacher/lesson-pack/${pack.id}`} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">查看详情</Link>
-                </div>
+      {pack ? (
+        <>
+          <WorkspaceSection
+            tone="teacher"
+            eyebrow="已完成生成"
+            title={`${((pack.payload?.frontier_topic as Record<string, string>)?.name || "未命名课程包")}（第 ${pack.version} 版）`}
+            description={`当前状态：${pack.status === "published" ? "已发布" : "草稿"}`}
+            actions={
+              <div className="workspace-inline-actions">
+                <button onClick={handlePublish} disabled={publishing || pack.status === "published"} className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
+                  {pack.status === "published" ? "已发布给学生" : publishing ? "发布中..." : "发布给学生"}
+                </button>
+                <Link href={`/teacher/lesson-pack/${pack.id}`} className="ui-pill rounded-full px-5 py-3 text-sm font-semibold">
+                  查看详情
+                </Link>
               </div>
-            </div>
-
-            <PackSummary payload={pack.payload as Record<string, unknown>} />
-          </div>
-        )}
-      </div>
-    </main>
+            }
+          >
+            <SignalStrip
+              tone="teacher"
+              items={[
+                { label: "版本", value: pack.version, note: "版本号越高，代表后续更新迭代越多。" },
+                { label: "状态", value: pack.status === "published" ? "已发布" : "草稿", note: "发布后学生端才会进入真实学习链路。" },
+                { label: "课程包详情", value: "结构化输出", note: "下方继续查看教学目标、时间分配与课后任务。" },
+              ]}
+            />
+          </WorkspaceSection>
+          <PackSummary payload={pack.payload as Record<string, unknown>} />
+        </>
+      ) : null}
+    </WorkspacePage>
   );
 }
 
 function PackSummary({ payload }: { payload: Record<string, unknown> }) {
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2">
       <Section title="教学目标" items={toStringArray(payload.teaching_objectives)} />
       <Section title="先修要求" items={toStringArray(payload.prerequisites)} />
       <Section title="本节主线" text={payload.main_thread as string} full />
@@ -142,16 +167,18 @@ function formatTimeAllocation(value: unknown): string[] {
 function Section({ title, text, items, ordered, full }: { title: string; text?: string; items?: string[]; ordered?: boolean; full?: boolean }) {
   if (!text && (!items || items.length === 0)) return null;
   return (
-    <div className={`section-card rounded-[24px] p-6 ${full ? "md:col-span-2" : ""}`}>
-      <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-      {text && <p className="mt-3 text-sm leading-7 text-slate-600">{text}</p>}
-      {items && (
+    <WorkspaceSection tone="teacher" className={full ? "md:col-span-2" : ""} title={title}>
+      {text ? <p className="text-sm leading-7 text-slate-600">{text}</p> : null}
+      {items ? (
         <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-600">
-          {items.map((item, i) => (
-            <li key={i} className="rounded-2xl bg-white/80 px-4 py-3">{ordered ? `${i + 1}. ` : ""}{item}</li>
+          {items.map((item, index) => (
+            <li key={`${index}-${item}`} className="rounded-2xl bg-white/80 px-4 py-3">
+              {ordered ? `${index + 1}. ` : ""}
+              {item}
+            </li>
           ))}
         </ul>
-      )}
-    </div>
+      ) : null}
+    </WorkspaceSection>
   );
 }

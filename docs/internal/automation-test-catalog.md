@@ -1,6 +1,6 @@
 # HIT-Agent Automation Test Catalog
 
-Updated 2026-04-14 after `bash scripts/verify-all.sh` completed successfully.
+Updated 2026-04-14 after the unified frontend redesign and a fresh `bash scripts/verify-all.sh` pass.
 
 ## Unified Entry
 
@@ -18,6 +18,10 @@ Updated 2026-04-14 after `bash scripts/verify-all.sh` completed successfully.
 - Latest one-key result:
   - backend `16 passed`
   - browser `10 passed`
+- Validation policy after the frontend redesign:
+  - tests should verify real functionality, not preserve old DOM nesting
+  - selectors should prefer labels, roles, headings, and stable button names
+  - when the UI meaning changes but the feature contract stays correct, update the test instead of forcing the new UI back into the old structure
 
 ## Backend Suites
 
@@ -101,6 +105,8 @@ Updated 2026-04-14 after `bash scripts/verify-all.sh` completed successfully.
 - Stable browser verification uses production-mode frontend, not `next dev`.
 - `scripts/verify-all.sh` auto-selects free verification ports, then passes the chosen frontend port back into backend CORS configuration via `FRONTEND_PORT`.
 - `frontend/tests/extended-coverage.spec.ts` and `frontend/tests/user-journeys.spec.ts` support `PLAYWRIGHT_API_PORT`, so the browser suite can run on non-default backend ports.
+- The current suites have already been aligned with the redesigned admin shell and updated page semantics, so they now reflect the new UI instead of the pre-redesign layout assumptions.
+- After the second-wave page-shell alignment for the remaining student/teacher detail pages and the backup-script runtime fix, the same suites were rerun and still passed without requiring UI regressions to satisfy old selectors.
 
 ## Relationship To Feature Docs
 

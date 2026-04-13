@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type Course, type WeaknessAnalysis } from "@/lib/api";
 import { pick } from "@/lib/i18n";
 
@@ -75,14 +76,16 @@ export default function WeaknessPage() {
 
   if (!user || user.role !== "student") {
     return (
-      <main className="section-card rounded-[28px] p-8 text-center text-slate-500">
-        {pick(language, "正在加载薄弱点分析...", "Loading weakness analysis...")}
-      </main>
+      <WorkspacePage tone="student">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">
+          {pick(language, "正在加载薄弱点分析...", "Loading weakness analysis...")}
+        </div>
+      </WorkspacePage>
     );
   }
 
   return (
-    <main className="space-y-5">
+    <WorkspacePage tone="student" className="space-y-5">
       <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
           <div>
@@ -206,6 +209,6 @@ export default function WeaknessPage() {
           </div>
         </div>
       </section>
-    </main>
+    </WorkspacePage>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AvatarBadge } from "@/components/avatar-badge";
 import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type UserProfile } from "@/lib/api";
 import { pick } from "@/lib/i18n";
 
@@ -103,8 +104,14 @@ export default function ProfilePage() {
         ];
   }, [language, user]);
 
+  const tone = user?.role === "teacher" ? "teacher" : "student";
+
   if (!user) {
-    return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载个人中心...", "Loading profile...")}</main>;
+    return (
+      <WorkspacePage tone="public">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载个人中心...", "Loading profile...")}</div>
+      </WorkspacePage>
+    );
   }
 
   const setValue = (key: keyof typeof form, value: string | string[]) => {
@@ -179,7 +186,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className="space-y-5">
+    <WorkspacePage tone={tone} className="space-y-5">
       <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
           <div>
@@ -243,6 +250,6 @@ export default function ProfilePage() {
           </button>
         </div>
       </section>
-    </main>
+    </WorkspacePage>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, API_BASE, type AssignmentStudentView } from "@/lib/api";
 
 export default function StudentAssignmentsPage() {
@@ -26,10 +27,17 @@ export default function StudentAssignmentsPage() {
     reload().catch(() => setItems([]));
   }, [user]);
 
-  if (!user || user.role !== "student") return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载作业任务中心...</main>;
+  if (!user || user.role !== "student") {
+    return (
+      <WorkspacePage tone="student">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载作业任务中心...</div>
+      </WorkspacePage>
+    );
+  }
 
   return (
-    <main className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
+    <WorkspacePage tone="student" className="space-y-5">
+    <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
       <div className="border-b border-slate-200 pb-6">
         <p className="text-sm font-semibold text-slate-500">作业任务中心</p>
         <h2 className="mt-2 text-3xl font-black text-slate-900">确认收到、上传提交并查看 AI 初步反馈</h2>
@@ -100,6 +108,7 @@ export default function StudentAssignmentsPage() {
         ))}
       </div>
       {message ? <p className="mt-5 text-sm text-slate-600">{message}</p> : null}
-    </main>
+    </section>
+    </WorkspacePage>
   );
 }

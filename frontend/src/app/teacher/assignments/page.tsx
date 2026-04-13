@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type AssignmentSummary, type AssignmentTeacherDetail, type Course, type CourseClassItem } from "@/lib/api";
 
 const EMPTY_FORM = {
@@ -145,11 +146,15 @@ export default function TeacherAssignmentsPage() {
   }, [activeAssignmentId, loadDetail]);
 
   if (!user || user.role !== "teacher") {
-    return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载作业任务管理...</main>;
+    return (
+      <WorkspacePage tone="teacher">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载作业任务管理...</div>
+      </WorkspacePage>
+    );
   }
 
   return (
-    <main className="grid gap-5 xl:grid-cols-[1.02fr_0.98fr]">
+    <WorkspacePage tone="teacher" className="grid gap-5 xl:grid-cols-[1.02fr_0.98fr]">
       <section className="glass-panel rounded-[32px] px-5 py-6 md:px-6">
         <div className="border-b border-slate-200 pb-4">
           <p className="text-sm font-semibold text-slate-500">作业任务管理</p>
@@ -289,6 +294,6 @@ export default function TeacherAssignmentsPage() {
           </div>
         ) : <div className="section-card mt-5 rounded-[26px] p-8 text-center text-slate-500">请选择一个作业查看提交跟踪情况。</div>}
       </section>
-    </main>
+    </WorkspacePage>
   );
 }

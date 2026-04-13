@@ -115,7 +115,7 @@ test.describe.serial("atomic feature verification", () => {
     await logout(page);
 
     await login(page, "管理员", "admin_demo", "Admin123!");
-    await expect(page.getByRole("heading", { name: "用户管理与角色权限控制" })).toBeVisible();
+    await expect(page.getByText("用户管理与角色权限控制")).toBeVisible();
 
     await page.getByLabel("账号").fill(adminCreatedAccount);
     await page.getByLabel("密码").fill(adminCreatedPassword);

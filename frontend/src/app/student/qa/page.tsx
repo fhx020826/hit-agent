@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { RichAnswer } from "@/components/rich-answer";
 import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type ChatSessionDetail, type Course, type LessonPack, type ModelOption, type UploadedAttachment } from "@/lib/api";
 import { pick } from "@/lib/i18n";
 
@@ -246,11 +247,15 @@ export default function StudentQAPage() {
   };
 
   if (!user || user.role !== "student") {
-    return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载课程问答...", "Loading course Q&A...")}</main>;
+    return (
+      <WorkspacePage tone="student">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载课程问答...", "Loading course Q&A...")}</div>
+      </WorkspacePage>
+    );
   }
 
   return (
-    <main className="grid gap-5 xl:grid-cols-[0.94fr_1.56fr]">
+    <WorkspacePage tone="student" className="grid gap-5 xl:grid-cols-[0.94fr_1.56fr]">
       <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
         <div className="border-b border-slate-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -462,6 +467,6 @@ export default function StudentQAPage() {
           )}
         </div>
       </section>
-    </main>
+    </WorkspacePage>
   );
 }

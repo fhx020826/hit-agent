@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { RichAnswer } from "@/components/rich-answer";
 import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type Course, type QuestionRecord, type TeacherNotification } from "@/lib/api";
 import { pick } from "@/lib/i18n";
 
@@ -210,11 +211,15 @@ export default function TeacherQuestionsPage() {
   };
 
   if (!user || user.role !== "teacher") {
-    return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载学生提问反馈中心...", "Loading student question center...")}</main>;
+    return (
+      <WorkspacePage tone="teacher">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载学生提问反馈中心...", "Loading student question center...")}</div>
+      </WorkspacePage>
+    );
   }
 
   return (
-    <main className="grid gap-5 xl:grid-cols-[0.96fr_1.04fr]">
+    <WorkspacePage tone="teacher" className="grid gap-5 xl:grid-cols-[0.96fr_1.04fr]">
       <section className="glass-panel rounded-[32px] px-5 py-6 md:px-6">
         <div className="border-b border-slate-200 pb-4">
           <p className="text-sm font-semibold text-slate-500">{pick(language, "学生提问反馈中心", "Student Question Center")}</p>
@@ -392,6 +397,6 @@ export default function TeacherQuestionsPage() {
           <div className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "请从左侧选择一个学生问题进行查看与回复。", "Choose a student question from the left to review and reply.")}</div>
         )}
       </section>
-    </main>
+    </WorkspacePage>
   );
 }

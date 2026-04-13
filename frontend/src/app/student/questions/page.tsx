@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { RichAnswer } from "@/components/rich-answer";
 import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type Course, type QuestionFolderItem, type QuestionRecord, type UploadedAttachment } from "@/lib/api";
 import { pick } from "@/lib/i18n";
 
@@ -243,11 +244,15 @@ export default function StudentQuestionHistoryPage() {
   };
 
   if (!user || user.role !== "student") {
-    return <main className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载学习问答记录...", "Loading Q&A archive...")}</main>;
+    return (
+      <WorkspacePage tone="student">
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载学习问答记录...", "Loading Q&A archive...")}</div>
+      </WorkspacePage>
+    );
   }
 
   return (
-    <main className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+    <WorkspacePage tone="student" className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
         <div className="border-b border-slate-200 pb-6">
           <p className="text-sm font-semibold text-slate-500">{pick(language, "学习问答记录", "Q&A Archive")}</p>
@@ -414,6 +419,6 @@ export default function StudentQuestionHistoryPage() {
           ))
         )}
       </section>
-    </main>
+    </WorkspacePage>
   );
 }

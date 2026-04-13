@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type LessonPack } from "@/lib/api";
 
 export default function LessonPackDetailPage() {
@@ -27,16 +28,30 @@ export default function LessonPackDetailPage() {
     loadPack();
   }, [loadPack]);
 
-  if (loading) return <div className="px-6 py-24 text-center text-slate-500">正在加载课程包详情...</div>;
-  if (error) {
+  if (loading) {
     return (
-      <div className="px-6 py-24 text-center">
-        <p className="text-rose-600">{error}</p>
-        <button onClick={loadPack} className="mt-4 rounded-full bg-rose-600 px-5 py-3 text-sm font-semibold text-white">重试</button>
-      </div>
+      <WorkspacePage tone="teacher">
+        <div className="px-6 py-24 text-center text-slate-500">正在加载课程包详情...</div>
+      </WorkspacePage>
     );
   }
-  if (!pack) return <div className="px-6 py-24 text-center text-slate-400">课程包不存在。</div>;
+  if (error) {
+    return (
+      <WorkspacePage tone="teacher">
+        <div className="px-6 py-24 text-center">
+          <p className="text-rose-600">{error}</p>
+          <button onClick={loadPack} className="mt-4 rounded-full bg-rose-600 px-5 py-3 text-sm font-semibold text-white">重试</button>
+        </div>
+      </WorkspacePage>
+    );
+  }
+  if (!pack) {
+    return (
+      <WorkspacePage tone="teacher">
+        <div className="px-6 py-24 text-center text-slate-400">课程包不存在。</div>
+      </WorkspacePage>
+    );
+  }
 
   const payload = pack.payload as Record<string, unknown>;
   const frontierTopic = payload.frontier_topic as Record<string, string>;
@@ -52,7 +67,7 @@ export default function LessonPackDetailPage() {
   };
 
   return (
-    <main className="min-h-screen px-6 py-8">
+    <WorkspacePage tone="teacher">
       <div className="glass-panel mx-auto max-w-5xl rounded-[32px] px-8 py-8 md:px-10">
         <div className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-200 pb-8">
           <div>
@@ -96,7 +111,7 @@ export default function LessonPackDetailPage() {
           <Field title="参考资料" items={toStringArray(payload.references)} full />
         </div>
       </div>
-    </main>
+    </WorkspacePage>
   );
 }
 
