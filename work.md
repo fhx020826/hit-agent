@@ -5,6 +5,37 @@
 
 ## 本轮完成
 
+### ECS 基础初始化、代理与 Codex 打通
+- 已验证阿里云 ECS 可通过公网 SSH 连接：
+  - 目标 IP：`8.152.202.171`
+  - 验证用户：`root`
+  - 验证命令：
+    - `ssh -tt -o StrictHostKeyChecking=accept-new root@8.152.202.171 'whoami && hostname && uname -a'`
+- 验证结果：
+  - `whoami -> root`
+  - `hostname -> iZ2ze8uopnpciyc63go6d6Z`
+- 新增连接说明文档：
+  - `docs/internal/ecs-server-connection-guide.md`
+- 文档中只记录连接方式与账号分发原则，不落库密码等敏感凭据。
+- 已完成远端 `root` 密码重置与 SSH 公钥免密接入。
+- 已在远端安装基础工具：
+  - `git curl wget unzip vim tmux htop rsync jq ripgrep fd-find lsof bubblewrap`
+- 已把本机 Clash 目录同步到远端并配置好以下命令：
+  - `clash`
+  - `proxy`
+  - `unproxy`
+  - `clash-status`
+  - `proxy-status`
+- 已验证远端代理可访问 GitHub。
+- 已把本机 Codex 二进制、Node 运行时与 `.codex` 配置同步到远端。
+- 发现远端最初无法正常对话的真实阻塞点不是安装，而是缺少挑战会话状态文件：
+  - `.codex/cap_sid`
+- 补齐 `cap_sid` 后，远端以下命令已实测成功：
+  - `ssh root@8.152.202.171`
+  - `codex --version`
+  - `codex exec --skip-git-repo-check -C /root "Reply with OK and nothing else."`
+- `bubblewrap` 已安装，Codex 的沙箱 warning 已消除。
+
 ### 第三轮后端深度拆分
 - 继续收缩两块剩余大路由：
   - `backend/app/routes/materials.py`
@@ -123,15 +154,17 @@
 - 当前项目的主要短板已从“没有自动化”转变为“需要继续把大文件拆薄、把迁移和可观测性补上”。
 - 浏览器自动化在这台 HPC 上可以跑通，但稳定验证面应优先使用生产模式前端。
 - 第三轮已经把 `materials.py` 与 `discussion.py` 继续拆薄，路由层高耦合问题已明显缓解。
+- 阿里云 ECS 的“SSH + 代理 + Codex”基础运维面已经打通，可以进入真正的项目部署阶段。
 
 ## 进行中
 - 更新过时文档到当前真实状态
-- 准备提交并推送“第三轮路由深拆 + 全量回归通过”这一轮成果
+- 准备提交并推送“ECS 基础初始化与连接文档补齐”这一轮成果
 
 ## 下一步
-- 提交并推送本轮第三轮后端深拆成果
-- 如需继续优化，优先细分 `materials_service.py` 与 `discussion_service.py`
-- 视需要补数据库迁移、日志与可观测性基线
+- 提交并推送本轮 ECS 初始化与文档更新
+- 在 ECS 上部署 `fhx-hit-agent` 的前后端正式运行面
+- 为 ECS 部署补 systemd / 反向代理 / 域名与 HTTPS
+- 如需继续优化代码结构，优先细分 `materials_service.py` 与 `discussion_service.py`
 
 ## 文档清理
 - 已识别并清理过时或重复的交接/阶段性文档：

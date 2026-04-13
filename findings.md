@@ -365,6 +365,51 @@
   - 前端 build：通过
   - 浏览器：`8 passed`
 
+### 2026-04-12 ECS SSH 连通性
+- 已验证新购 ECS 可通过公网 SSH 登录：
+  - 公网 IP：`8.152.202.171`
+  - 用户：`root`
+  - 命令：
+    - `ssh -tt -o StrictHostKeyChecking=accept-new root@8.152.202.171 'whoami && hostname && uname -a'`
+- 返回结果：
+  - `root`
+  - `iZ2ze8uopnpciyc63go6d6Z`
+  - `Linux ... Ubuntu ...`
+- 已新增连接说明文档：
+  - `docs/internal/ecs-server-connection-guide.md`
+- 安全要求：
+  - 不在仓库中记录密码
+  - 后续优先切换为 SSH 密钥和独立部署用户
+
+### 2026-04-13 ECS 代理与 Codex 打通
+- 远端 ECS 已完成基础运维面初始化：
+  - `root` 密码已重置
+  - SSH 公钥免密登录已生效
+  - 常用工具已安装完成
+- 远端 Clash 与本机同目录结构已同步至：
+  - `/root/clash`
+- 远端当前可靠代理命令：
+  - `clash`
+  - `proxy`
+  - `unproxy`
+- 已验证远端在代理开启后可访问 GitHub。
+- 直接链路验证结果：
+  - 不走代理时，远端 `codex exec` 访问 `https://chatgpt.com/backend-api/wham/apps` 会超时
+- 代理链路验证结果：
+  - 仅同步 `auth.json` 时，远端 Codex 仍无法稳定完成对话
+- 最终定位到的关键差异：
+  - 本机 `.codex` 中存在远端最初缺失的 `cap_sid`
+- 补齐后恢复结果：
+  - 把本机 `~/.codex/cap_sid` 同步到远端后，远端 `codex exec` 已可正常返回 `OK`
+- 额外环境结论：
+  - 本机 `/home/hxfeng/clash/clash` 的 external-controller 因 `9090` 端口已被其他进程占用而未成功绑定
+  - 但这不影响本机 `18990/18991/18993` 代理本身工作
+  - 远端 ECS 的 Clash external-controller `9090` 可正常使用，便于后续远端代理调试
+- 当前远端 Codex 基线：
+  - `codex-cli 0.120.0`
+  - `bubblewrap` 已安装
+  - 远端直接执行 `codex exec --skip-git-repo-check -C /root "Reply with OK and nothing else."` 成功
+
 ### 服务面
 - 最新验证所依赖的在线服务是本轮代码重启后的新进程：
   - 前端生产模式：`http://127.0.0.1:3000`

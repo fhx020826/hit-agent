@@ -146,7 +146,51 @@
   - `/tmp/hit-agent-verify/*`
 - 当前仅保留最新验证日志批次：
   - `/tmp/hit-agent-verify/20260412-212334`
+- 已验证新购阿里云 ECS 的 SSH 可达性：
+  - 公网 IP：`8.152.202.171`
+  - 验证命令：
+    - `ssh -tt -o StrictHostKeyChecking=accept-new root@8.152.202.171 'whoami && hostname && uname -a'`
+  - 验证结果：
+    - `root`
+    - `iZ2ze8uopnpciyc63go6d6Z`
+- 新增 ECS 连接说明文档：
+  - `docs/internal/ecs-server-connection-guide.md`
 
 ### 当前进行中
 - 本轮第三轮后端深拆、旧日志清理与全量回归已经完成
 - 如继续优化，重点将转向 `materials_service.py` / `discussion_service.py` 内部再按子域继续细分
+
+## 2026-04-13
+
+### 已完成
+- 完成阿里云 ECS 基础初始化：
+  - `root` 密码已重置
+  - 本机 SSH 公钥已加入远端 `authorized_keys`
+  - 已验证免密登录可用
+- 已在 ECS 安装基础运维工具：
+  - `git curl wget unzip vim tmux htop rsync jq ripgrep fd-find lsof bubblewrap`
+- 已把本机 Clash 目录同步到 ECS：
+  - `/root/clash`
+- 已在远端 `~/.bashrc` 中配置并验证命令：
+  - `clash`
+  - `proxy`
+  - `unproxy`
+  - `clash-status`
+  - `proxy-status`
+- 已验证远端代理可正常访问 GitHub。
+- 已同步本机 Codex 环境到 ECS：
+  - `/root/bin/codex`
+  - `/root/.local/node-v22.12.0-linux-x64`
+  - `/root/.codex`
+- 定位并解决远端 Codex 无法对话问题：
+  - 最初远端 `codex exec` 访问 `chatgpt.com` 失败
+  - 补齐 `/root/.codex/cap_sid` 后恢复正常
+- 当前已验证远端直接运行以下命令成功：
+  - `codex --version`
+  - `codex exec --skip-git-repo-check -C /root "Reply with OK and nothing else."`
+- 已更新内部文档：
+  - `docs/internal/ecs-server-connection-guide.md`
+
+### 当前进行中
+- 同步本轮 ECS 初始化结果到长期维护文档
+- 准备提交并推送本轮文档更新

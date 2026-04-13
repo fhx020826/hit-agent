@@ -28,6 +28,23 @@
 - 代理验证示例：
   - `bash -ic 'clash && proxy && curl -I https://github.com'`
 
+### 阿里云 ECS
+- 当前新购阿里云 ECS 公网 IP：
+  - `8.152.202.171`
+- 当前已验证：
+  - `ssh root@8.152.202.171`
+  - `ssh -o BatchMode=yes root@8.152.202.171 'whoami && hostname'`
+- 远端也已配置同名命令：
+  - `clash`
+  - `proxy`
+  - `unproxy`
+  - `codex`
+- 远端 Codex 当前可靠验证命令：
+  - `ssh root@8.152.202.171 "bash -ic 'codex exec --skip-git-repo-check -C /root \"Reply with OK and nothing else.\"'"`
+- 若远端 Codex 再次出现 `chatgpt.com` challenge / 认证异常，优先同步：
+  - `~/.codex/auth.json`
+  - `~/.codex/cap_sid`
+
 ### Conda
 - 当前可用 conda 根路径：
   - `/home/hxfeng/miniconda3`
