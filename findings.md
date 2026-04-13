@@ -437,6 +437,43 @@
   - 跑通 `bash scripts/verify-all.sh`
   - 再创建长期运行服务并给出公网访问地址
 
+### 2026-04-13 ECS 正式部署实测结论
+- 已直接对这台 ECS 做正式部署尝试，而不是停留在文档层面。
+- 远端真实资源：
+  - `2 vCPU`
+  - `1.6 GiB RAM`
+  - 初始无 swap
+- 已新增：
+  - `4G swap`
+- 远端当前已具备：
+  - `node v22.12.0`
+  - `npm 10.9.0`
+  - `/root/miniconda3`
+  - conda 环境 `fhx-hit-agent`
+  - Playwright Chromium
+- 为了让 ECS 真能跑当前仓库脚本，已提交并推送：
+  - `44de8c2 test: stabilize ecs deployment verification`
+- 该提交让以下内容对 ECS 友好：
+  - `scripts/verify-all.sh`
+  - `scripts/dev-up.sh`
+  - `frontend/playwright.config.ts`
+  - `frontend/tests/extended-coverage.spec.ts`
+- 在 ECS 上基于最新代码执行 `bash scripts/verify-all.sh` 的真实结果：
+  - `pytest -q` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+  - `tests/atomic-features.spec.ts` 的 5 条测试通过
+- 但在继续执行扩展覆盖 / 更长链路浏览器测试时，ECS 出现严重资源饱和：
+  - 新 SSH 连接上的 `echo ping` 在 10~20 秒窗口内持续超时
+  - 表现为整机几乎不可交互，不适合继续 systemd 配置与上线验收
+- 当前最可信结论：
+  - 这台机器不是“完全不能部署”
+  - 但在你要求的“部署前必须跑全量自动化测试”标准下，当前 `2C/2G` 规格明显不够稳
+  - 如果继续硬上，只会得到一个“可能能跑起来，但验证不完整且不稳定”的结果，不符合当前发布要求
+- 升级建议：
+  - 最低建议：`2C4G`
+  - 更稳妥：`4C4G`
+
 ### 服务面
 - 最新验证所依赖的在线服务是本轮代码重启后的新进程：
   - 前端生产模式：`http://127.0.0.1:3000`

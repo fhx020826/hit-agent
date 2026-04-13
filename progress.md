@@ -204,3 +204,26 @@
 ### 当前进行中
 - 同步本轮 ECS 初始化结果到长期维护文档
 - 准备提交并推送本轮部署手册与 Prompt 文档更新
+
+### 2026-04-13 ECS 正式部署尝试
+- 已直接在 ECS 上完成正式部署前的环境准备：
+  - 补 `4G swap`
+  - 确认远端已有 `node v22.12.0`、`npm 10.9.0`
+  - 确认远端已有 `/root/miniconda3` 与 `fhx-hit-agent` conda 环境
+  - 补齐兼容路径 `/home/hxfeng/miniconda3` 与 `/home/hxfeng/.cache`
+  - 安装后端依赖、前端依赖、Playwright Chromium
+- 已把 ECS 可移植性修复提交并推送：
+  - `44de8c2 test: stabilize ecs deployment verification`
+- 已在 ECS 上基于 `44de8c2` 真实执行：
+  - `bash scripts/verify-all.sh`
+- 当前真实进度：
+  - 后端 `pytest` 通过
+  - 前端 `lint` 通过
+  - 前端 `build` 通过
+  - 原子浏览器测试 5 条通过
+- 当前阻塞：
+  - 在继续执行扩展覆盖 / 后续浏览器测试时，ECS 进入严重卡顿
+  - 连新的 SSH `echo ping` 轻量探针都在 10~20 秒窗口内超时
+- 当前判断：
+  - 这台 `2C/2G` ECS 在完整部署验证阶段资源明显不足
+  - 在不放松“必须全量验证”的前提下，当前不适合继续强行完成正式上线

@@ -5,6 +5,48 @@
 
 ## 本轮完成
 
+### ECS 正式部署实测与资源瓶颈确认
+- 已直接通过 SSH 接管远端 ECS `8.152.202.171` 进行正式部署尝试。
+- 已确认远端当前真实资源：
+  - `2 vCPU`
+  - `1.6 GiB RAM`
+  - 初始 `swap = 0`
+  - 磁盘可用约 `31G`
+- 已为远端新增 `4G swap`，以缓解构建与浏览器测试的内存压力。
+- 已确认远端已具备并可使用：
+  - `node v22.12.0`
+  - `npm 10.9.0`
+  - `/root/miniconda3`
+  - conda 环境 `fhx-hit-agent`
+  - `/srv/fhx-hit-agent` 最新仓库
+- 已补齐远端兼容路径，避免当前仓库脚本中的本机绝对路径立即失效：
+  - `/home/hxfeng/miniconda3 -> /root/miniconda3`
+  - `/home/hxfeng/.cache -> /root/.cache`
+- 已在远端安装并验证：
+  - Python 依赖
+  - 前端 npm 依赖
+  - Playwright Chromium，且实际浏览器文件已存在于：
+    - `/home/hxfeng/.cache/ms-playwright/chromium-1217/chrome-linux64/chrome`
+- 已把 ECS 可移植性修复正式提交并推送到仓库：
+  - `44de8c2 test: stabilize ecs deployment verification`
+- 该提交包含：
+  - `scripts/verify-all.sh` 自动探测 conda
+  - `scripts/dev-up.sh` 自动探测 conda，且前端 dev 启动注入 `NEXT_PUBLIC_API_PORT`
+  - `frontend/playwright.config.ts` 在固定 Chromium 路径不存在时自动回退
+  - `frontend/tests/extended-coverage.spec.ts` 中长测试标记为慢测试，并修正一处讨论搜索断言范围
+- 远端在最新代码上执行 `bash scripts/verify-all.sh` 的真实结果：
+  - `pytest -q` 通过
+  - `npm run lint` 通过
+  - `npm run build` 通过
+  - 原子浏览器测试前 5 条通过
+- 但在继续执行扩展覆盖 / 后续旅程测试时，ECS 出现明显资源饱和：
+  - 新 SSH 轻量探针 `ssh root@8.152.202.171 'echo ping'` 在 10~20 秒窗口内持续超时
+  - 这说明整机在全量验证阶段已进入严重卡顿状态，不再具备稳定继续部署的条件
+- 当前结论：
+  - 这台 ECS 在“构建 + 部分 E2E + 服务验证”层面可以勉强推进
+  - 但在“必须跑完整全量浏览器自动化验证”的要求下，`2C/2G` 明显不够稳
+  - 因此当前无法在不牺牲验证要求的前提下，继续把服务正式守护起来并交付公网访问
+
 ### ECS 部署手册与服务器 Codex Prompt
 - 已确认当前仓库最新版本关系：
   - 本地 `HEAD` = `origin/main` = `23dc5d3`
@@ -179,15 +221,17 @@
 - 浏览器自动化在这台 HPC 上可以跑通，但稳定验证面应优先使用生产模式前端。
 - 第三轮已经把 `materials.py` 与 `discussion.py` 继续拆薄，路由层高耦合问题已明显缓解。
 - 阿里云 ECS 的“SSH + 代理 + Codex”基础运维面已经打通，可以进入真正的项目部署阶段。
+- 但当前这台 `2C/2G` ECS 在完整部署验证阶段会发生严重资源饱和，已实测成为正式交付阻塞。
 
 ## 进行中
 - 更新过时文档到当前真实状态
-- 准备提交并推送“ECS 部署手册与服务器 Codex Prompt”这一轮成果
+- 已完成 ECS 正式部署尝试，但当前卡在“服务器全量验证阶段资源不足”这一阻塞点
 
 ## 下一步
-- 提交并推送本轮 ECS 部署手册与 Prompt 文档
-- 将 `docs/internal/ecs-server-codex-deploy-prompt-2026-04-13.md` 直接投喂给 ECS 上的 Codex
-- 在 ECS 上修复部署可移植性问题并正式部署 `fhx-hit-agent`
+- 优先升级 ECS 规格，建议至少提升到 `2C4G`，更稳妥为 `4C4G`
+- 升级后直接在远端 `git pull origin main`，继续执行：
+  - `bash scripts/verify-all.sh`
+- 只有在完整验证通过后，才继续创建 systemd 长期服务并做公网访问验收
 - 为 ECS 部署补 systemd / 反向代理 / 域名与 HTTPS
 - 如需继续优化代码结构，优先细分 `materials_service.py` 与 `discussion_service.py`
 

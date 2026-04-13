@@ -21,6 +21,7 @@
 - [x] Phase 12: 第三轮 `materials` / `discussion` 路由深拆与全量回归
 - [x] Phase 13: 阿里云 ECS 基础运维面打通（SSH / 代理 / Codex）
 - [x] Phase 14: 输出 ECS 正式部署运行手册与服务器 Codex Prompt
+- [x] Phase 15: 在 ECS 上直接尝试正式部署并确认真实硬件瓶颈
 
 ## Constraints
 - 仅在 `/home/hxfeng/fhx-hit-agent` 中操作
@@ -32,4 +33,5 @@
 - 代码侧第三轮深拆与全量回归已完成
 - 阿里云 ECS 的 SSH / 代理 / Codex 基础运维面已打通
 - 已完成正式部署前的运行手册与 Prompt 整理
-- 下一阶段转为：服务器侧修复可移植性、安装依赖、跑全量测试、创建长期运行服务
+- 已确认当前 `2C/2G` ECS 在完整自动化验证要求下存在真实资源瓶颈
+- 下一阶段优先升级服务器规格，再继续 systemd 与公网交付
