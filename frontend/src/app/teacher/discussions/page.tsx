@@ -4,12 +4,15 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DiscussionWorkspace } from "@/components/discussion-workspace";
 import { useAuth } from "@/components/auth-provider";
+import { useLanguage } from "@/components/language-provider";
 import { WorkspaceHero, WorkspacePage } from "@/components/workspace-shell";
 import { WorkspaceSection } from "@/components/workspace-panels";
+import { pick } from "@/lib/i18n";
 
 export default function TeacherDiscussionsPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { language } = useLanguage();
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "teacher")) router.push("/");
@@ -18,7 +21,7 @@ export default function TeacherDiscussionsPage() {
   if (!user || user.role !== "teacher") {
     return (
       <WorkspacePage tone="teacher">
-        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载课程讨论空间...</div>
+        <div className="section-card rounded-[28px] p-8 text-center text-slate-500">{pick(language, "正在加载课程讨论空间...", "Loading discussion spaces...")}</div>
       </WorkspacePage>
     );
   }
@@ -27,14 +30,14 @@ export default function TeacherDiscussionsPage() {
     <WorkspacePage tone="teacher" className="space-y-5">
       <WorkspaceHero
         tone="teacher"
-        eyebrow="课程讨论空间"
-        title="围绕课程话题管理讨论、公告和追问"
-        description="教师端讨论空间继续保留原有交互能力，但统一纳入新的工作台结构，在移动端会自动收敛为更聚焦的单列流。"
+        eyebrow={pick(language, "课程讨论空间", "Discussion Spaces")}
+        title={pick(language, "围绕课程管理讨论与公告", "Manage course discussions and notices")}
+        description={pick(language, "统一查看帖子、互动和追问。", "Review posts, interactions, and follow-up questions in one place.")}
       />
       <WorkspaceSection
         tone="teacher"
-        title="讨论工作区"
-        description="这里保留原有的讨论广场、发帖、筛选与互动能力。"
+        title={pick(language, "讨论工作区", "Discussion Workspace")}
+        description={pick(language, "继续处理讨论、筛选和互动。", "Keep working with discussions, filters, and interactions here.")}
       >
         <DiscussionWorkspace user={user} />
       </WorkspaceSection>

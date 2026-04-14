@@ -305,7 +305,7 @@ test.describe.serial("atomic feature verification", () => {
     await page.goto("/teacher/ai-config");
     await page.getByRole("combobox").nth(0).selectOption({ label: courseName });
     await page.getByRole("combobox").nth(1).selectOption("启发型");
-    await page.getByRole("button", { name: "保存 AI 助教配置" }).click();
+    await page.getByRole("button", { name: /保存配置|保存 AI 助教配置|Save Setup/ }).click();
     await page.waitForTimeout(3000);
     await page.reload();
     await page.getByRole("combobox").nth(0).selectOption({ label: courseName });
@@ -411,7 +411,7 @@ test.describe.serial("atomic feature verification", () => {
     await expect(page.getByText(/按课程查看薄弱点分析|View Weakness Analysis by Course/)).toBeVisible();
 
     await page.goto("/student/discussions");
-    await expect(page.getByRole("heading", { name: "围绕课程与班级的群聊式学习协作空间" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /参与课程讨论，整理问题与观点|Join course discussions and collect ideas/ })).toBeVisible();
     await page.getByPlaceholder(/输入消息/).fill(discussionMessage);
     await page.getByRole("button", { name: "发送" }).click();
     await expect(page.getByText("消息已发送。").first()).toBeVisible();

@@ -14,7 +14,7 @@ import { LANGUAGE_OPTIONS, pick, t } from "@/lib/i18n";
 
 const THEME_PRESETS = [
   { mode: "day", accent: "blue", font: "default", skin: "clean", language: "zh-CN", labelZh: "白天蓝色", labelEn: "Day Blue" },
-  { mode: "night", accent: "gray", font: "rounded", skin: "tech", language: "zh-CN", labelZh: "夜间科技", labelEn: "Night Tech" },
+  { mode: "night", accent: "gray", font: "default", skin: "tech", language: "zh-CN", labelZh: "夜间科技", labelEn: "Night Tech" },
   { mode: "eye-care", accent: "green", font: "default", skin: "gentle", language: "zh-CN", labelZh: "护眼温和", labelEn: "Eye-care Gentle" },
 ] as const;
 

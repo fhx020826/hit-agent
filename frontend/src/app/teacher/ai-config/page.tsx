@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+import { useLanguage } from "@/components/language-provider";
 import { SignalStrip, WorkspaceSection } from "@/components/workspace-panels";
 import { WorkspaceHero, WorkspacePage } from "@/components/workspace-shell";
 import { api, type AgentConfig, type Course } from "@/lib/api";
+import { pick } from "@/lib/i18n";
 
 const emptyConfig: Omit<AgentConfig, "course_id" | "updated_at"> = {
   scope_rules: "仅围绕课程内容与教师上传材料回答。",
@@ -16,6 +18,7 @@ const emptyConfig: Omit<AgentConfig, "course_id" | "updated_at"> = {
 };
 
 export default function TeacherAiConfigPage() {
+  const { language } = useLanguage();
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [config, setConfig] = useState(emptyConfig);
@@ -53,20 +56,20 @@ export default function TeacherAiConfigPage() {
     <WorkspacePage tone="teacher">
       <WorkspaceHero
         tone="teacher"
-        eyebrow="课程专属 AI 助教配置"
-        title={<h1>AI 助教配置</h1>}
+        eyebrow={pick(language, "AI 助教配置", "AI Assistant Setup")}
+        title={<h1>{pick(language, "AI 助教配置", "AI Assistant Setup")}</h1>}
         description={
           <p>
-            教师可配置学生端 AI 助教的知识边界、回答风格，以及是否开放作业支持、资料问答和前沿拓展。
+            {pick(language, "设置知识边界、回答风格和开放能力。", "Set knowledge scope, answer style, and enabled capabilities.")}
           </p>
         }
         actions={
           <>
             <Link href="/teacher" className="ui-pill rounded-full px-5 py-3 text-sm font-semibold">
-              返回教师工作台
+              {pick(language, "返回教师工作台", "Back to Workspace")}
             </Link>
-            <button onClick={() => void saveConfig()} disabled={!selectedCourseId || saving} className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white disabled:opacity-50">
-              {saving ? "保存中..." : "保存 AI 助教配置"}
+            <button onClick={() => void saveConfig()} disabled={!selectedCourseId || saving} className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
+              {saving ? pick(language, "保存中...", "Saving...") : pick(language, "保存配置", "Save Setup")}
             </button>
           </>
         }
@@ -74,9 +77,9 @@ export default function TeacherAiConfigPage() {
           <SignalStrip
             tone="teacher"
             items={[
-              { label: "知识边界", value: config.scope_rules ? "已定义" : "待补充", note: "决定学生端问答能触及的范围。" },
-              { label: "回答风格", value: config.answer_style, note: "直接影响学生感受到的讲解方式。" },
-              { label: "扩展能力", value: `${Number(config.enable_homework_support) + Number(config.enable_material_qa) + Number(config.enable_frontier_extension)}/3`, note: "勾选项越多，学生端能力越完整。" },
+              { label: pick(language, "知识边界", "Scope"), value: config.scope_rules ? pick(language, "已定义", "Defined") : pick(language, "待补充", "Pending"), note: pick(language, "决定问答覆盖范围。", "Controls the answer boundary.") },
+              { label: pick(language, "回答风格", "Answer Style"), value: config.answer_style, note: pick(language, "影响学生看到的讲解方式。", "Shapes the teaching tone students receive.") },
+              { label: pick(language, "扩展能力", "Enabled Capabilities"), value: `${Number(config.enable_homework_support) + Number(config.enable_material_qa) + Number(config.enable_frontier_extension)}/3`, note: pick(language, "勾选越多，可用能力越完整。", "More enabled options mean broader student-side support.") },
             ]}
           />
         }
@@ -84,15 +87,15 @@ export default function TeacherAiConfigPage() {
 
       <WorkspaceSection
         tone="teacher"
-        eyebrow="配置表单"
-        title="先选课程，再锁定 AI 的边界与语气"
-        description="教师端对课程专属 AI 助教的配置是学生端行为的真实边界，不是简单的装饰开关。"
+        eyebrow={pick(language, "配置表单", "Setup Form")}
+        title={pick(language, "先选课程，再设置规则", "Choose a course, then set the rules")}
+        description={pick(language, "这里决定学生端 AI 助教的实际行为边界。", "This defines the real behavior boundary of the student-side assistant.")}
       >
         <div className="workspace-stack">
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="font-semibold">选择课程</span>
+            <span className="font-semibold">{pick(language, "选择课程", "Choose Course")}</span>
             <select value={selectedCourseId} onChange={(e) => setSelectedCourseId(e.target.value)}>
-              <option value="">请选择课程</option>
+              <option value="">{pick(language, "请选择课程", "Select a course")}</option>
               {courses.map((course) => (
                 <option key={course.id} value={course.id}>
                   {course.name}
@@ -103,15 +106,15 @@ export default function TeacherAiConfigPage() {
 
           <div className="workspace-form-grid">
             <label className="space-y-2 text-sm text-slate-700 md:col-span-2">
-              <span className="font-semibold">知识边界说明</span>
+              <span className="font-semibold">{pick(language, "知识边界说明", "Scope Rules")}</span>
               <textarea value={config.scope_rules} onChange={(e) => setConfig({ ...config, scope_rules: e.target.value })} rows={5} />
             </label>
             <label className="space-y-2 text-sm text-slate-700">
-              <span className="font-semibold">回答风格</span>
+              <span className="font-semibold">{pick(language, "回答风格", "Answer Style")}</span>
               <select value={config.answer_style} onChange={(e) => setConfig({ ...config, answer_style: e.target.value })}>
-                <option value="讲解型">讲解型</option>
-                <option value="启发型">启发型</option>
-                <option value="精炼型">精炼型</option>
+                <option value="讲解型">{pick(language, "讲解型", "Explainer")}</option>
+                <option value="启发型">{pick(language, "启发型", "Guided")}</option>
+                <option value="精炼型">{pick(language, "精炼型", "Concise")}</option>
               </select>
             </label>
           </div>
@@ -119,15 +122,15 @@ export default function TeacherAiConfigPage() {
           <div className="grid gap-3">
             <label className="workspace-callout flex items-center gap-3 text-sm text-slate-700">
               <input type="checkbox" checked={config.enable_homework_support} onChange={(e) => setConfig({ ...config, enable_homework_support: e.target.checked })} />
-              开放作业与大报告支持
+              {pick(language, "开放作业与大报告支持", "Enable assignments and reports")}
             </label>
             <label className="workspace-callout flex items-center gap-3 text-sm text-slate-700">
               <input type="checkbox" checked={config.enable_material_qa} onChange={(e) => setConfig({ ...config, enable_material_qa: e.target.checked })} />
-              开放课堂资料问答
+              {pick(language, "开放课堂资料问答", "Enable material Q&A")}
             </label>
             <label className="workspace-callout flex items-center gap-3 text-sm text-slate-700">
               <input type="checkbox" checked={config.enable_frontier_extension} onChange={(e) => setConfig({ ...config, enable_frontier_extension: e.target.checked })} />
-              开放前沿拓展内容解释
+              {pick(language, "开放前沿拓展内容解释", "Enable frontier-topic guidance")}
             </label>
           </div>
         </div>

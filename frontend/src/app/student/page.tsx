@@ -101,19 +101,19 @@ export default function StudentDashboard() {
       <WorkspaceHero
         tone="student"
         eyebrow={pick(language, "学生学习台", "Student Workspace")}
-        title={<h2>围绕课程学习、作业提交与课后反馈的一站式入口</h2>}
+        title={<h2>{pick(language, "学生学习工作台", "Student Workspace")}</h2>}
         description={
           <p>
             {pick(
               language,
-              "这里会集中展示当前课程、作业、资料和反馈入口，帮助你更快进入本次学习需要处理的任务。匿名发言依然只隐藏展示身份，不脱离本人账号。",
-              "This workspace brings together current courses, assignments, materials, and feedback so you can move directly into the tasks that matter right now. Anonymous posting still hides display identity only, not account ownership.",
+              "把当前课程、作业、资料和反馈集中到一个入口。",
+              "Bring current courses, assignments, materials, and feedback into one place.",
             )}
           </p>
         }
         actions={
           <>
-            <Link href="/student/qa" className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white">
+            <Link href="/student/qa" className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
               {pick(language, "开始提问", "Ask a Question")}
             </Link>
             <Link href="/student/assignments" className="ui-pill rounded-full px-6 py-3 text-sm font-semibold">
@@ -129,8 +129,8 @@ export default function StudentDashboard() {
               <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
                 {pick(
                   language,
-                  "如果你现在只想知道“下一步做什么”，优先看待完成作业、待填写反馈和最近共享资料，再决定是否继续提问或进入讨论。",
-                  "If you only want to know what to do next, focus first on pending assignments, pending feedback and recent shared materials, then decide whether to continue asking or join the discussion space.",
+                  "优先看待完成作业、待填写反馈和最近共享资料。",
+                  "Focus first on pending assignments, feedback, and recent shared materials.",
                 )}
               </p>
             </div>
@@ -159,8 +159,8 @@ export default function StudentDashboard() {
         <WorkspaceSection
           tone="student"
           eyebrow={pick(language, "优先入口", "Priority Access")}
-          title={pick(language, "先进入“问答 - 资料 - 作业 - 反馈”主链路", "Start with Q&A, materials, assignments and feedback")}
-          description={pick(language, "这四个区域组成学生端最核心的连续学习路径，优先级高于其他信息归档型页面。", "These four areas form the student-side primary learning path and take priority over archival pages.")}
+          title={pick(language, "先完成本次学习任务", "Start with the current task")}
+          description={pick(language, "优先处理问答、资料、作业和反馈。", "Handle questions, materials, assignments, and feedback first.")}
         >
           <div className="grid gap-4 xl:grid-cols-2">
             {cards.slice(0, 4).map((card) => (
@@ -180,8 +180,8 @@ export default function StudentDashboard() {
         <WorkspaceSection
           tone="student"
           eyebrow={pick(language, "学习档案", "Learning Archive")}
-          title={pick(language, "再进入“记录 - 讨论 - 薄弱点”整理区", "Then move into history, discussions and weakness insights")}
-          description={pick(language, "当主学习任务完成后，再查看历史问答、课程讨论与薄弱点诊断，学习节奏会更清晰。", "Once the main task is handled, move into history, discussions and weakness insights for a clearer rhythm.")}
+          title={pick(language, "再查看学习记录", "Then review learning records")}
+          description={pick(language, "完成主要任务后，再进入记录、讨论和薄弱点。", "After the main task, move into history, discussions, and weakness insights.")}
         >
           <div className="grid gap-4">
             {cards.slice(4).map((card) => (

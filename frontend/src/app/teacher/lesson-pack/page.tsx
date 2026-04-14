@@ -4,19 +4,27 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { useLanguage } from "@/components/language-provider";
 import { SignalStrip, WorkspaceSection } from "@/components/workspace-panels";
 import { WorkspaceHero, WorkspacePage } from "@/components/workspace-shell";
 import { api, type LessonPack, type TaskJobRecord } from "@/lib/api";
+import { pick } from "@/lib/i18n";
 
 export default function GenerateLessonPackPage() {
   return (
-    <Suspense fallback={<div className="px-6 py-24 text-center text-slate-500">正在准备课程包生成页...</div>}>
+    <Suspense fallback={<LessonPackFallback />}>
       <GenerateContent />
     </Suspense>
   );
 }
 
+function LessonPackFallback() {
+  const { language } = useLanguage();
+  return <div className="px-6 py-24 text-center text-slate-500">{pick(language, "正在准备课程包生成页...", "Preparing the lesson pack page...")}</div>;
+}
+
 function GenerateContent() {
+  const { language } = useLanguage();
   const searchParams = useSearchParams();
   const courseId = searchParams.get("course_id");
   const [loading, setLoading] = useState(false);
@@ -39,7 +47,7 @@ function GenerateContent() {
       })
       .catch((error) => {
         if (cancelled) return;
-        setErrorMessage(error instanceof Error ? error.message : "课程包生成失败，请稍后重试。");
+        setErrorMessage(error instanceof Error ? error.message : pick(language, "课程包生成失败，请稍后重试。", "Lesson pack generation failed. Please try again."));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -47,7 +55,7 @@ function GenerateContent() {
     return () => {
       cancelled = true;
     };
-  }, [courseId]);
+  }, [courseId, language]);
 
   useEffect(() => {
     if (!job) return;
@@ -60,7 +68,7 @@ function GenerateContent() {
       return;
     }
     if (job.status === "failed") {
-      setErrorMessage(job.error_message || job.message || "课程包生成失败，请稍后重试。");
+      setErrorMessage(job.error_message || job.message || pick(language, "课程包生成失败，请稍后重试。", "Lesson pack generation failed. Please try again."));
       return;
     }
     const timer = window.setTimeout(async () => {
@@ -68,11 +76,11 @@ function GenerateContent() {
         const nextJob = await api.getTaskJob(job.id);
         setJob(nextJob);
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "课程包任务状态刷新失败。");
+        setErrorMessage(error instanceof Error ? error.message : pick(language, "课程包任务状态刷新失败。", "Failed to refresh the lesson pack task."));
       }
     }, 1200);
     return () => window.clearTimeout(timer);
-  }, [job]);
+  }, [job, language]);
 
   const handlePublish = async () => {
     if (!pack) return;
@@ -89,47 +97,47 @@ function GenerateContent() {
     <WorkspacePage tone="teacher">
       <WorkspaceHero
         tone="teacher"
-        eyebrow="课程包生成结果"
-        title={<h1>生成课程包</h1>}
+        eyebrow={pick(language, "课程包生成结果", "Lesson Pack Generation")}
+        title={<h1>{pick(language, "生成课程包", "Generate Lesson Pack")}</h1>}
         description={
           <p>
-            课程包生成已切换为后台异步任务。页面会自动轮询任务进度，你可以等待结构化结果返回后继续发布，也便于后续扩展统一任务中心。
+            {pick(language, "课程包生成已切换为后台异步任务。页面会自动轮询进度，完成后再继续发布。", "Lesson pack generation now runs as a background job. The page polls progress automatically and lets you continue when the result is ready.")}
           </p>
         }
         actions={
           <Link href="/teacher" className="ui-pill rounded-full px-5 py-3 text-sm font-semibold">
-            返回教师工作台
+            {pick(language, "返回教师工作台", "Back to Workspace")}
           </Link>
         }
       />
 
       {loading ? (
-        <WorkspaceSection tone="teacher" title="模型正在提交课程包任务，请稍等...">
-          <div className="py-12 text-center text-slate-500">模型正在提交课程包任务，请稍等...</div>
+        <WorkspaceSection tone="teacher" title={pick(language, "模型正在提交课程包任务，请稍等...", "Submitting the lesson pack task...")}>
+          <div className="py-12 text-center text-slate-500">{pick(language, "模型正在提交课程包任务，请稍等...", "Submitting the lesson pack task...")}</div>
         </WorkspaceSection>
       ) : null}
 
       {job && !pack ? (
-        <WorkspaceSection tone="teacher" title={job.status === "queued" ? "课程包任务已入队，正在等待后台执行..." : "模型正在后台生成课程包..."}>
+        <WorkspaceSection tone="teacher" title={job.status === "queued" ? pick(language, "课程包任务已入队，正在等待后台执行...", "The lesson pack task is queued...") : pick(language, "模型正在后台生成课程包...", "The lesson pack is being generated in the background...")}>
           <SignalStrip
             tone="teacher"
             items={[
-              { label: "任务状态", value: job.status === "queued" ? "排队中" : job.status === "running" ? "执行中" : job.status, note: job.message || "后台任务会自动继续推进。" },
-              { label: "进度", value: `${job.progress}%`, note: "当前页面会自动轮询任务状态，无需手动刷新。" },
-              { label: "任务编号", value: job.id, note: "这为后续扩展统一后台任务中心预留了基础。 " },
+              { label: pick(language, "任务状态", "Task Status"), value: job.status === "queued" ? pick(language, "排队中", "Queued") : job.status === "running" ? pick(language, "执行中", "Running") : job.status, note: job.message || pick(language, "后台任务会自动继续推进。", "The job will continue in the background.") },
+              { label: pick(language, "进度", "Progress"), value: `${job.progress}%`, note: pick(language, "当前页面会自动轮询任务状态，无需手动刷新。", "This page polls the task automatically.") },
+              { label: pick(language, "任务编号", "Job ID"), value: job.id, note: pick(language, "这为后续扩展统一后台任务中心预留了基础。", "This also lays the groundwork for a broader task center.") },
             ]}
           />
         </WorkspaceSection>
       ) : null}
 
       {!loading && !pack && !courseId ? (
-        <WorkspaceSection tone="teacher" title="请从课程列表中选择一门课程，再进入课程包生成流程。">
-          <div className="empty-state">请从课程列表中选择一门课程，再进入课程包生成流程。</div>
+        <WorkspaceSection tone="teacher" title={pick(language, "请从课程列表中选择一门课程，再进入课程包生成流程。", "Choose a course before starting lesson pack generation.")}>
+          <div className="empty-state">{pick(language, "请从课程列表中选择一门课程，再进入课程包生成流程。", "Choose a course before starting lesson pack generation.")}</div>
         </WorkspaceSection>
       ) : null}
 
       {errorMessage ? (
-        <WorkspaceSection tone="teacher" title="课程包生成失败">
+        <WorkspaceSection tone="teacher" title={pick(language, "课程包生成失败", "Lesson Pack Generation Failed")}>
           <div className="rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm leading-7 text-rose-700">{errorMessage}</div>
         </WorkspaceSection>
       ) : null}
@@ -138,16 +146,16 @@ function GenerateContent() {
         <>
           <WorkspaceSection
             tone="teacher"
-            eyebrow="已完成生成"
-            title={`${((pack.payload?.frontier_topic as Record<string, string>)?.name || "未命名课程包")}（第 ${pack.version} 版）`}
-            description={`当前状态：${pack.status === "published" ? "已发布" : "草稿"}`}
+            eyebrow={pick(language, "已完成生成", "Generated")}
+            title={`${((pack.payload?.frontier_topic as Record<string, string>)?.name || pick(language, "未命名课程包", "Untitled lesson pack"))} (${pick(language, `第 ${pack.version} 版`, `Version ${pack.version}`)})`}
+            description={`${pick(language, "当前状态：", "Status: ")}${pack.status === "published" ? pick(language, "已发布", "Published") : pick(language, "草稿", "Draft")}`}
             actions={
               <div className="workspace-inline-actions">
-                <button onClick={handlePublish} disabled={publishing || pack.status === "published"} className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
-                  {pack.status === "published" ? "已发布给学生" : publishing ? "发布中..." : "发布给学生"}
+                <button onClick={handlePublish} disabled={publishing || pack.status === "published"} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
+                  {pack.status === "published" ? pick(language, "已发布给学生", "Published to Students") : publishing ? pick(language, "发布中...", "Publishing...") : pick(language, "发布给学生", "Publish to Students")}
                 </button>
                 <Link href={`/teacher/lesson-pack/${pack.id}`} className="ui-pill rounded-full px-5 py-3 text-sm font-semibold">
-                  查看详情
+                  {pick(language, "查看详情", "View Details")}
                 </Link>
               </div>
             }
@@ -155,9 +163,9 @@ function GenerateContent() {
             <SignalStrip
               tone="teacher"
               items={[
-                { label: "版本", value: pack.version, note: "版本号越高，代表后续更新迭代越多。" },
-                { label: "状态", value: pack.status === "published" ? "已发布" : "草稿", note: "发布后学生端才会进入真实学习链路。" },
-                { label: "课程包详情", value: "结构化输出", note: "下方继续查看教学目标、时间分配与课后任务。" },
+                { label: pick(language, "版本", "Version"), value: pack.version, note: pick(language, "版本号越高，代表后续更新迭代越多。", "Higher versions mean more iterations.") },
+                { label: pick(language, "状态", "Status"), value: pack.status === "published" ? pick(language, "已发布", "Published") : pick(language, "草稿", "Draft"), note: pick(language, "发布后学生端才会进入真实学习链路。", "Students only see the real learning flow after publication.") },
+                { label: pick(language, "课程包详情", "Pack Output"), value: pick(language, "结构化输出", "Structured Output"), note: pick(language, "下方继续查看教学目标、时间分配与课后任务。", "Review goals, timing, and after-class tasks below.") },
               ]}
             />
           </WorkspaceSection>

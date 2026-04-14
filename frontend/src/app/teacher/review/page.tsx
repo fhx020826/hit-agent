@@ -3,13 +3,21 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useLanguage } from "@/components/language-provider";
 import { api, type AnalyticsReport } from "@/lib/api";
+import { pick } from "@/lib/i18n";
 
 export default function ReviewPage() {
-  return <Suspense fallback={<div className="px-6 py-24 text-center text-slate-500">正在加载复盘页...</div>}><ReviewContent /></Suspense>;
+  return <Suspense fallback={<ReviewFallback />}><ReviewContent /></Suspense>;
+}
+
+function ReviewFallback() {
+  const { language } = useLanguage();
+  return <div className="px-6 py-24 text-center text-slate-500">{pick(language, "正在加载复盘页...", "Loading the review page...")}</div>;
 }
 
 function ReviewContent() {
+  const { language } = useLanguage();
   const searchParams = useSearchParams();
   const lpId = searchParams.get("lp_id") || "demo-lp-001";
   const [report, setReport] = useState<AnalyticsReport | null>(null);
@@ -23,11 +31,11 @@ function ReviewContent() {
       setReport(result);
       setError(null);
     } catch (e) {
-      setError(`加载复盘数据失败：${e instanceof Error ? e.message : "网络错误"}`);
+      setError(`${pick(language, "加载复盘数据失败：", "Failed to load review data: ")}${e instanceof Error ? e.message : pick(language, "网络错误", "Network error")}`);
     } finally {
       setLoading(false);
     }
-  }, [lpId]);
+  }, [language, lpId]);
 
   useEffect(() => {
     let active = true;
@@ -39,7 +47,7 @@ function ReviewContent() {
       })
       .catch((e) => {
         if (!active) return;
-        setError(`加载复盘数据失败：${e instanceof Error ? e.message : "网络错误"}`);
+        setError(`${pick(language, "加载复盘数据失败：", "Failed to load review data: ")}${e instanceof Error ? e.message : pick(language, "网络错误", "Network error")}`);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -48,54 +56,54 @@ function ReviewContent() {
     return () => {
       active = false;
     };
-  }, [lpId]);
+  }, [language, lpId]);
 
   return (
     <main className="min-h-screen px-6 py-8">
       <div className="glass-panel mx-auto max-w-6xl rounded-[32px] px-8 py-8 md:px-10">
         <div className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-200 pb-8">
           <div>
-            <p className="text-sm font-semibold text-slate-400">教学复盘分析</p>
-            <h1 className="mt-3 text-3xl font-extrabold text-slate-900 md:text-4xl">教师复盘</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">系统会在学生提问后同步统计问答数据。实名提问会显示学生信息，匿名提问只显示匿名学生。</p>
+            <p className="text-sm font-semibold text-slate-400">{pick(language, "教学复盘分析", "Teaching Review")}</p>
+            <h1 className="mt-3 text-3xl font-extrabold text-slate-900 md:text-4xl">{pick(language, "教师复盘", "Teacher Review")}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">{pick(language, "查看学生提问后的统计结果，重点关注高频问题、知识盲区和教学建议。", "Review aggregated question data after class and focus on recurring issues, knowledge gaps, and teaching suggestions.")}</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => loadReport()} className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">刷新复盘</button>
-            <Link href="/teacher" className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">返回教师工作台</Link>
+            <button onClick={() => loadReport()} className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{pick(language, "刷新复盘", "Refresh Review")}</button>
+            <Link href="/teacher" className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{pick(language, "返回教师工作台", "Back to Workspace")}</Link>
           </div>
         </div>
 
-        {loading && <div className="py-20 text-center text-slate-500">正在生成复盘视图...</div>}
+        {loading && <div className="py-20 text-center text-slate-500">{pick(language, "正在生成复盘视图...", "Preparing the review view...")}</div>}
         {error && <div className="mt-8 rounded-[24px] border border-rose-200 bg-rose-50 px-6 py-8 text-center text-rose-700">{error}</div>}
 
         {report && (
           <div className="mt-8 space-y-6">
             <div className="grid gap-5 md:grid-cols-4">
-              <MetricCard label="学生提问总数" value={String(report.total_questions)} tone="amber" />
-              <MetricCard label="实名提问数" value={String(report.identified_questions)} tone="teal" />
-              <MetricCard label="匿名提问数" value={String(report.anonymous_questions)} tone="slate" />
-              <MetricCard label="教学建议数" value={String(report.teaching_suggestions.length)} tone="blue" />
+              <MetricCard label={pick(language, "学生提问总数", "Total Questions")} value={String(report.total_questions)} tone="amber" />
+              <MetricCard label={pick(language, "实名提问数", "Identified Questions")} value={String(report.identified_questions)} tone="teal" />
+              <MetricCard label={pick(language, "匿名提问数", "Anonymous Questions")} value={String(report.anonymous_questions)} tone="slate" />
+              <MetricCard label={pick(language, "教学建议数", "Teaching Suggestions")} value={String(report.teaching_suggestions.length)} tone="blue" />
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-              <ReviewCard title="高频问题" items={report.high_freq_topics} />
-              <ReviewCard title="易混淆概念" items={report.confused_concepts} />
-              <ReviewCard title="知识盲区" items={report.knowledge_gaps} />
-              <ReviewCard title="教学建议" items={report.teaching_suggestions} />
+              <ReviewCard title={pick(language, "高频问题", "High-frequency Topics")} items={report.high_freq_topics} />
+              <ReviewCard title={pick(language, "易混淆概念", "Confused Concepts")} items={report.confused_concepts} />
+              <ReviewCard title={pick(language, "知识盲区", "Knowledge Gaps")} items={report.knowledge_gaps} />
+              <ReviewCard title={pick(language, "教学建议", "Teaching Suggestions")} items={report.teaching_suggestions} />
             </div>
 
             <section className="section-card rounded-[24px] p-6">
-              <h2 className="text-xl font-bold text-slate-900">最近提问记录</h2>
+              <h2 className="text-xl font-bold text-slate-900">{pick(language, "最近提问记录", "Recent Questions")}</h2>
               <div className="mt-4 space-y-3">
-                {report.recent_questions.length === 0 ? <p className="text-sm text-slate-500">暂无提问记录</p> : report.recent_questions.map((item, index) => (
+                {report.recent_questions.length === 0 ? <p className="text-sm text-slate-500">{pick(language, "暂无提问记录", "No recent questions")}</p> : report.recent_questions.map((item, index) => (
                   <div key={`${item.created_at}-${index}`} className="rounded-2xl bg-white/85 px-4 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="font-semibold text-slate-900">{item.student_display_name}</p>
                       <p className="text-xs text-slate-400">{item.created_at}</p>
                     </div>
-                    {!item.anonymous && <p className="mt-1 text-sm text-slate-500">{item.student_grade || "未填年级"} · {item.student_major || "未填专业"}</p>}
+                    {!item.anonymous && <p className="mt-1 text-sm text-slate-500">{item.student_grade || pick(language, "未填年级", "Grade not set")} · {item.student_major || pick(language, "未填专业", "Major not set")}</p>}
                     <p className="mt-3 text-sm leading-7 text-slate-700">{item.question}</p>
-                    <p className={`mt-2 text-xs font-semibold ${item.in_scope ? "text-teal-700" : "text-amber-700"}`}>{item.in_scope ? "课程范围内提问" : "超出课程范围提问"}</p>
+                    <p className={`mt-2 text-xs font-semibold ${item.in_scope ? "text-teal-700" : "text-amber-700"}`}>{item.in_scope ? pick(language, "课程范围内提问", "In-scope question") : pick(language, "超出课程范围提问", "Out-of-scope question")}</p>
                   </div>
                 ))}
               </div>

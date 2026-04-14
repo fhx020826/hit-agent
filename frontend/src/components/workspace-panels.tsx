@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { useLanguage } from "@/components/language-provider";
 import { cx, type WorkspaceTone } from "@/components/workspace-shell";
+import { pick } from "@/lib/i18n";
 
 export function WorkspaceSection({
   tone = "public",
@@ -102,6 +104,8 @@ export function ActionTile({
   cta?: ReactNode;
   className?: string;
 }) {
+  const { language } = useLanguage();
+
   return (
     <Link className={cx("action-tile", className)} data-workspace-tone={tone} href={href}>
       <div className="action-tile-copy">
@@ -109,7 +113,7 @@ export function ActionTile({
         <div className="action-tile-title">{title}</div>
         {description ? <p className="action-tile-description">{description}</p> : null}
       </div>
-      <div className="action-tile-cta">{cta || "点击进入"}</div>
+      <div className="action-tile-cta">{cta || pick(language, "查看", "Open")}</div>
     </Link>
   );
 }

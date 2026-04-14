@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLanguage } from "@/components/language-provider";
 import { API_BASE, api, type AnnotationStroke, type LiveShareRecord, type MaterialItem } from "@/lib/api";
+import { pick } from "@/lib/i18n";
 
 const TOOL_OPTIONS = [
   { key: "pen", label: "钢笔", alpha: 1 },
@@ -37,6 +39,7 @@ export function LiveAnnotationBoard({
   material: MaterialItem | null;
   teacherMode: boolean;
 }) {
+  const { language } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef<{ x: number; y: number }[]>([]);
   const syncTimerRef = useRef<number | null>(null);
@@ -85,7 +88,7 @@ export function LiveAnnotationBoard({
         setPage(payload.share.current_page);
       }
       if (payload.event === "share_ended") {
-        setMessage("教师已结束共享。");
+        setMessage(pick(language, "教师已结束共享。", "The teacher has ended the live session."));
       }
     };
     const timer = window.setInterval(() => {
@@ -95,7 +98,7 @@ export function LiveAnnotationBoard({
       window.clearInterval(timer);
       ws.close();
     };
-  }, [share.id]);
+  }, [language, share.id]);
 
   useEffect(() => () => {
     if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
@@ -166,7 +169,7 @@ export function LiveAnnotationBoard({
     }).catch((error) => {
       if (!active) return;
       setViewerUrl("");
-      setViewerError(error instanceof Error ? error.message : "资料加载失败");
+      setViewerError(error instanceof Error ? error.message : pick(language, "资料加载失败", "Failed to load the material"));
     }).finally(() => {
       if (active) setViewerLoading(false);
     });
@@ -175,7 +178,7 @@ export function LiveAnnotationBoard({
       active = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [material?.download_url, material?.filename]);
+  }, [language, material?.download_url, material?.filename]);
 
   const pointerPos = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const target = e.currentTarget || canvasRef.current;
@@ -209,7 +212,7 @@ export function LiveAnnotationBoard({
       });
       appendStroke(stroke);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "批注发送失败");
+      setMessage(error instanceof Error ? error.message : pick(language, "批注发送失败", "Failed to send the annotation"));
     }
   };
 
@@ -255,7 +258,7 @@ export function LiveAnnotationBoard({
       setMessage("");
       await api.openProtectedFile(material.download_url, material.filename);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "打开原始资料失败");
+      setMessage(error instanceof Error ? error.message : pick(language, "打开原始资料失败", "Failed to open the original material"));
     }
   };
 
@@ -265,11 +268,11 @@ export function LiveAnnotationBoard({
       setMessage("");
       await api.downloadProtectedFile(material.download_url, material.filename);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "下载原始资料失败");
+      setMessage(error instanceof Error ? error.message : pick(language, "下载原始资料失败", "Failed to download the original material"));
     }
   };
 
-  const materialLabel = useMemo(() => material?.filename || `共享资料 ${share.material_id}`, [material, share.material_id]);
+  const materialLabel = useMemo(() => material?.filename || pick(language, `共享资料 ${share.material_id}`, `Shared material ${share.material_id}`), [language, material, share.material_id]);
   const hasMaterial = Boolean(material?.download_url);
   const effectiveViewerUrl = hasMaterial ? viewerUrl : "";
   const effectiveViewerError = hasMaterial ? viewerError : "";
@@ -282,14 +285,14 @@ export function LiveAnnotationBoard({
       <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <p className="text-sm font-semibold text-slate-500">课堂同步展示</p>
+            <p className="text-sm font-semibold text-slate-500">{pick(language, "课堂同步展示", "Live Class View")}</p>
             <h2 className="mt-2 text-3xl font-black text-slate-900">{materialLabel}</h2>
-            <p className="mt-3 text-sm leading-7 text-slate-600">当前为第 {page} 页。学生端会同步看到页码与批注，学生不能修改批注内容。</p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">{pick(language, `当前为第 ${page} 页。学生端会同步看到页码与批注，学生不能修改批注内容。`, `You are on page ${page}. Students see the same page and annotations but cannot edit them.`)}</p>
           </div>
           {material ? (
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => void handleOpenOriginal()} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">打开原始资料</button>
-              <button onClick={() => void handleDownloadOriginal()} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">下载文件</button>
+              <button onClick={() => void handleOpenOriginal()} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "打开原始资料", "Open Original")}</button>
+              <button onClick={() => void handleDownloadOriginal()} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "下载文件", "Download File")}</button>
             </div>
           ) : null}
         </div>
@@ -301,26 +304,26 @@ export function LiveAnnotationBoard({
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.08),transparent_26%),linear-gradient(180deg,#fff,#f8fafc)] px-6 text-center">
                 <div className="rounded-[24px] border border-dashed border-slate-300 px-8 py-10">
-                  <p className="text-sm font-semibold text-slate-500">{isPdfMaterial(material) ? "PDF 正在加载中" : "当前资料暂不支持内嵌预览"}</p>
+                  <p className="text-sm font-semibold text-slate-500">{isPdfMaterial(material) ? pick(language, "PDF 正在加载中", "Loading PDF") : pick(language, "当前资料暂不支持内嵌预览", "This material does not support embedded preview")}</p>
                   <p className="mt-2 text-xl font-bold text-slate-700">{materialLabel}</p>
-                  <p className="mt-2 text-sm text-slate-500">{isPdfMaterial(material) ? "如果加载较慢，请稍候片刻。" : "可以点击右上角按钮打开原始资料或下载后查看。"} </p>
+                  <p className="mt-2 text-sm text-slate-500">{isPdfMaterial(material) ? pick(language, "如果加载较慢，请稍候片刻。", "If loading is slow, please wait a moment.") : pick(language, "可以点击右上角按钮打开原始资料或下载后查看。", "Use the top-right actions to open or download the original file.")} </p>
                 </div>
               </div>
             )}
 
             {effectiveViewerLoading ? (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-                <div className="rounded-[24px] border border-slate-200 bg-white px-6 py-4 text-sm font-semibold text-slate-600">正在加载资料预览...</div>
+                <div className="rounded-[24px] border border-slate-200 bg-white px-6 py-4 text-sm font-semibold text-slate-600">{pick(language, "正在加载资料预览...", "Loading preview...")}</div>
               </div>
             ) : null}
 
             {effectiveViewerError ? (
               <div className="absolute inset-x-6 bottom-6 z-20 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                资料加载失败：{effectiveViewerError}
+                {pick(language, "资料加载失败：", "Preview failed: ")}{effectiveViewerError}
               </div>
             ) : null}
 
-            <div className="absolute left-6 top-6 z-20 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white">第 {page} 页</div>
+            <div className="absolute left-6 top-6 z-20 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white">{pick(language, `第 ${page} 页`, `Page ${page}`)}</div>
 
             {canRenderPdf ? <div className="absolute inset-0 z-[5] bg-transparent" onWheel={handleViewerWheel} /> : null}
 
@@ -341,8 +344,8 @@ export function LiveAnnotationBoard({
 
       <section className="space-y-5">
         <div className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
-          <p className="text-sm font-semibold text-slate-500">工具栏</p>
-          <h3 className="mt-2 text-2xl font-black text-slate-900">{teacherMode ? "教师批注工具" : "学生只读视图"}</h3>
+          <p className="text-sm font-semibold text-slate-500">{pick(language, "工具栏", "Toolbar")}</p>
+          <h3 className="mt-2 text-2xl font-black text-slate-900">{teacherMode ? pick(language, "教师批注工具", "Teacher Annotation Tools") : pick(language, "学生只读视图", "Student Read-only View")}</h3>
           {teacherMode ? (
             <>
               <div className="mt-5 flex flex-wrap gap-2">
@@ -352,26 +355,26 @@ export function LiveAnnotationBoard({
               </div>
               <div className="mt-5 space-y-4">
                 <label className="block text-sm font-semibold text-slate-700">
-                  颜色
+                  {pick(language, "颜色", "Color")}
                   <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="mt-2 h-11 w-full rounded-2xl border border-slate-300 bg-white p-2" />
                 </label>
                 <label className="block text-sm font-semibold text-slate-700">
-                  线条粗细：{lineWidth}
+                  {pick(language, `线条粗细：${lineWidth}`, `Line width: ${lineWidth}`)}
                   <input type="range" min={2} max={18} value={lineWidth} onChange={(e) => setLineWidth(Number(e.target.value))} className="mt-2 w-full" />
                 </label>
                 <label className="block text-sm font-semibold text-slate-700">
-                  切页
+                  {pick(language, "切页", "Page")}
                   <input type="number" min={1} value={page} onChange={(e) => updateCurrentPage(Number(e.target.value) || 1)} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" />
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => updateCurrentPage(page - 1, true)} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">上一页</button>
-                  <button onClick={() => updateCurrentPage(page + 1, true)} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">下一页</button>
-                  <button onClick={() => void api.updateLiveSharePage(share.id, page)} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">同步当前页</button>
+                  <button onClick={() => updateCurrentPage(page - 1, true)} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "上一页", "Previous")}</button>
+                  <button onClick={() => updateCurrentPage(page + 1, true)} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "下一页", "Next")}</button>
+                  <button onClick={() => void api.updateLiveSharePage(share.id, page)} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">{pick(language, "同步当前页", "Sync This Page")}</button>
                 </div>
               </div>
             </>
           ) : (
-            <p className="mt-4 text-sm leading-7 text-slate-600">当前页面为学生同步查看模式，只能看到教师切页与批注，不能编辑。为保证批注坐标与页码同步，PDF 在共享页中会锁定为教师控制翻页，不允许本地自由滚动。</p>
+            <p className="mt-4 text-sm leading-7 text-slate-600">{pick(language, "当前页面为学生同步查看模式，只能看到教师切页与批注，不能编辑。为保证批注坐标与页码同步，PDF 在共享页中会锁定为教师控制翻页，不允许本地自由滚动。", "This is the student synchronized view. Students can only watch page changes and annotations. To keep coordinates and pages aligned, PDF paging stays under teacher control.")}</p>
           )}
           {message ? <p className="mt-4 text-sm text-slate-500">{message}</p> : null}
         </div>

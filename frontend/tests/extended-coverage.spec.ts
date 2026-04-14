@@ -123,18 +123,18 @@ test.describe.serial("extended coverage verification", () => {
     await expect(page.getByText("Profile saved")).toBeVisible();
 
     await page.goto("/teacher/assignment-review");
-    await page.getByLabel(/关联课程|Course/).selectOption(primaryCourse.id);
-    await page.getByLabel("任务标题").fill(`扩展批改 ${runId}`);
-    await page.getByLabel("学生提交内容").fill("这是一份用于扩展覆盖的作业正文。");
-    await page.getByRole("button", { name: "生成辅助批改参考" }).click();
-    await expect(page.getByText("整体评价")).toBeVisible({ timeout: 30000 });
+    await page.locator("form select").first().selectOption(primaryCourse.id);
+    await page.getByLabel(/任务标题|Task Title/).fill(`扩展批改 ${runId}`);
+    await page.getByLabel(/学生提交内容|Student Submission/).fill("这是一份用于扩展覆盖的作业正文。");
+    await page.getByRole("button", { name: /生成辅助批改参考|Generate Review Notes/ }).click();
+    await expect(page.getByText(/整体评价|Overall Summary/)).toBeVisible({ timeout: 30000 });
 
     await page.goto(`/teacher/lesson-pack/${primaryLessonPack.id}`);
     await expect(page.getByRole("heading", { name: /课程包详情|Lesson Pack/ })).toBeVisible();
-    await page.getByRole("link", { name: /查看复盘|View Review/ }).click();
+    await page.getByRole("link", { name: /查看复盘|Open Review/ }).click();
     await expect(page).toHaveURL(new RegExp(`/teacher/review\\?lp_id=${primaryLessonPack.id}`));
-    await expect(page.getByText("教师复盘")).toBeVisible();
-    await expect(page.getByText("高频问题")).toBeVisible();
+    await expect(page.getByText(/教师复盘|Teacher Review/)).toBeVisible();
+    await expect(page.getByText(/高频问题|High-frequency Topics/)).toBeVisible();
 
     await page.goto("/settings");
     await page.getByRole("button", { name: "中文" }).click();

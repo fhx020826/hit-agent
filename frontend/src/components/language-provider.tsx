@@ -72,6 +72,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     persistAppearance(nextAppearance);
   };
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = language;
+  }, [language]);
+
   const value = useMemo<LanguageContextValue>(() => ({ language, setLanguage }), [language]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

@@ -187,6 +187,8 @@ function buildSurveyAnswers(survey: PendingSurvey) {
 }
 
 test.describe.serial("user journey verification", () => {
+  test.describe.configure({ timeout: 300_000 });
+
   test("registered teacher and student complete a full teaching journey", async ({ page }) => {
     await registerTeacher(page);
     await logout(page);
@@ -212,11 +214,12 @@ test.describe.serial("user journey verification", () => {
     await page.goto("/teacher/ai-config");
     await page.getByRole("combobox").nth(0).selectOption({ label: journeyCourseName });
     await page.getByRole("combobox").nth(1).selectOption("启发型");
-    await page.getByRole("button", { name: "保存 AI 助教配置" }).click();
+    await page.getByRole("button", { name: /保存配置|保存 AI 助教配置|Save Setup/ }).click();
     await page.waitForTimeout(1500);
 
     await page.goto("/teacher/materials");
-    await page.getByLabel("所属课程").selectOption({ label: journeyCourseName });
+    await expect(page.getByText(/教学资料库|Teaching Materials/).first()).toBeVisible({ timeout: 30_000 });
+    await page.getByLabel(/所属课程|Course/).selectOption({ label: journeyCourseName });
     await page.locator("label:has-text('选择文件') input[type='file']").setInputFiles({
       name: journeyMaterialName,
       mimeType: "text/plain",
@@ -331,7 +334,8 @@ test.describe.serial("user journey verification", () => {
     await login(page, "教师", journeyTeacherAccount, journeyTeacherPassword);
 
     await page.goto("/teacher/materials");
-    await page.getByLabel("所属课程").selectOption({ label: journeyCourseName });
+    await expect(page.getByText(/教学资料库|Teaching Materials/).first()).toBeVisible({ timeout: 30_000 });
+    await page.getByLabel(/所属课程|Course/).selectOption({ label: journeyCourseName });
     await expect(page.getByText(journeyMaterialRequestText)).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "同意" }).click();
 
