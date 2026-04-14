@@ -112,7 +112,7 @@ test.describe.serial("atomic feature verification", () => {
     await waitForAuthEntry(page);
 
     await expect(page.getByText("把教学设计、")).toBeVisible();
-    await expect(page.getByRole("link", { name: "查看设置中心" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /登录.*注册|Sign in.*Sign up/ })).toBeVisible();
 
     await expect(page.getByText("当前设计目标：")).toHaveCount(0);
     await expect(page.getByText("真实能力仍然全部保留")).toHaveCount(0);
@@ -189,13 +189,13 @@ test.describe.serial("atomic feature verification", () => {
 
     await expect
       .poll(async () => (await page.locator('[data-home-action="primary"]').textContent())?.trim())
-      .toMatch(/^(Checking role\.\.\.|Open Workspace|Sign in to Continue)$/);
+      .toMatch(/^(Checking role\.\.\.|Open Workspace|Sign in \/ Sign up)$/);
     const primaryActionLabel = ((await page.locator('[data-home-action="primary"]').textContent()) || "").trim();
 
     await expect(page.getByText("Platform Overview")).toBeVisible();
     await expect(page.getByText("Teacher-led · Student-facing · AI-assisted")).toBeVisible();
     expect(primaryActionLabel).not.toContain("进入");
-    await expect(page.getByRole("link", { name: "Open Settings" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Create Account" })).toBeVisible();
     await expect(page.getByText("Sign in and go straight to the right workspace")).toBeVisible();
     await expect(page.getByText("Teachers and students work in one learning loop")).toBeVisible();
 

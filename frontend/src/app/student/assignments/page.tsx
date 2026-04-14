@@ -1,9 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
+import { useToast } from "@/components/toast-provider";
+import { RichAnswer } from "@/components/rich-answer";
 import { WorkspacePage } from "@/components/workspace-shell";
 import { api, API_BASE, type AssignmentStudentView } from "@/lib/api";
 import { pick } from "@/lib/i18n";
@@ -12,8 +14,8 @@ export default function StudentAssignmentsPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { language } = useLanguage();
+  const toast = useToast();
   const [items, setItems] = useState<AssignmentStudentView[]>([]);
-  const [message, setMessage] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<Record<string, File[]>>({});
   const [submittingId, setSubmittingId] = useState("");
 
@@ -64,7 +66,7 @@ export default function StudentAssignmentsPage() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-3">
-              {!item.receipt.confirmed ? <button onClick={() => api.confirmAssignment(item.assignment.id).then(() => reload())} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white">{pick(language, "确认收到", "Confirm Receipt")}</button> : null}
+              {!item.receipt.confirmed ? <button onClick={() => { api.confirmAssignment(item.assignment.id).then(() => { toast.success(pick(language, "已确认收到", "Receipt confirmed")); reload(); }).catch(() => toast.error(pick(language, "确认失败", "Confirm failed"))); }} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white">{pick(language, "确认收到", "Confirm Receipt")}</button> : null}
               <label className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                 {pick(language, "选择提交文件", "Choose Files")}
                 <input type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png" className="hidden" onChange={(e) => setSelectedFiles((prev) => ({ ...prev, [item.assignment.id]: Array.from(e.target.files || []) }))} />
@@ -72,18 +74,17 @@ export default function StudentAssignmentsPage() {
               <button onClick={async () => {
                 try {
                   setSubmittingId(item.assignment.id);
-                  setMessage("");
                   const files = selectedFiles[item.assignment.id] || [];
                   if (files.length === 0) {
-                    setMessage(pick(language, "请先选择要提交的文件。", "Choose files before submitting."))
+                    toast.info(pick(language, "请先选择要提交的文件", "Choose files before submitting"));
                     return;
                   }
                   await api.submitAssignment(item.assignment.id, files);
-                  setMessage(pick(language, "作业已提交，若教师开启 AI 辅助反馈，系统会同步生成参考意见。", "Assignment submitted. AI feedback will appear if the teacher has enabled it."))
+                  toast.success(pick(language, "作业已提交成功", "Assignment submitted"));
                   setSelectedFiles((prev) => ({ ...prev, [item.assignment.id]: [] }));
                   await reload();
                 } catch (error) {
-                  setMessage(error instanceof Error ? error.message : pick(language, "提交失败，请稍后重试", "Submission failed. Please try again."));
+                  toast.error(error instanceof Error ? error.message : pick(language, "提交失败，请稍后重试", "Submission failed"));
                 } finally {
                   setSubmittingId("");
                 }
@@ -101,7 +102,7 @@ export default function StudentAssignmentsPage() {
             {item.feedback ? (
               <div className="mt-4 rounded-[24px] border border-emerald-200 bg-emerald-50/70 px-5 py-4 text-sm leading-7 text-slate-700">
                 <p className="font-semibold text-emerald-700">{pick(language, "AI 辅助批改参考", "AI Review Notes")}</p>
-                <p className="mt-2">{item.feedback.summary}</p>
+                {item.feedback.summary ? <RichAnswer content={item.feedback.summary} className="mt-2" /> : null}
                 <p className="mt-3 text-xs text-slate-500">{pick(language, "结构建议：", "Structure: ")}{item.feedback.structure_feedback.join("；") || pick(language, "暂无", "None")}</p>
                 <p className="mt-1 text-xs text-slate-500">{pick(language, "逻辑建议：", "Logic: ")}{item.feedback.logic_feedback.join("；") || pick(language, "暂无", "None")}</p>
                 <p className="mt-1 text-xs text-slate-500">{pick(language, "规范建议：", "Writing: ")}{item.feedback.writing_feedback.join("；") || pick(language, "暂无", "None")}</p>
@@ -110,7 +111,6 @@ export default function StudentAssignmentsPage() {
           </div>
         ))}
       </div>
-      {message ? <p className="mt-5 text-sm text-slate-600">{message}</p> : null}
     </section>
     </WorkspacePage>
   );

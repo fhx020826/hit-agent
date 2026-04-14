@@ -33,14 +33,15 @@ app = FastAPI(
 )
 
 frontend_port = os.getenv("FRONTEND_PORT", "3000")
+extra_origins = [o.strip() for o in os.getenv("EXTRA_CORS_ORIGINS", "").split(",") if o.strip()]
 frontend_origin_regex = os.getenv(
     "FRONTEND_ORIGIN_REGEX",
-    rf"^https?://(localhost|127\.0\.0\.1|10(?:\.\d{{1,3}}){{3}}|192\.168(?:\.\d{{1,3}}){{2}}|172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{{1,3}}){{2}}|[A-Za-z0-9.-]+):{frontend_port}$",
+    rf"^https?://(localhost|127\.0\.0\.1|10(?:\.\d{{1,3}}){{3}}|192\.168(?:\.\d{{1,3}}){{2}}|172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{{1,3}}){{2}})(:{frontend_port})?$",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"] + extra_origins,
     allow_origin_regex=frontend_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],

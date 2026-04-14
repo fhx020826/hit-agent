@@ -58,6 +58,7 @@ class SurveyAnalytics(BaseModel):
 
 class AnalyticsReport(BaseModel):
     lesson_pack_id: str
+    has_data: bool = True
     total_questions: int = 0
     anonymous_questions: int = 0
     identified_questions: int = 0

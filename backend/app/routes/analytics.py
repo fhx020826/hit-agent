@@ -18,18 +18,16 @@ def get_analytics(lp_id: str, db: Session = Depends(get_db)):
     total = len(qa_rows)
 
     if total == 0:
-        from ..services.mock_data import mock_analytics
-
-        mock = mock_analytics(lp_id)
         return AnalyticsReport(
-            lesson_pack_id=mock.lesson_pack_id,
+            lesson_pack_id=lp_id,
+            has_data=False,
             total_questions=0,
             anonymous_questions=0,
             identified_questions=0,
-            high_freq_topics=mock.high_freq_topics,
-            confused_concepts=mock.confused_concepts,
-            knowledge_gaps=mock.knowledge_gaps,
-            teaching_suggestions=mock.teaching_suggestions,
+            high_freq_topics=[],
+            confused_concepts=[],
+            knowledge_gaps=[],
+            teaching_suggestions=[],
             recent_questions=[],
         )
 

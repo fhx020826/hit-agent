@@ -55,7 +55,7 @@ export default function HomePage() {
         actions={
           <>
             <Link
-              href={loading ? "/" : targetHref}
+              href={loading ? "/" : user ? targetHref : "/settings"}
               data-home-action="primary"
               className="home-hero-action rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
             >
@@ -63,11 +63,18 @@ export default function HomePage() {
                 ? pick(language, "正在识别身份...", "Checking role...")
                 : user
                   ? pick(language, "进入我的工作台", "Open Workspace")
-                  : pick(language, "登录后进入工作台", "Sign in to Continue")}
+                  : pick(language, "登录 / 注册", "Sign in / Sign up")}
             </Link>
-            <Link href="/settings" data-home-action="secondary" className="home-hero-action ui-pill rounded-full px-6 py-3 text-sm font-semibold">
-              {pick(language, "查看设置中心", "Open Settings")}
-            </Link>
+            {!loading && !user && (
+              <Link href="/settings" data-home-action="secondary" className="home-hero-action rounded-full border border-[var(--border-strong)] px-6 py-3 text-sm font-semibold transition hover:bg-[var(--active-surface)]">
+                {pick(language, "注册新账号", "Create Account")}
+              </Link>
+            )}
+            {user && (
+              <Link href="/settings" data-home-action="secondary" className="home-hero-action ui-pill rounded-full px-6 py-3 text-sm font-semibold">
+                {pick(language, "查看设置中心", "Open Settings")}
+              </Link>
+            )}
           </>
         }
         aside={

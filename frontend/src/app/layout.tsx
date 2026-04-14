@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { AuthProvider } from "@/components/auth-provider";
 import { AppearanceProvider } from "@/components/appearance-provider";
 import { LanguageProvider } from "@/components/language-provider";
+import { ToastProvider } from "@/components/toast-provider";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
@@ -22,7 +23,9 @@ export default function RootLayout({
         <AppearanceProvider>
           <AuthProvider>
             <LanguageProvider>
-              <AppShell>{children}</AppShell>
+              <ToastProvider>
+                <AppShell>{children}</AppShell>
+              </ToastProvider>
             </LanguageProvider>
           </AuthProvider>
         </AppearanceProvider>
