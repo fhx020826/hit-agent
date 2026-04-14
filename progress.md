@@ -247,14 +247,60 @@
   - `Playwright` -> `10 passed`
 - 最新统一验证日志目录：
   - `/tmp/hit-agent-verify/20260414-040104`
+- 重新通读并交叉核对以下文档，确认当前基线与下一优先级没有分叉：
+  - `project.md`
+  - `work.md`
+  - `progress.md`
+  - `findings.md`
+  - `task_plan.md`
+  - `docs/internal/complete-feature-list.md`
+  - `docs/internal/automation-test-catalog.md`
+  - `docs/internal/complete-feature-verification-matrix.md`
+  - `docs/internal/async-task-center-verification-2026-04-14.md`
+- 重新核对当前实现文件，确认 `assignment-review` 仍未接入异步任务中心：
+  - `backend/app/routes/assignment_review.py`
+  - `backend/app/routes/task_jobs.py`
+  - `backend/app/services/task_jobs.py`
+  - `backend/app/services/task_job_handlers.py`
+  - `frontend/src/app/teacher/assignment-review/page.tsx`
+  - `frontend/src/lib/api.ts`
+- 重新读取 ECS 运维与部署文档，并对 `8.152.202.171` 做新鲜连通性诊断：
+  - `ping` 正常
+  - `22/tcp` 可建连
+  - SSH `banner exchange` 超时
+  - `3000/8000` HTTP 探针超时
+  - `ssh-keyscan` 无返回
+- 已确认本轮服务器问题不在本机 SSH 配置，而在远端主机 / 服务响应面
+- 已形成明确升配建议：
+  - `2C4G` 为最低可接受配置
+  - `4C8G` 为推荐配置
+  - 不建议购买 GPU 规格
+- 在用户重启 ECS 后已重新接管服务器：
+  - SSH 恢复
+  - `systemd` 服务自动拉起
+  - 服务器代码从 `9cd4893` 更新到 `3f85001`
+  - 前端已重新 `npm run build`
+  - 前端服务已重新启动并加载最新 build
+- 本地公网验证通过：
+  - `http://8.152.202.171:3000` 返回 `HTTP 200`
+  - `http://8.152.202.171:8000/api/health` 返回 `{"status":"ok","version":"0.8.0"}`
+- 已完成首页“对内标注”清理：
+  - 新增 Playwright 用例 `public homepage hides internal annotations`
+  - 初次 RED 后修复页面文案与结构
+  - 复跑结果 `1 passed`
+  - `frontend` lint 通过
 
 ### 当前进行中
-- 同步功能清单、验证矩阵、自动化测试目录文档与项目总览
-- 准备提交并推送“异步任务中心第一阶段”代码与文档更新
-  - 前端 `lint` 通过
-  - 前端 `build` 通过
-  - Playwright 三组浏览器回归 `10 passed`
-  - 最新 `verify-all.sh` 批次已刷新为 `/tmp/hit-agent-verify/20260414-040104`
-- 当前状态：
-  - 本地异步任务中心第一阶段已经完成，代码与文档已对齐到最新验证结果
-  - 下一步是提交并推送本轮代码，然后进入 `assignment-review` 异步化
+- 当前新的直接执行目标已明确：
+  - 先完成 `assignment-review` 异步化
+  - 再进入 `materials_service.py` / `discussion_service.py` 进一步细分
+- 已形成文件级执行方案，下一轮将按以下顺序推进：
+  1. 增加 assignment-review 任务类型与 handler
+  2. 增加异步提交接口并保留同步接口兼容
+  3. 前端改为任务提交 + 轮询
+  4. 扩展后端 `test_task_jobs.py`
+  5. 更新 Playwright 覆盖
+  6. 运行 `bash scripts/verify-all.sh`
+- 当前 ECS 运行面故障已因用户重启服务器而解除
+- 已新增新对话交接文档：
+  - `docs/internal/new-session-handoff-2026-04-14.md`

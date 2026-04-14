@@ -106,8 +106,8 @@ export default function StudentDashboard() {
           <p>
             {pick(
               language,
-              "这里不再只是“功能列表”，而是把当前课程、当前任务、当前资料和当前反馈压缩进一个更像学习工作区的界面。匿名发言依然只隐藏展示身份，不脱离本人账号。",
-              "This is no longer a loose list of features. It compresses current courses, current tasks, current materials and current feedback into a clearer learning workspace. Anonymous posting still hides display identity only, not account ownership.",
+              "这里会集中展示当前课程、作业、资料和反馈入口，帮助你更快进入本次学习需要处理的任务。匿名发言依然只隐藏展示身份，不脱离本人账号。",
+              "This workspace brings together current courses, assignments, materials, and feedback so you can move directly into the tasks that matter right now. Anonymous posting still hides display identity only, not account ownership.",
             )}
           </p>
         }

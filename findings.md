@@ -258,6 +258,66 @@
   - `npm run build` -> 通过
   - `bash scripts/verify-all.sh` -> 通过
 - 说明：
+  - lesson pack 与 material-update 的异步实现已经形成稳定模板，可直接套到下一条重链路
+
+### 2026-04-14 读档后新增发现
+- `assignment-review` 当前仍是同步链路：
+  - 路由文件仅有 `POST /api/assignment-review/preview`
+  - 没有独立 service 封装
+  - 也没有接入 `task_jobs`
+- 当前前端 `teacher/assignment-review` 页仍是同步等待模式：
+  - 点击“生成辅助批改参考”后直接等待接口返回
+  - 还没有 queued / running / failed / succeeded 的任务态 UI
+- 当前任务中心的可复用抽象已经足够：
+  - `TaskJobService.create_job`
+  - `TaskJobService.schedule`
+  - `TASK_JOB_HANDLERS`
+  - `TaskJobItem`
+- 当前后端异步专项测试尚未覆盖 assignment-review：
+  - `backend/tests/test_task_jobs.py` 只覆盖 lesson-pack 与 material-update
+- 当前前端浏览器覆盖对 assignment-review 的断言也仍是同步完成态：
+  - `frontend/tests/extended-coverage.spec.ts` 只校验点击后出现“整体评价”
+- 功能清单与验证矩阵中，`assignment-review` 仍只有同步能力条目：
+  - `docs/internal/complete-feature-list.md` 记录为 `D11.1`
+  - 还没有对应的异步任务能力编号
+- 当前工作树的非代码改动主要来自交接与持续维护文档：
+  - `work.md`
+  - `progress.md`
+  - `docs/internal/new-session-handoff-2026-04-14.md`
+
+### 2026-04-14 ECS 连通性新鲜诊断
+- 对 `8.152.202.171` 的新鲜探测结果如下：
+  - `ping -c 2 -W 2 8.152.202.171`：`2/2` 成功，RTT 约 `21ms`
+  - `timeout 8 bash -lc 'cat < /dev/null > /dev/tcp/8.152.202.171/22'`：成功，说明 `22/tcp` 可建立 TCP 连接
+  - `timeout 12 ssh -o BatchMode=yes -o ConnectTimeout=5 root@8.152.202.171 'echo ping'`：
+    - `Connection timed out during banner exchange`
+  - `timeout 15 ssh -vvv ...`：
+    - `Connection established.`
+    - 本地已发出 `Local version string SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.14`
+    - 之后同样超时在 `banner exchange`
+  - `curl -m 6 http://8.152.202.171:8000/api/health`：`0 bytes received` 后超时
+  - `curl -m 6 -I http://8.152.202.171:3000`：`0 bytes received` 后超时
+  - `ssh-keyscan -T 5 8.152.202.171`：无输出
+- 该模式说明：
+  - 主机在线
+  - 网络到主机在线
+  - 22 端口不是完全关闭
+  - 但 sshd 没有及时回送 banner，HTTP 服务也没有及时回包
+- 因而当前最可能的根因是：
+  - ECS 整机资源饱和
+  - 或系统/sshd/应用服务僵死
+  - 而不是本地 SSH 配置问题
+- 该现象与此前 `2C/2G` ECS 在全量验证后进入严重卡顿、连 `ssh root@8.152.202.171 'echo ping'` 都可能超时的记录一致，属于已知风险再次出现
+- 对当前项目的资源判断已经可以明确：
+  - `2C2G` 不再适合作为稳定部署面
+  - `2C4G` 仅适合作为“尽量省钱但接受余量很小”的最低配置
+  - `4C8G` 更符合当前项目的真实形态，因为它需要同时容纳：
+    - FastAPI
+    - Next.js 构建与运行
+    - conda Python 环境
+    - Playwright / Chromium 回归
+    - SSH 运维面保持可响应
+  - GPU 对当前项目没有性价比，当前瓶颈不是本地推理算力
   - 新增异步任务中心没有破坏现有主流程
   - 原子功能测试和复杂用户旅程测试仍然稳定
 
@@ -568,6 +628,45 @@
 - 升级建议：
   - 最低建议：`2C4G`
   - 更稳妥：`4C4G`
+
+### 2026-04-14 ECS 重启后部署恢复
+- 用户重启实例后，SSH 连通性恢复，说明此前判断的“远端卡死/服务僵死”是正确方向。
+- 服务器重启后，`systemd` 已自动恢复前后端服务，但远端代码版本仍落后：
+  - 运行前版本：`9cd4893`
+  - 当前更新后版本：`3f85001`
+- 在不升配的前提下，本轮已完成最小恢复动作：
+  1. `git pull --ff-only origin main`
+  2. 前端重新 `npm run build`
+  3. 前端服务重启加载最新 `.next`
+- 本地公网侧的最小可用验证已经成立：
+  - `curl http://8.152.202.171:8000/api/health` 成功
+  - `curl -I http://8.152.202.171:3000` 成功
+  - `curl http://8.152.202.171:3000` 返回真实应用首页 HTML，而不是错误页
+- 因此当前可以把服务器状态定义为：
+  - “已恢复上线并可访问”
+  - 但“仍不代表这台 `2C2G` 机器长期稳定”
+
+### 2026-04-14 首页对内标注清理
+- 首页对内标注问题的真实来源集中在：
+  - `frontend/src/app/page.tsx`
+  - `frontend/src/components/auth-modal.tsx`
+  - `frontend/src/components/app-shell.tsx`
+- 这不是后端接口问题，而是前端表现层残留的“研发说明式”文案。
+- 关键特点：
+  - 文案在真实浏览器首页可见
+  - 一部分文案会出现在隐藏 UI 或未登录壳层中，所以不能只删首页正文
+- 本轮采用的防回归方式：
+  - 在 `frontend/tests/atomic-features.spec.ts` 中新增真实浏览器断言
+  - 先验证 RED，再修改实现，再验证 GREEN
+- 现在以下首页对内标注关键字已从源码中消失：
+  - `当前设计目标`
+  - `真实能力仍然全部保留`
+  - `统一账号入口`
+  - `设置入口收纳`
+  - `真实模型接入`
+  - `同一入口`
+  - `同一控制面板`
+  - `兼容 OpenAI 模型清单`
 
 ### 服务面
 - 最新验证所依赖的在线服务是本轮代码重启后的新进程：

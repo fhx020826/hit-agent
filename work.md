@@ -3,7 +3,187 @@
 ## 当前阶段
 第三轮后端深度拆分已经完成，前端也已完成“统一设计语言 + 桌面/移动差异化工作台”重构；本轮已继续完成“轻量异步任务中心”第一阶段落地，并再次跑通全量验证。当前进入“继续把重计算链路异步化，并把 service 子域继续细分”阶段。
 
+## 2026-04-14 规划刷新
+
+### 已重新确认的真实状态
+- 工作树当前不是完全干净：
+  - `work.md`
+  - `progress.md`
+  - `docs/internal/new-session-handoff-2026-04-14.md`
+- 当前最新已落地异步化链路仍只有：
+  - 课程包生成
+  - 资料更新预览
+  - 资料更新上传
+- `assignment-review` 目前仍是单一同步入口：
+  - `POST /api/assignment-review/preview`
+  - `backend/app/routes/assignment_review.py` 仍直接调用 `assignment_review_preview`
+
+### 已确认的下一阶段执行策略
+- 不另起新任务体系，直接复用：
+  - `backend/app/routes/task_jobs.py`
+  - `backend/app/services/task_jobs.py`
+  - `backend/app/services/task_job_handlers.py`
+- 迁移顺序固定为：
+  1. 后端任务类型与 handler
+  2. 新增 assignment-review 异步提交接口
+  3. 前端提交任务 + 自动轮询
+  4. 后端任务测试扩展
+  5. 浏览器断言升级
+  6. 全量统一验证
+  7. 文档与验证矩阵同步
+
+### 本轮未开始的内容
+- 还没有进入 `assignment-review` 实际代码修改
+- 还没有产生新的测试或验证批次
+- 当前本轮产出仍是“读档 + 规划 + 文档同步”
+
+## 2026-04-14 ECS 连通性诊断
+
+### 本轮执行
+- 重新读取 ECS 相关文档与历史记录：
+  - `docs/internal/ecs-server-connection-guide.md`
+  - `docs/internal/ecs-deployment-runbook-2026-04-13.md`
+  - `work.md`
+  - `progress.md`
+  - `findings.md`
+- 重新对 `8.152.202.171` 做最小化探测：
+  - `ping -c 2 -W 2 8.152.202.171`
+  - `timeout 8 bash -lc 'cat < /dev/null > /dev/tcp/8.152.202.171/22'`
+  - `timeout 12 ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 root@8.152.202.171 'echo ping'`
+  - `timeout 15 ssh -vvv -o BatchMode=yes -o ConnectTimeout=5 -o ConnectionAttempts=1 root@8.152.202.171 'echo ping'`
+  - `curl -m 6 -sS -D - http://8.152.202.171:8000/api/health`
+  - `curl -m 6 -I http://8.152.202.171:3000`
+  - `timeout 10 ssh-keyscan -T 5 8.152.202.171`
+
+### 本轮结论
+- 服务器公网 IP 仍然存活，ICMP 正常返回。
+- 22 端口 TCP 三次握手可以建立。
+- 但 SSH 在 banner 阶段超时：
+  - `Connection timed out during banner exchange`
+- `ssh-keyscan` 无法取回 host key。
+- 3000 / 8000 端口上的 HTTP 探针也全部在 6 秒内无响应超时。
+- 该表现与之前文档中记录的“ECS 资源饱和后 SSH 轻量探针也超时”高度一致。
+
+### 当前判断
+- 当前问题不是：
+  - 本机 SSH key 丢失
+  - known_hosts 错误
+  - DNS 问题
+  - 单纯的 22 端口未开放
+- 更像是：
+  - ECS 仍在线，但 sshd 和应用服务没有及时响应
+  - 或整机进入严重卡顿 / 资源饱和 / 服务僵死状态
+
+### 本轮修复边界
+- 当前本机没有可直接调用的阿里云 CLI。
+- 本地 Playwright MCP 也无法直接用于阿里云控制台恢复，因为其浏览器运行面当前不可用。
+- 因此本轮已完成“问题定位”，但“真正恢复服务器”仍需要通过阿里云控制台执行重启或实例级恢复动作。
+
+### ECS 升配建议（2026-04-14）
+- 当前 `2C2G` 已经被实测证明不适合本项目作为稳定部署面：
+  - 跑到 `verify-all.sh` 的后半段会把 SSH 也拖死
+  - 当前再次出现“ICMP 正常、TCP 可建连、但 SSH / HTTP 不回包”的状态
+- 如果只是“最低成本让服务勉强跑起来”，`2C4G` 可以作为最低可接受配置。
+- 如果目标是“稳定部署 + 还保留一定调试/构建/回归空间”，建议直接升到：
+  - `4C8G（内存）`
+- 不建议为当前项目购买 GPU：
+  - 当前系统并不依赖本机 GPU 做推理
+  - 当前瓶颈是 CPU / 内存 / 浏览器回归 / Node 构建与系统可用性，而不是图形或 CUDA 算力
+
+## 2026-04-14 ECS 重启后恢复上线
+
+### 本轮执行
+- 在用户确认服务器已重启后，重新验证 SSH：
+  - `ssh root@8.152.202.171 'echo ping && hostname && uptime'`
+- 确认远端目录与运行环境仍在：
+  - `/srv/fhx-hit-agent`
+  - `/root/miniconda3`
+  - `node`
+  - `npm`
+- 确认 `systemd` 服务已恢复：
+  - `fhx-hit-agent-backend.service`
+  - `fhx-hit-agent-frontend.service`
+- 发现远端代码版本仍落后于当前基线：
+  - 服务器原为 `9cd4893`
+  - 当前本地/远端基线为 `3f85001`
+- 已通过远端代理拉取最新代码：
+  - `git fetch origin`
+  - `git pull --ff-only origin main`
+- 已在服务器重新构建前端生产包：
+  - `cd /srv/fhx-hit-agent/frontend && npm run build`
+- 已重启前端服务使最新 `.next` 生效：
+  - `systemctl restart fhx-hit-agent-frontend`
+
+### 本轮结果
+- 服务器当前运行版本：
+  - `3f85001 feat: add async task center for teacher workflows`
+- 服务状态：
+  - `fhx-hit-agent-backend.service` -> `active`
+  - `fhx-hit-agent-frontend.service` -> `active`
+- 本地公网验证通过：
+  - `curl http://8.152.202.171:8000/api/health` -> `{"status":"ok","version":"0.8.0"}`
+  - `curl -I http://8.152.202.171:3000` -> `HTTP/1.1 200 OK`
+  - `curl http://8.152.202.171:3000` 返回当前应用首页 HTML，包含：
+    - `面向前沿学科的智能教学平台`
+    - `把教学设计`
+    - `查看设置中心`
+
+### 当前状态
+- 在“不升级实例”的前提下，当前前后端已经重新在 ECS 上跑起来。
+- 当前可以从本地访问：
+  - 前端：`http://8.152.202.171:3000`
+  - 后端健康检查：`http://8.152.202.171:8000/api/health`
+- 本轮目标“先把前后端跑起来，并保证本地能访问前端服务”已经完成。
+
+## 2026-04-14 Bugfix：首页对内标注清理
+
+### 本轮处理范围
+- 首页删除对用户无价值的内部说明式标注：
+  - `当前设计目标`
+  - `真实能力仍然全部保留`
+  - `统一账号入口`
+  - `设置入口收纳`
+  - `真实模型接入`
+  - `同一入口`
+  - `同一控制面板`
+  - `兼容 OpenAI 模型清单`
+- 同时把相关入口文案改成更自然的产品表达，避免隐藏弹窗或未登录壳层继续残留同类措辞。
+
+### 修改文件
+- `frontend/src/app/page.tsx`
+- `frontend/src/components/auth-modal.tsx`
+- `frontend/src/components/app-shell.tsx`
+- `frontend/tests/atomic-features.spec.ts`
+
+### 实现方式
+- 首页移除顶部 `SignalStrip` 注释卡片
+- 首页底部两块“研发说明式”区块改写成普通用户视角的入口说明
+- 登录弹窗标题辅助文案从“统一账号入口”改为“账号登录与注册”
+- 未登录壳层顶部说明改成中性文案：
+  - `登录后会自动进入对应角色的工作台。`
+
+### 验证结果
+- 先新增 Playwright 真实浏览器断言，再跑出 RED：
+  - `cd frontend && npm run test:e2e -- --grep "public homepage hides internal annotations"`
+  - 初次失败，原因是页面仍包含 `当前设计目标：`
+- 修改后再次运行同一条测试：
+  - `1 passed`
+- 额外扫描源码：
+  - 上述首页对内标注关键字已无残留
+- 前端静态校验：
+  - `cd frontend && npm run lint` -> 通过
+
 ## 本轮完成
+
+### 新对话交接文档
+- 已新增可直接复制到下一轮对话中的交接文档：
+  - `docs/internal/new-session-handoff-2026-04-14.md`
+- 该文档已经凝练以下关键信息：
+  - 当前最新代码与验证基线
+  - 已完成的前端重构、后端拆分、持久化加固、异步任务中心阶段成果
+  - 当前第一优先级任务：`assignment-review` 异步化
+  - 常用命令、约束、文档入口与提交要求
+  - 明确本地优先，不主动切换回 ECS 部署工作
 
 ### 轻量异步任务中心第一阶段
 - 已新增通用任务中心后端能力：

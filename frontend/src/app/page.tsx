@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { useAuth } from "@/components/auth-provider";
-import { ActionTile, SignalStrip, WorkspaceSection } from "@/components/workspace-panels";
+import { ActionTile, WorkspaceSection } from "@/components/workspace-panels";
 import { WorkspaceHero, WorkspacePage } from "@/components/workspace-shell";
 
 const teacherHighlights = [
@@ -81,45 +81,42 @@ export default function HomePage() {
             </article>
           </div>
         }
-        footer={
-          <SignalStrip
-            items={[
-              { label: "统一账号入口", value: "同一入口", note: "右上角统一登录 / 注册，登录后按身份自动进入工作台。" },
-              { label: "设置入口收纳", value: "同一控制面板", note: "个人资料、外观设置与账号安全统一放在右上角与设置中心。" },
-              { label: "真实模型接入", value: "兼容 OpenAI 模型清单", note: "课程问答支持实际大模型接入，并按文本 / 视觉场景切换。" },
-            ]}
-          />
-        }
       />
 
       <div className="workspace-split">
         <WorkspaceSection
-          eyebrow="产品入口"
-          title="首屏先回答“这是什么”和“我现在应该去哪”"
-          description="首页不再堆叠功能说明卡片，而是直接把角色价值、登录入口和进入工作台的主动作放在第一屏。登录后无需再做角色跳转判断。"
-        >
-          <div className="workspace-callout soft-grid">
-            <strong>当前设计目标：</strong>
-            首页像一张教学产品海报，而不是一份功能说明书。真正高频的功能入口全部留给登录后的角色工作台处理。
-          </div>
-        </WorkspaceSection>
-
-        <WorkspaceSection
-          eyebrow="功能结构"
-          title="真实能力仍然全部保留"
-          description="本轮仅重写表现层与导航逻辑，既不删除任何已实现功能，也不改动任何后端接口与角色权限。"
+          title="登录后直接进入对应工作台"
+          description="统一登录或注册后，教师、学生和管理员都会自动进入各自的工作区，不需要再手动寻找功能入口。"
         >
           <div className="grid gap-4 md:grid-cols-2">
             <ActionTile
               href={user ? targetHref : "/"}
-              eyebrow="角色工作台"
+              title="角色工作台"
+              description="课程设计、问答互动、作业管理、资料共享和教学反馈都会按身份集中到工作台中。"
+              cta="查看入口"
+            />
+            <ActionTile
+              href="/settings"
+              title="设置中心"
+              description="个人资料、外观模式、语言与账号安全都可以在同一个设置中心内完成管理。"
+              cta="前往设置"
+            />
+          </div>
+        </WorkspaceSection>
+
+        <WorkspaceSection
+          title="教师与学生都围绕完整教学闭环协同"
+          description="教师负责课程设计、资料更新、作业与反馈分析，学生则围绕问答、作业、资料和匿名反馈完成学习流程。"
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <ActionTile
+              href={user ? targetHref : "/"}
               title="登录后进入角色工作台"
               description="教师看到教学闭环工作台，学生看到学习任务工作台，管理员进入运营控制台。"
               cta="进入"
             />
             <ActionTile
               href="/settings"
-              eyebrow="统一设置"
               title="个人资料、外观与账号安全"
               description="所有账号相关配置都集中在统一设置中心，不再分散在首页模块里。"
               cta="查看"

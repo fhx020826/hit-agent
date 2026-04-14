@@ -144,7 +144,7 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
       <div className="glass-panel max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[32px] p-6 md:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <p className="text-sm font-semibold text-slate-500">统一账号入口</p>
+            <p className="text-sm font-semibold text-slate-500">账号登录与注册</p>
             <h2 className="mt-2 text-2xl font-bold text-slate-900">{mode === "login" ? "登录平台账号" : "注册平台账号"}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">{roleTips}</p>
           </div>

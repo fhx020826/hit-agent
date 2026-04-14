@@ -122,8 +122,8 @@ export default function TeacherDashboard() {
           <p>
             {pick(
               language,
-              "当前工作台不再只罗列功能模块，而是把今天最值得优先处理的课程状态、答疑压力、作业进度和反馈信号排在前面。AI 只作为教师的效率工具，不替代教师判断。",
-              "The workspace no longer reads like a module catalog. It pulls course status, question pressure, assignment progress and feedback signals to the top. AI remains an efficiency layer, not a replacement for teacher judgment.",
+              "这里会优先展示课程状态、学生提问、作业进度和反馈信号，帮助教师先处理最关键的教学任务。AI 只作为教师的效率工具，不替代教师判断。",
+              "This workspace prioritizes course status, student questions, assignment progress, and feedback signals so teachers can act on the most important work first. AI remains an efficiency layer, not a replacement for teacher judgment.",
             )}
           </p>
         }
@@ -145,8 +145,8 @@ export default function TeacherDashboard() {
               <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
                 {pick(
                   language,
-                  "你当前看到的是教师职责相关的全部真实功能入口：课程设计、课程包生成、资料共享、作业闭环、学生提问与教学反馈分析。",
-                  "You are seeing the real teacher-only workflow: design, lesson packs, materials, assignments, student questions and feedback analytics.",
+                  "你可以从这里进入课程设计、课程包生成、资料共享、作业管理、学生提问处理与教学反馈分析等核心工作区域。",
+                  "From here, you can move into course design, lesson-pack generation, material sharing, assignment management, student question handling, and feedback analytics.",
                 )}
               </p>
             </div>

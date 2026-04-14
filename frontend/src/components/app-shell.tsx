@@ -182,8 +182,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )
     : pick(
         language,
-        "统一账号入口与角色工作台已经收拢到同一套界面中，登录后会自动进入对应角色视图。",
-        "The unified entry and all role workspaces now share one interface. After login, the correct role view opens automatically.",
+        "登录后会自动进入对应角色的工作台。",
+        "After login, the correct role workspace opens automatically.",
       );
 
   return (
@@ -236,8 +236,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="shell-footnote">
                   {pick(
                     language,
-                    "工作台默认保留当前真实功能，不改接口，只重写呈现层与操作路径。",
-                    "The workspace keeps the real feature set intact. Only the presentation layer and interaction path change.",
+                    "当前工作台会按角色集中展示课程、任务、资料、问答与反馈入口。",
+                    "This workspace brings together course, task, material, question, and feedback entry points for the current role.",
                   )}
                 </div>
                 <Link className="ui-pill rounded-full px-4 py-3 text-sm font-semibold text-center" href="/settings">

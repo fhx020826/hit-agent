@@ -107,15 +107,38 @@ async function logout(page: Page) {
 }
 
 test.describe.serial("atomic feature verification", () => {
+  test("public homepage hides internal annotations", async ({ page }) => {
+    await page.goto("/");
+    await waitForAuthEntry(page);
+
+    await expect(page.getByText("把教学设计、")).toBeVisible();
+    await expect(page.getByRole("link", { name: "查看设置中心" })).toBeVisible();
+
+    await expect(page.getByText("当前设计目标：")).toHaveCount(0);
+    await expect(page.getByText("真实能力仍然全部保留")).toHaveCount(0);
+    await expect(page.getByText("统一账号入口", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("设置入口收纳")).toHaveCount(0);
+    await expect(page.getByText("真实模型接入")).toHaveCount(0);
+    await expect(page.getByText("同一入口")).toHaveCount(0);
+    await expect(page.getByText("同一控制面板")).toHaveCount(0);
+    await expect(page.getByText("兼容 OpenAI 模型清单")).toHaveCount(0);
+  });
+
   test("auth routing and admin user management", async ({ page }) => {
     await registerTeacher(page);
+    await expect(page.getByText("当前工作台不再只罗列功能模块")).toHaveCount(0);
+    await expect(page.getByText("全部真实功能入口")).toHaveCount(0);
+    await expect(page.getByText("工作台默认保留当前真实功能")).toHaveCount(0);
     await logout(page);
 
     await registerStudent(page);
+    await expect(page.getByText("这里不再只是“功能列表”")).toHaveCount(0);
+    await expect(page.getByText("工作台默认保留当前真实功能")).toHaveCount(0);
     await logout(page);
 
     await login(page, "管理员", "admin_demo", "Admin123!");
     await expect(page.getByText("用户管理与角色权限控制")).toBeVisible();
+    await expect(page.getByText("当前页面不再像普通表单页")).toHaveCount(0);
 
     await page.getByLabel("账号").fill(adminCreatedAccount);
     await page.getByLabel("密码").fill(adminCreatedPassword);
