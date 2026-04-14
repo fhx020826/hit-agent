@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
@@ -72,6 +72,13 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setSubmitting(false);
+      setError("");
+    }
+  }, [open]);
 
   const roleTips = useMemo(() => {
     return role === "teacher"
