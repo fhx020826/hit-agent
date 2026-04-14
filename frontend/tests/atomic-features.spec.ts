@@ -124,7 +124,7 @@ test.describe.serial("atomic feature verification", () => {
     await expect(page.getByText("兼容 OpenAI 模型清单")).toHaveCount(0);
   });
 
-  test("public homepage keeps the student card readable in night mode", async ({ page }) => {
+  test("public homepage keeps all key copy readable in night mode", async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem("hit-agent-active-appearance", JSON.stringify({
         mode: "night",
@@ -138,13 +138,39 @@ test.describe.serial("atomic feature verification", () => {
     await page.goto("/");
     await waitForAuthEntry(page);
 
-    const titleColor = await page.locator('[data-role="student"] .home-role-title').evaluate((el) => getComputedStyle(el).color);
-    const noteColor = await page.locator('[data-role="student"] .home-role-note').evaluate((el) => getComputedStyle(el).color);
-    const itemColor = await page.locator('[data-role="student"] .home-highlight-item').first().evaluate((el) => getComputedStyle(el).color);
+    const selectors = [
+      ".shell-context-title",
+      ".shell-context-note",
+      '[data-home-action="secondary"]',
+      '[data-home-block="teacher-card"] .home-role-title',
+      '[data-home-block="teacher-card"] .home-role-note',
+      '[data-home-block="teacher-card"] .home-highlight-item',
+      '[data-home-block="student-card"] .home-role-title',
+      '[data-home-block="student-card"] .home-role-note',
+      '[data-home-block="student-card"] .home-highlight-item',
+      ".home-support-section .workspace-section-title",
+      ".home-support-section .workspace-section-description",
+      ".home-support-tile .action-tile-title",
+      ".home-support-tile .action-tile-description",
+      ".home-support-tile .action-tile-cta",
+    ];
 
-    expect(titleColor).not.toBe("rgb(237, 243, 255)");
-    expect(noteColor).not.toBe("rgb(237, 243, 255)");
-    expect(itemColor).not.toBe("rgb(237, 243, 255)");
+    const sampledColors = await page.evaluate((items) => {
+      return items.map((selector) => {
+        const element = document.querySelector(selector);
+        return {
+          selector,
+          color: element ? getComputedStyle(element).color : null,
+        };
+      });
+    }, selectors);
+
+    for (const item of sampledColors) {
+      expect(item.color, `${item.selector} should exist`).not.toBeNull();
+      expect(item.color, `${item.selector} should not remain night-mode pale text`).not.toBe("rgb(237, 243, 255)");
+      expect(item.color, `${item.selector} should not remain teacher-card pale text`).not.toBe("rgb(249, 244, 235)");
+      expect(item.color, `${item.selector} should not remain translucent pale text`).not.toBe("rgba(249, 244, 235, 0.72)");
+    }
   });
 
   test("auth routing and admin user management", async ({ page }) => {

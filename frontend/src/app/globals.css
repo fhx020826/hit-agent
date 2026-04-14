@@ -519,6 +519,27 @@ select:focus {
   padding: 1rem 1.1rem;
 }
 
+html[data-theme-mode="night"] .app-shell[data-app-role="guest"] .shell-topbar {
+  border-color: rgba(30, 52, 77, 0.18);
+  background:
+    linear-gradient(180deg, rgba(243, 247, 252, 0.94) 0%, rgba(229, 238, 248, 0.9) 100%);
+}
+
+html[data-theme-mode="night"] .app-shell[data-app-role="guest"] .shell-context-chip,
+html[data-theme-mode="night"] .app-shell[data-app-role="guest"] .ui-pill {
+  border-color: rgba(30, 52, 77, 0.14);
+  background: rgba(255, 251, 245, 0.88);
+  color: #233a55;
+}
+
+html[data-theme-mode="night"] .app-shell[data-app-role="guest"] .shell-context-title {
+  color: #12263f;
+}
+
+html[data-theme-mode="night"] .app-shell[data-app-role="guest"] .shell-context-note {
+  color: rgba(35, 58, 85, 0.78);
+}
+
 .shell-topbar-inner {
   display: flex;
   flex-wrap: wrap;
@@ -881,6 +902,34 @@ select:focus {
     linear-gradient(135deg, color-mix(in srgb, var(--surface-strong) 76%, white 24%) 0%, color-mix(in srgb, var(--surface-soft) 78%, white 22%) 54%, color-mix(in srgb, var(--accent-soft) 36%, white 64%) 100%);
 }
 
+html[data-theme-mode="night"] .home-page .home-poster {
+  border-color: rgba(30, 52, 77, 0.18);
+  background:
+    linear-gradient(145deg, rgba(236, 242, 249, 0.94) 0%, rgba(219, 229, 241, 0.92) 56%, rgba(205, 219, 236, 0.94) 100%);
+}
+
+html[data-theme-mode="night"] .home-page .workspace-kicker,
+html[data-theme-mode="night"] .home-page .workspace-eyebrow {
+  color: rgba(42, 63, 86, 0.72);
+}
+
+html[data-theme-mode="night"] .home-page .workspace-hero-title,
+html[data-theme-mode="night"] .home-page .workspace-hero-description {
+  color: #20364f;
+}
+
+html[data-theme-mode="night"] .home-page [data-home-action="primary"] {
+  background: linear-gradient(180deg, rgba(194, 214, 239, 0.98) 0%, rgba(170, 197, 228, 0.96) 100%);
+  color: #18324d;
+  box-shadow: 0 16px 32px rgba(32, 54, 79, 0.14);
+}
+
+html[data-theme-mode="night"] .home-page [data-home-action="secondary"] {
+  border-color: rgba(30, 52, 77, 0.14);
+  background: rgba(255, 251, 245, 0.88);
+  color: #233a55;
+}
+
 .home-role-card {
   display: grid;
   gap: 0.7rem;
@@ -909,6 +958,22 @@ select:focus {
     linear-gradient(180deg, rgba(242, 251, 250, 0.98) 0%, rgba(227, 245, 244, 0.98) 100%);
 }
 
+html[data-theme-mode="night"] .home-role-card[data-role="teacher"] {
+  border-color: rgba(30, 52, 77, 0.16);
+  background:
+    linear-gradient(180deg, rgba(224, 235, 247, 0.96) 0%, rgba(202, 220, 239, 0.94) 100%);
+  color: #18314b;
+}
+
+html[data-theme-mode="night"] .home-role-card[data-role="teacher"] .workspace-eyebrow,
+html[data-theme-mode="night"] .home-role-card[data-role="teacher"] .home-role-note {
+  color: rgba(24, 49, 75, 0.72);
+}
+
+html[data-theme-mode="night"] .home-role-card[data-role="teacher"] .home-highlight-item {
+  color: #274666;
+}
+
 html[data-theme-mode="night"] .home-role-card[data-role="student"] {
   color: #17324d;
   border-color: rgba(23, 50, 77, 0.14);
@@ -921,6 +986,24 @@ html[data-theme-mode="night"] .home-role-card[data-role="student"] .home-role-no
 
 html[data-theme-mode="night"] .home-role-card[data-role="student"] .home-highlight-item {
   color: #284764;
+}
+
+html[data-theme-mode="night"] .home-page .home-support-section,
+html[data-theme-mode="night"] .home-page .home-support-tile {
+  border-color: rgba(30, 52, 77, 0.16);
+  background:
+    linear-gradient(180deg, rgba(236, 242, 248, 0.92) 0%, rgba(220, 231, 243, 0.9) 100%);
+}
+
+html[data-theme-mode="night"] .home-page .workspace-section-title,
+html[data-theme-mode="night"] .home-page .action-tile-title {
+  color: #1f354d;
+}
+
+html[data-theme-mode="night"] .home-page .workspace-section-description,
+html[data-theme-mode="night"] .home-page .action-tile-description,
+html[data-theme-mode="night"] .home-page .action-tile-cta {
+  color: rgba(35, 58, 85, 0.78);
 }
 
 .home-role-title {

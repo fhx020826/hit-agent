@@ -189,33 +189,39 @@
 ## 2026-04-14 Bugfix：夜间主题字体颜色适配
 
 ### 本轮处理范围
-- 修复首页夜间主题下学生端体验卡片文字颜色对比不足的问题。
-- 目标是不改变首页信息结构，只修正夜间模式下浅色卡片继承全局浅色文字后的可读性缺陷。
+- 修复首页夜间主题下多处入口区域文字对比不足的问题。
+- 目标是不改变首页信息结构，但把夜间模式下首页相关块统一调整为深色字优先的可读方案。
 
 ### 修改文件
 - `frontend/src/app/globals.css`
+- `frontend/src/app/page.tsx`
 - `frontend/tests/atomic-features.spec.ts`
 
 ### 实现方式
-- 为首页学生端体验卡片增加夜间模式专属文字颜色覆盖：
-  - 卡片主文字改为深蓝灰
-  - 辅助说明与 eyebrow 改为半透明深色
-  - 高亮条目改为更深的蓝灰色
+- 把首页夜间模式从“单卡片补丁”升级为“整页入口统一深色字方案”：
+  - 顶部总览条改为浅亮背景 + 深色标题 / 说明 / 控件文字
+  - 主海报改为浅亮背景 + 深色主标题 / 描述 / 次级按钮文字
+  - 教师端卡片不再使用夜间浅色文字，改成浅蓝面板上的深色标题 / 说明 / 条目
+  - 学生端卡片继续保留浅色面板，但统一深色文字
+  - 下方两块说明区与四个入口卡片统一改成浅亮面板 + 深色标题 / 描述 / CTA
+- 同时给首页相关块补了稳定标记，方便浏览器回归直接检查关键区域颜色，而不是靠脆弱的层级选择器。
 - 新增真实浏览器断言：
-  - `public homepage keeps the student card readable in night mode`
-- 断言方式不是抓文案存在性，而是直接检查真实渲染后的 `computedStyle.color`，避免再次出现“浅底卡片 + 夜间浅色字”的低对比回归。
+  - `public homepage keeps all key copy readable in night mode`
+- 断言方式不是抓文案存在性，而是直接检查顶部总览、教师/学生卡片、说明区标题、入口卡片 CTA 等关键块的 `computedStyle.color`，确保首页夜间模式没有灰白浅字残留。
 
 ### 验证结果
 - 真实浏览器夜间主题定向回归：
-  - `cd frontend && npm run test:e2e -- --grep "public homepage keeps the student card readable in night mode"`
+  - `cd frontend && npm run test:e2e -- --grep "public homepage keeps all key copy readable in night mode"`
   - 结果：`1 passed`
 - 本地真实渲染截图：
-  - `/home/hxfeng/fhx-hit-agent/.tmp/home-night-bug2-local.png`
-  - 可见学生端体验卡片文字已恢复清晰可读
+  - `/tmp/night-home-fixed-round2.png`
+  - 可见顶部总览、主海报、教师/学生卡片、说明区与入口卡片都已切到深色字为主的夜间样式
 - 本地采样到的真实颜色：
-  - title：`rgb(23, 50, 77)`
-  - note：`rgba(23, 50, 77, 0.68)`
-  - item：`rgb(40, 71, 100)`
+  - topbar title：`rgb(18, 38, 63)`
+  - topbar note：`rgba(35, 58, 85, 0.78)`
+  - teacher title：`rgb(24, 49, 75)`
+  - support section title：`rgb(31, 53, 77)`
+  - support tile CTA：`rgba(35, 58, 85, 0.78)`
 - 前端静态校验：
   - `cd frontend && npm run lint` -> 通过
 - 前端生产构建：
@@ -224,7 +230,7 @@
   - `bash scripts/verify-all.sh` -> 通过
   - `pytest -q` -> `22 passed`
   - 浏览器回归 -> `12 passed`
-  - 最新日志目录：`/tmp/hit-agent-verify/20260414-182836`
+  - 最新日志目录：`/tmp/hit-agent-verify/20260414-185602`
 
 ## 本轮完成
 

@@ -1,6 +1,6 @@
 # HIT-Agent Automation Test Catalog
 
-Updated 2026-04-14 after the homepage night-theme contrast fix and a fresh `bash scripts/verify-all.sh` pass.
+Updated 2026-04-14 after the homepage night-theme readability pass and a fresh `bash scripts/verify-all.sh` pass.
 
 ## Unified Entry
 
@@ -18,7 +18,7 @@ Updated 2026-04-14 after the homepage night-theme contrast fix and a fresh `bash
 - Latest one-key result:
   - backend `22 passed`
   - browser `12 passed`
-  - log dir `/tmp/hit-agent-verify/20260414-182836`
+  - log dir `/tmp/hit-agent-verify/20260414-185602`
 - Validation policy after the frontend redesign:
   - tests should verify real functionality, not preserve old DOM nesting
   - selectors should prefer labels, roles, headings, and stable button names
@@ -87,8 +87,8 @@ Updated 2026-04-14 after the homepage night-theme contrast fix and a fresh `bash
 
 - `public homepage hides internal annotations`
   - Purpose: verify the public homepage no longer exposes internal-facing design annotations and product-internal phrasing.
-- `public homepage keeps the student card readable in night mode`
-  - Purpose: verify the public homepage student experience card remains readable in night mode instead of inheriting low-contrast light text on a light card.
+- `public homepage keeps all key copy readable in night mode`
+  - Purpose: verify the public homepage top summary, teacher/student cards, support sections, and entry CTAs all stay readable in night mode instead of retaining pale low-contrast text.
 - `auth routing and admin user management`
   - Purpose: verify registration, login routing, admin create/search/delete user.
 - `teacher profile settings course lesson-pack ai-config and material-update`

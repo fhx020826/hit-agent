@@ -680,23 +680,26 @@
   - `工作台默认保留当前真实功能`
 
 ### 2026-04-14 夜间主题字体颜色适配
-- 夜间主题问题真实来源不是主题切换失效，而是首页学生端体验卡片本身使用浅色底板。
-- 该卡片在夜间模式下继承了全局 `--foreground = #edf3ff`，导致浅底卡片上出现浅色文字，形成低对比显示。
+- 夜间主题问题真实来源不是主题切换失效，而是首页多个入口块都仍在沿用偏浅文字。
+- 第一轮只修学生端体验卡片还不够，因为顶部总览、教师卡片、次级按钮、下方说明区和入口卡片仍会显示灰白浅字。
 - 这类问题不能只靠文本抓取发现，必须看真实渲染结果或检查 `computedStyle.color`。
 - 本轮修复方式：
-  - 给 `html[data-theme-mode="night"] .home-role-card[data-role="student"]` 增加专门的深色文字覆盖
-  - 同时覆盖 `home-role-note`、`workspace-eyebrow`、`home-highlight-item`
+  - 给游客态顶部总览条增加夜间模式浅亮背景 + 深色文字覆盖
+  - 给首页主海报、教师/学生卡片、次级按钮、说明区和入口卡片统一增加夜间模式深色文字覆盖
+  - 同时为首页相关块加稳定标记，便于后续浏览器回归直接采样关键区域颜色
 - 新增防回归手段：
-  - `frontend/tests/atomic-features.spec.ts` 新增 `public homepage keeps the student card readable in night mode`
-  - 该用例会先把主题写入 `localStorage`，再检查学生卡片标题、说明、亮点项的真实计算颜色不再是夜间浅色字
+  - `frontend/tests/atomic-features.spec.ts` 新增 `public homepage keeps all key copy readable in night mode`
+  - 该用例会先把主题写入 `localStorage`，再检查顶部总览、教师/学生卡片、说明区标题、入口卡片 CTA 等关键区域的真实计算颜色不再是夜间浅色字
 - 本地真实截图与颜色采样表明修复已生效：
-  - title：`rgb(23, 50, 77)`
-  - note：`rgba(23, 50, 77, 0.68)`
-  - item：`rgb(40, 71, 100)`
+  - topbar title：`rgb(18, 38, 63)`
+  - topbar note：`rgba(35, 58, 85, 0.78)`
+  - teacher title：`rgb(24, 49, 75)`
+  - student title：`rgb(23, 50, 77)`
+  - support tile CTA：`rgba(35, 58, 85, 0.78)`
 - 重新跑统一全量验证后，当前最新结果为：
   - `pytest -q` -> `22 passed`
   - 浏览器回归 -> `12 passed`
-  - 日志目录：`/tmp/hit-agent-verify/20260414-182836`
+  - 日志目录：`/tmp/hit-agent-verify/20260414-185602`
 
 ### 服务面
 - 最新验证所依赖的在线服务是本轮代码重启后的新进程：
