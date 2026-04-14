@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type ClassroomShare, type Course, type LiveShareRecord, type MaterialItem, type MaterialRequestItem } from "@/lib/api";
 
-export default function TeacherMaterialsPage() {
+function TeacherMaterialsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
@@ -266,5 +266,19 @@ export default function TeacherMaterialsPage() {
         </div>
       </section>
     </WorkspacePage>
+  );
+}
+
+export default function TeacherMaterialsPage() {
+  return (
+    <Suspense
+      fallback={
+        <WorkspacePage tone="teacher">
+          <div className="section-card rounded-[28px] p-8 text-center text-slate-500">正在加载教学资料库...</div>
+        </WorkspacePage>
+      }
+    >
+      <TeacherMaterialsPageContent />
+    </Suspense>
   );
 }
