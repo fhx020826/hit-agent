@@ -206,6 +206,25 @@ select:focus {
   background: color-mix(in srgb, var(--surface-strong) 92%, white 8%);
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  flex: 0 0 auto;
+  border-radius: 0.3rem;
+  background: #fff;
+}
+
+input[type="radio"] {
+  border-radius: 999px;
+}
+
+input[type="checkbox"]:focus,
+input[type="radio"]:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-soft) 78%, transparent 22%);
+}
+
 .app-shell {
   position: relative;
 }

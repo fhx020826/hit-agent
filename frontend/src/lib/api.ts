@@ -432,6 +432,17 @@ export interface SurveyPendingItem {
   created_at: string;
 }
 
+export interface SurveyInstanceItem {
+  id: string;
+  lesson_pack_id: string;
+  course_id: string;
+  template_id: string;
+  title: string;
+  status: string;
+  trigger_mode: string;
+  created_at: string;
+}
+
 export interface SurveyAnalytics {
   survey_instance_id: string;
   title: string;
@@ -787,7 +798,13 @@ export const api = {
 
   listPendingSurveys: () => request<SurveyPendingItem[]>("/api/feedback/pending"),
   listSurveyTemplates: () => request<{ id: string; name: string; description: string; questions: { id: string; type: string; title: string; options?: string[] }[]; created_at: string }[]>("/api/feedback/templates"),
-  createSurveyInstance: (payload: { lesson_pack_id: string; course_id: string; template_id?: string; title?: string; trigger_mode?: string }) => request<{ id: string; lesson_pack_id: string; course_id: string; template_id: string; title: string; status: string; trigger_mode: string; created_at: string }>("/api/feedback/instances", { method: "POST", body: JSON.stringify(payload) }),
+  listSurveyInstances: (params?: { courseId?: string; lessonPackId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.courseId) q.set("course_id", params.courseId);
+    if (params?.lessonPackId) q.set("lesson_pack_id", params.lessonPackId);
+    return request<SurveyInstanceItem[]>(`/api/feedback/instances${q.toString() ? `?${q.toString()}` : ""}`);
+  },
+  createSurveyInstance: (payload: { lesson_pack_id: string; course_id: string; template_id?: string; title?: string; trigger_mode?: string }) => request<SurveyInstanceItem>("/api/feedback/instances", { method: "POST", body: JSON.stringify(payload) }),
   submitSurvey: (surveyId: string, answers: Record<string, unknown>) => request<{ status: string }>(`/api/feedback/instances/${surveyId}/submit`, { method: "POST", body: JSON.stringify({ answers }) }),
   skipSurvey: (surveyId: string) => request<{ status: string }>(`/api/feedback/instances/${surveyId}/skip`, { method: "POST" }),
   getSurveyAnalytics: (surveyId: string) => request<SurveyAnalytics>(`/api/feedback/analytics/${surveyId}`),

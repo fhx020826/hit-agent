@@ -235,7 +235,7 @@ def create_material_request_item(body: MaterialRequestCreate, current_user: dict
                 id=f"notify-{uuid4().hex[:8]}",
                 teacher_id=teacher.id,
                 message_type="material_request",
-                related_question_id="",
+                related_question_id=request_row.id,
                 title="收到学生资料请求",
                 content=f"课程：{body.course_id}；学生：{current_user['display_name']}；时间：{now}；请求内容：{request_row.request_text}",
                 is_read=0,

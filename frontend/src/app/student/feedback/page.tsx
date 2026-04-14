@@ -1,19 +1,32 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { WorkspacePage } from "@/components/workspace-shell";
-import { api, type SurveyPendingItem } from "@/lib/api";
+import { api, type Course, type SurveyPendingItem } from "@/lib/api";
 
 export default function StudentFeedbackPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [items, setItems] = useState<SurveyPendingItem[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [answers, setAnswers] = useState<Record<string, Record<string, unknown>>>({});
   const [message, setMessage] = useState("");
 
-  const reload = async () => setItems(await api.listPendingSurveys());
+  const courseNameMap = useMemo(
+    () => Object.fromEntries(courses.map((course) => [course.id, course.name])),
+    [courses],
+  );
+
+  const reload = async () => {
+    const [pending, courseList] = await Promise.all([
+      api.listPendingSurveys(),
+      api.listCourses().catch(() => []),
+    ]);
+    setItems(pending);
+    setCourses(courseList);
+  };
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "student")) router.push("/");
@@ -24,10 +37,17 @@ export default function StudentFeedbackPage() {
     let alive = true;
     const load = async () => {
       try {
-        const next = await api.listPendingSurveys();
-        if (alive) setItems(next);
+        const [pending, courseList] = await Promise.all([
+          api.listPendingSurveys(),
+          api.listCourses().catch(() => []),
+        ]);
+        if (!alive) return;
+        setItems(pending);
+        setCourses(courseList);
       } catch {
-        if (alive) setItems([]);
+        if (!alive) return;
+        setItems([]);
+        setCourses([]);
       }
     };
     void load();
@@ -59,6 +79,9 @@ export default function StudentFeedbackPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-bold text-slate-900">{survey.title}</h3>
+                <p className="mt-1 text-sm font-semibold text-slate-600">
+                  课程：{courseNameMap[survey.course_id] || survey.course_id || "未关联课程"}
+                </p>
                 <p className="mt-2 text-xs text-slate-500">创建时间：{survey.created_at}</p>
               </div>
               <div className="text-sm leading-7 text-slate-600">你可以现在填写，也可以选择稍后忽略。</div>
