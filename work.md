@@ -148,9 +148,17 @@
   - `同一控制面板`
   - `兼容 OpenAI 模型清单`
 - 同时把相关入口文案改成更自然的产品表达，避免隐藏弹窗或未登录壳层继续残留同类措辞。
+- 同时清理其他主入口页面里的同类内部设计语言：
+  - 教师工作台
+  - 学生工作台
+  - 管理员用户管理页
+  - 已登录工作台壳层底部说明
 
 ### 修改文件
 - `frontend/src/app/page.tsx`
+- `frontend/src/app/teacher/page.tsx`
+- `frontend/src/app/student/page.tsx`
+- `frontend/src/app/admin/users/page.tsx`
 - `frontend/src/components/auth-modal.tsx`
 - `frontend/src/components/app-shell.tsx`
 - `frontend/tests/atomic-features.spec.ts`
@@ -161,6 +169,8 @@
 - 登录弹窗标题辅助文案从“统一账号入口”改为“账号登录与注册”
 - 未登录壳层顶部说明改成中性文案：
   - `登录后会自动进入对应角色的工作台。`
+- 教师 / 学生 / 管理员主入口页中涉及“我们如何设计页面”的描述改成“用户现在能做什么”的描述
+- 已登录壳层底部说明改成面向当前角色的功能入口说明，而不是“只重写呈现层与操作路径”
 
 ### 验证结果
 - 先新增 Playwright 真实浏览器断言，再跑出 RED：
@@ -168,8 +178,11 @@
   - 初次失败，原因是页面仍包含 `当前设计目标：`
 - 修改后再次运行同一条测试：
   - `1 passed`
+- 再运行 `atomic-features.spec.ts` 的前两条真实浏览器流：
+  - 首页对内标注清理：通过
+  - 教师 / 学生 / 管理员入口页不再出现对应内部设计文案：通过
 - 额外扫描源码：
-  - 上述首页对内标注关键字已无残留
+  - 上述首页与主入口页对内标注关键字已无残留
 - 前端静态校验：
   - `cd frontend && npm run lint` -> 通过
 

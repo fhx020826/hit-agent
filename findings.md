@@ -651,10 +651,15 @@
   - `frontend/src/app/page.tsx`
   - `frontend/src/components/auth-modal.tsx`
   - `frontend/src/components/app-shell.tsx`
+- 同类问题还出现在：
+  - `frontend/src/app/teacher/page.tsx`
+  - `frontend/src/app/student/page.tsx`
+  - `frontend/src/app/admin/users/page.tsx`
 - 这不是后端接口问题，而是前端表现层残留的“研发说明式”文案。
 - 关键特点：
   - 文案在真实浏览器首页可见
   - 一部分文案会出现在隐藏 UI 或未登录壳层中，所以不能只删首页正文
+- 另一部分文案会出现在角色工作台入口页里，表现为向用户解释“页面是怎么设计的”，而不是解释“用户现在可以做什么”
 - 本轮采用的防回归方式：
   - 在 `frontend/tests/atomic-features.spec.ts` 中新增真实浏览器断言
   - 先验证 RED，再修改实现，再验证 GREEN
@@ -667,6 +672,12 @@
   - `同一入口`
   - `同一控制面板`
   - `兼容 OpenAI 模型清单`
+- 同时以下主入口页内部设计文案也已清理：
+  - `当前工作台不再只罗列功能模块`
+  - `全部真实功能入口`
+  - `这里不再只是“功能列表”`
+  - `当前页面不再像普通表单页`
+  - `工作台默认保留当前真实功能`
 
 ### 服务面
 - 最新验证所依赖的在线服务是本轮代码重启后的新进程：
