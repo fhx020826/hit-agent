@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import { useLanguage } from "@/components/language-provider";
+import { pick } from "@/lib/i18n";
 
 type Mode = "login" | "register";
 type Role = "admin" | "teacher" | "student";
@@ -64,6 +66,7 @@ function splitList(value: string) {
 export function AuthModal({ open, initialMode = "login", onClose }: { open: boolean; initialMode?: Mode; onClose: () => void }) {
   const router = useRouter();
   const { login, register } = useAuth();
+  const { language } = useLanguage();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [role, setRole] = useState<Role>("teacher");
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -72,11 +75,11 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
 
   const roleTips = useMemo(() => {
     return role === "teacher"
-      ? "教师账号用于课程设计、资料更新、作业管理、问题回复和教学分析。"
+      ? pick(language, "教师账号用于课程设计、资料更新、作业管理和反馈查看。", "Teacher accounts are used for course setup, material updates, assignments, and feedback.")
       : role === "admin"
-        ? "管理员账号用于全站用户、课程、讨论空间和系统运营管理。"
-        : "学生账号用于课程问答、作业提交、匿名反馈和学习记录。匿名发言仅隐藏展示身份，不脱离本人账号。";
-  }, [role]);
+        ? pick(language, "管理员账号用于统一管理用户与平台内容。", "Admin accounts manage users and platform-wide content.")
+        : pick(language, "学生账号用于提问、提交作业和查看学习反馈。", "Student accounts are used for questions, assignment submission, and learning feedback.");
+  }, [language, role]);
 
   if (!open) return null;
 
@@ -96,11 +99,11 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
       }
 
       if (role === "admin") {
-        throw new Error("管理员账号不支持前台注册，请使用管理员现有账号登录。");
+        throw new Error(pick(language, "管理员账号不支持前台注册，请直接登录。", "Admin accounts cannot be registered from the public entry. Please sign in."));
       }
 
       if (form.password !== form.confirmPassword) {
-        throw new Error("两次输入的密码不一致");
+        throw new Error(pick(language, "两次输入的密码不一致。", "The two passwords do not match."));
       }
 
       const user = await register({
@@ -134,7 +137,7 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
       onClose();
       router.push(user.role === "admin" ? "/admin/users" : user.role === "teacher" ? "/teacher" : "/student");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "提交失败，请稍后重试");
+      setError(submitError instanceof Error ? submitError.message : pick(language, "提交失败，请稍后重试。", "Submission failed. Please try again later."));
       setSubmitting(false);
     }
   };
@@ -144,20 +147,20 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
       <div className="glass-panel max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[32px] p-6 md:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
-            <p className="text-sm font-semibold text-slate-500">账号登录与注册</p>
-            <h2 className="mt-2 text-2xl font-bold text-slate-900">{mode === "login" ? "登录平台账号" : "注册平台账号"}</h2>
+            <p className="text-sm font-semibold text-slate-500">{pick(language, "账号入口", "Account Access")}</p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-900">{mode === "login" ? pick(language, "登录平台账号", "Sign In") : pick(language, "注册平台账号", "Create Account")}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">{roleTips}</p>
           </div>
-          <button onClick={onClose} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">关闭</button>
+          <button onClick={onClose} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "关闭", "Close")}</button>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <button onClick={() => setMode("login")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === "login" ? "ui-pill-active" : "ui-pill"}`}>登录</button>
-          <button onClick={() => setMode("register")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === "register" ? "ui-pill-active" : "ui-pill"}`}>注册</button>
+          <button onClick={() => setMode("login")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === "login" ? "ui-pill-active" : "ui-pill"}`}>{pick(language, "登录", "Sign In")}</button>
+          <button onClick={() => setMode("register")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === "register" ? "ui-pill-active" : "ui-pill"}`}>{pick(language, "注册", "Register")}</button>
           <div className="ml-auto flex flex-wrap gap-2">
-            <button onClick={() => setRole("teacher")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${role === "teacher" ? "ui-pill-active" : "ui-pill"}`}>教师</button>
-            <button onClick={() => setRole("student")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${role === "student" ? "ui-pill-active" : "ui-pill"}`}>学生</button>
-            <button onClick={() => setRole("admin")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${role === "admin" ? "ui-pill-active" : "ui-pill"}`}>管理员</button>
+            <button onClick={() => setRole("teacher")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${role === "teacher" ? "ui-pill-active" : "ui-pill"}`}>{pick(language, "教师", "Teacher")}</button>
+            <button onClick={() => setRole("student")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${role === "student" ? "ui-pill-active" : "ui-pill"}`}>{pick(language, "学生", "Student")}</button>
+            <button onClick={() => setRole("admin")} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${role === "admin" ? "ui-pill-active" : "ui-pill"}`}>{pick(language, "管理员", "Admin")}</button>
           </div>
         </div>
 
@@ -165,12 +168,12 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="font-semibold">账号</span>
-            <input value={form.account} onChange={(e) => updateField("account", e.target.value)} placeholder="建议使用学号、工号或易记账号" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+            <span className="font-semibold">{pick(language, "账号", "Account")}</span>
+            <input value={form.account} onChange={(e) => updateField("account", e.target.value)} placeholder={pick(language, "建议使用学号、工号或易记账号", "Use a memorable account, student ID, or staff ID")} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" />
           </label>
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="font-semibold">密码</span>
-            <input type="password" value={form.password} onChange={(e) => updateField("password", e.target.value)} placeholder="请输入密码" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" />
+            <span className="font-semibold">{pick(language, "密码", "Password")}</span>
+            <input type="password" value={form.password} onChange={(e) => updateField("password", e.target.value)} placeholder={pick(language, "请输入密码", "Enter password")} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" />
           </label>
 
           {mode === "register" && role !== "admin" ? (
@@ -209,14 +212,22 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
             </>
           ) : (
             <div className="md:col-span-2 rounded-[24px] border border-dashed border-slate-300 bg-white/70 px-5 py-5 text-sm leading-7 text-slate-600">
-              {role === "admin" ? "管理员登录后可统一管理用户、课程、讨论空间与平台数据。" : "登录后请使用本人账号进行学习、提问、作业提交和反馈填写。若不希望教师在提问时看到公开身份，可以在提问时单独勾选匿名发言。"}
+              {role === "admin"
+                ? pick(language, "管理员登录后可统一管理用户与平台内容。", "Admins can manage users and platform content after signing in.")
+                : pick(language, "登录后可直接开始提问、提交作业和填写反馈。", "After signing in, you can ask questions, submit assignments, and send feedback.")}
             </div>
           )}
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">{mode === "register" && role !== "admin" ? "注册用于形成独立账号体系，所有学习记录、作业记录与提问记录都与本人账号绑定。" : "登录后系统会根据管理员、教师或学生身份自动进入对应工作台。"}</p>
-          <button onClick={handleSubmit} disabled={submitting || !form.account.trim() || !form.password.trim()} className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? "提交中..." : mode === "login" ? "立即登录" : "完成注册"}</button>
+          <p className="text-sm text-slate-500">
+            {mode === "register" && role !== "admin"
+              ? pick(language, "注册后会保留你的学习记录与作业记录。", "Your learning and assignment records stay with this account after registration.")
+              : pick(language, "登录后会自动进入对应角色的工作台。", "After signing in, the correct workspace opens automatically.")}
+          </p>
+          <button onClick={handleSubmit} disabled={submitting || !form.account.trim() || !form.password.trim()} className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+            {submitting ? pick(language, "提交中...", "Submitting...") : mode === "login" ? pick(language, "立即登录", "Sign In Now") : pick(language, "完成注册", "Create Account")}
+          </button>
         </div>
       </div>
     </div>

@@ -284,6 +284,10 @@ select:focus {
 }
 
 .ui-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   border: 1px solid color-mix(in srgb, var(--border) 80%, white 20%);
   background: color-mix(in srgb, var(--surface-strong) 84%, white 16%);
   color: var(--foreground);
@@ -512,8 +516,7 @@ select:focus {
 }
 
 .shell-topbar {
-  position: sticky;
-  top: var(--shell-top-offset);
+  position: relative;
   z-index: 35;
   border-radius: 28px;
   padding: 1rem 1.1rem;
@@ -727,6 +730,15 @@ html[data-theme-mode="night"] .app-shell[data-app-role="guest"] .shell-context-n
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.home-hero-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+  min-height: 3.25rem;
 }
 
 .workspace-hero-aside {

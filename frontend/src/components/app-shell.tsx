@@ -177,13 +177,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const contextNote = isAuthenticated
     ? pick(
         language,
-        `当前处于${roleLabel}工作区，右上角统一管理账号与外观，左侧保留完整流程导航。`,
-        `You are in the ${roleLabel.toLowerCase()} workspace. Use the top-right controls for account and appearance, and the left rail for the full workflow.`,
+        `${roleLabel}相关的课程、任务、资料和反馈会集中显示在这里。`,
+        `${roleLabel} courses, tasks, materials, and feedback are shown here.`,
       )
     : pick(
         language,
-        "登录后会自动进入对应角色的工作台。",
-        "After login, the correct role workspace opens automatically.",
+        "登录后会自动打开对应角色的工作台。",
+        "The correct role workspace opens automatically after login.",
       );
 
   return (
@@ -202,8 +202,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <p className="shell-subtitle">
                     {pick(
                       language,
-                      "把课程设计、课堂实施、资料共享、作业闭环与教学反馈压缩进一个持续在线的教学工作台。",
-                      "Course design, classroom delivery, material sharing, assignment loops and feedback now live in one continuous teaching workspace.",
+                      "把课程、任务、资料与反馈集中到同一个工作台。",
+                      "Bring courses, tasks, materials, and feedback into one workspace.",
                     )}
                   </p>
                 </div>
@@ -236,8 +236,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="shell-footnote">
                   {pick(
                     language,
-                    "当前工作台会按角色集中展示课程、任务、资料、问答与反馈入口。",
-                    "This workspace brings together course, task, material, question, and feedback entry points for the current role.",
+                    "常用入口会按当前角色集中显示。",
+                    "Common entry points are grouped for the current role.",
                   )}
                 </div>
                 <Link className="ui-pill rounded-full px-4 py-3 text-sm font-semibold text-center" href="/settings">

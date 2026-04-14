@@ -277,8 +277,15 @@
 - 已刷新全量统一验证结果：
   - `bash scripts/verify-all.sh` -> 通过
   - `pytest -q` -> `22 passed`
-  - 浏览器回归 -> `12 passed`
-  - 日志目录：`/tmp/hit-agent-verify/20260414-185602`
+  - 浏览器回归 -> `13 passed`
+  - 日志目录：`/tmp/hit-agent-verify/20260414-192210`
+- 已继续完成首页可用性收口：
+  - 首页文案压缩为简短功能说明
+  - 首页主按钮文字改为居中布局
+  - 首页与登录弹窗随语言切换同步切成英文
+  - 顶部上下文条取消粘顶
+  - 新增 Playwright 用例：
+    - `public homepage switches language fully and top bar no longer sticks`
 - 重新读取 ECS 运维与部署文档，并对 `8.152.202.171` 做新鲜连通性诊断：
   - `ping` 正常
   - `22/tcp` 可建连

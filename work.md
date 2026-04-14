@@ -229,8 +229,48 @@
 - 重新跑统一全量验证：
   - `bash scripts/verify-all.sh` -> 通过
   - `pytest -q` -> `22 passed`
-  - 浏览器回归 -> `12 passed`
-  - 最新日志目录：`/tmp/hit-agent-verify/20260414-185602`
+  - 浏览器回归 -> `13 passed`
+  - 最新日志目录：`/tmp/hit-agent-verify/20260414-192210`
+
+## 2026-04-14 Bugfix：首页文案、按钮、语言切换与顶部条
+
+### 本轮处理范围
+- 继续收紧首页文案，避免模块描述过长、解释过多。
+- 修复首页主按钮文字未居中的问题。
+- 修复语言切换后首页与登录弹窗仍残留中文的问题。
+- 取消顶部上下文条粘顶，避免滚动时长期遮挡下面内容。
+
+### 修改文件
+- `frontend/src/app/page.tsx`
+- `frontend/src/components/app-shell.tsx`
+- `frontend/src/components/auth-modal.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/tests/atomic-features.spec.ts`
+
+### 实现方式
+- 首页主海报、教师/学生卡片、下方说明区与入口卡片的文案统一压缩成“这个模块做什么”的短说明。
+- 首页接入语言上下文，按钮、标题、说明和卡片内容全部改为随语言切换。
+- 登录弹窗接入语言上下文，标题、说明、角色标签、按钮、占位文案和状态提示改为中英双语切换。
+- 顶部上下文条 `shell-topbar` 从 `sticky` 改为普通流布局，不再悬浮挡内容。
+- `ui-pill` 与首页主按钮统一改为居中布局，确保按钮文字水平和垂直都居中。
+- 新增首页浏览器回归：
+  - `public homepage switches language fully and top bar no longer sticks`
+
+### 验证结果
+- 定向浏览器回归：
+  - `cd frontend && npm run test:e2e -- --grep "public homepage keeps all key copy readable in night mode|public homepage switches language fully and top bar no longer sticks"`
+  - 结果：`2 passed`
+- 英文首页真实截图：
+  - `/tmp/home-english-current.png`
+- 英文登录弹窗真实截图：
+  - `/tmp/home-english-modal.png`
+- 顶部条真实计算样式：
+  - `.shell-topbar` -> `position: relative`
+- 重新跑统一全量验证：
+  - `bash scripts/verify-all.sh` -> 通过
+  - `pytest -q` -> `22 passed`
+  - 浏览器回归 -> `13 passed`
+  - 最新日志目录：`/tmp/hit-agent-verify/20260414-192210`
 
 ## 本轮完成
 

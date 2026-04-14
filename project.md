@@ -59,6 +59,7 @@
 - 首页改为海报式产品入口，而不是功能说明页
 - 首页面向用户的展示文案已进一步清理，删除了“当前设计目标 / 真实能力仍然全部保留 / 统一账号入口”等对内标注式说明
 - 首页夜间主题现已按整页入口统一处理为深色文字优先，覆盖顶部总览条、主海报、教师/学生卡片、入口按钮和下方说明区，避免夜间模式继续出现灰白浅字难辨认的问题
+- 首页文案已进一步压缩为模块功能说明，不再保留过长说明性段落；语言切换已覆盖首页和登录弹窗；顶部上下文条也已取消粘顶，避免遮挡下方信息
 - 教师端、学生端、管理员端统一纳入同一套工作台壳层
 - 桌面端与移动端采用差异化布局，不再只是简单缩放
 - 自动化测试已同步到新的界面语义，不再依赖旧 DOM 层级假设
@@ -120,14 +121,16 @@
 - 前端：`cd frontend && npm run build` -> 通过
 - 浏览器原子/扩展回归：
   - `cd frontend && npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts`
-  - 结果：`12 passed`
+  - 结果：`13 passed`
 - 最新验证日志目录：
-  - `/tmp/hit-agent-verify/20260414-185602`
+  - `/tmp/hit-agent-verify/20260414-192210`
 - 本轮说明：
   - 前端已完成统一设计语言重构后再次全量回归
   - 新增轻量异步任务中心后，课程包生成和 PPT / 教案更新已切到后台任务流
   - 新增首页夜间模式整页可读性回归：
     - `frontend/tests/atomic-features.spec.ts` :: `public homepage keeps all key copy readable in night mode`
+  - 新增首页英文切换、按钮居中与顶部条非粘顶回归：
+    - `frontend/tests/atomic-features.spec.ts` :: `public homepage switches language fully and top bar no longer sticks`
   - 新增 `backend/tests/test_task_jobs.py`，覆盖异步提交、轮询完成、异步上传与失败态回落
   - 当前测试更强调“功能语义稳定”而不是“旧布局层级不变”
 

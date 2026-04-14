@@ -173,6 +173,57 @@ test.describe.serial("atomic feature verification", () => {
     }
   });
 
+  test("public homepage switches language fully and top bar no longer sticks", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("hit-agent-active-appearance", JSON.stringify({
+        mode: "day",
+        accent: "gray",
+        font: "rounded",
+        skin: "tech",
+        language: "en-US",
+      }));
+    });
+
+    await page.goto("/");
+    await waitForAuthEntry(page);
+
+    await expect
+      .poll(async () => (await page.locator('[data-home-action="primary"]').textContent())?.trim())
+      .toMatch(/^(Checking role\.\.\.|Open Workspace|Sign in to Continue)$/);
+    const primaryActionLabel = ((await page.locator('[data-home-action="primary"]').textContent()) || "").trim();
+
+    await expect(page.getByText("Platform Overview")).toBeVisible();
+    await expect(page.getByText("Teacher-led · Student-facing · AI-assisted")).toBeVisible();
+    expect(primaryActionLabel).not.toContain("进入");
+    await expect(page.getByRole("link", { name: "Open Settings" })).toBeVisible();
+    await expect(page.getByText("Sign in and go straight to the right workspace")).toBeVisible();
+    await expect(page.getByText("Teachers and students work in one learning loop")).toBeVisible();
+
+    await page.getByRole("button", { name: /^(Log In)$/ }).click();
+    await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Teacher" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Student" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Admin" })).toBeVisible();
+
+    const shellTopbarPosition = await page.locator(".shell-topbar").evaluate((el) => getComputedStyle(el).position);
+    expect(shellTopbarPosition).toBe("relative");
+
+    const primaryLayout = await page.locator('[data-home-action="primary"]').evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        display: style.display,
+        justifyContent: style.justifyContent,
+        alignItems: style.alignItems,
+        textAlign: style.textAlign,
+      };
+    });
+
+    expect(["inline-flex", "flex"]).toContain(primaryLayout.display);
+    expect(primaryLayout.justifyContent).toBe("center");
+    expect(primaryLayout.alignItems).toBe("center");
+    expect(primaryLayout.textAlign).toBe("center");
+  });
+
   test("auth routing and admin user management", async ({ page }) => {
     await registerTeacher(page);
     await expect(page.getByText("当前工作台不再只罗列功能模块")).toHaveCount(0);
