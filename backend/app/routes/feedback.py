@@ -5,7 +5,7 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..database import DBUser, DBUserProfile, DBSurveyInstance, DBSurveyResponse, DBSurveyTemplate, get_db
@@ -13,6 +13,19 @@ from ..models.schemas import SurveyAnalytics, SurveyInstance, SurveyInstanceCrea
 from ..security import require_roles
 
 router = APIRouter(prefix="/api/feedback", tags=["feedback"])
+
+
+def _survey_instance_to_schema(row: DBSurveyInstance) -> SurveyInstance:
+    return SurveyInstance(
+        id=row.id,
+        lesson_pack_id=row.lesson_pack_id,
+        course_id=row.course_id,
+        template_id=row.template_id,
+        title=row.title,
+        status=row.status,
+        trigger_mode=row.trigger_mode,
+        created_at=row.created_at,
+    )
 
 
 @router.get("/templates", response_model=list[SurveyTemplate])
@@ -30,7 +43,23 @@ def create_survey_instance(body: SurveyInstanceCreate, current_user: dict = Depe
     db.add(row)
     db.commit()
     db.refresh(row)
-    return SurveyInstance(id=row.id, lesson_pack_id=row.lesson_pack_id, course_id=row.course_id, template_id=row.template_id, title=row.title, status=row.status, trigger_mode=row.trigger_mode, created_at=row.created_at)
+    return _survey_instance_to_schema(row)
+
+
+@router.get("/instances", response_model=list[SurveyInstance])
+def list_survey_instances(
+    course_id: str | None = Query(default=None),
+    lesson_pack_id: str | None = Query(default=None),
+    current_user: dict = Depends(require_roles("teacher")),
+    db: Session = Depends(get_db),
+):
+    query = db.query(DBSurveyInstance)
+    if course_id:
+        query = query.filter(DBSurveyInstance.course_id == course_id)
+    if lesson_pack_id:
+        query = query.filter(DBSurveyInstance.lesson_pack_id == lesson_pack_id)
+    rows = query.order_by(DBSurveyInstance.created_at.desc()).all()
+    return [_survey_instance_to_schema(row) for row in rows]
 
 
 @router.get("/pending", response_model=list[SurveyPendingItem])

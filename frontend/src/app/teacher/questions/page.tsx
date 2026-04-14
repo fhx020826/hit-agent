@@ -7,7 +7,7 @@ import { RichAnswer } from "@/components/rich-answer";
 import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
 import { WorkspacePage } from "@/components/workspace-shell";
-import { api, type Course, type QuestionRecord, type TeacherNotification } from "@/lib/api";
+import { api, type Course, type MaterialRequestItem, type QuestionRecord, type TeacherNotification } from "@/lib/api";
 import { pick } from "@/lib/i18n";
 
 type QuestionFilterStatus = "all" | "pending" | "replied" | "closed";
@@ -17,18 +17,31 @@ function getVisibleTeacherReply(question: QuestionRecord | null | undefined) {
   return question.teacher_answer_content || "";
 }
 
+function parseCourseIdFromNotificationContent(content: string) {
+  const matched = content.match(/课程[:：]\s*([^\s；;）)]+)/);
+  return matched?.[1] || "";
+}
+
+function parseMaterialRequestId(notification: TeacherNotification) {
+  if (notification.related_question_id?.startsWith("req-")) return notification.related_question_id;
+  const matched = notification.content.match(/req-[A-Za-z0-9_-]+/);
+  return matched?.[0] || "";
+}
+
 export default function TeacherQuestionsPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { language } = useLanguage();
   const [courses, setCourses] = useState<Course[]>([]);
   const [notifications, setNotifications] = useState<TeacherNotification[]>([]);
+  const [materialRequests, setMaterialRequests] = useState<MaterialRequestItem[]>([]);
   const [allQuestions, setAllQuestions] = useState<QuestionRecord[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState("all");
   const [statusFilter, setStatusFilter] = useState<QuestionFilterStatus>("all");
   const [activeQuestionId, setActiveQuestionId] = useState("");
   const [replyDraft, setReplyDraft] = useState("");
   const [message, setMessage] = useState("");
+  const [notificationBusyId, setNotificationBusyId] = useState("");
 
   const teacherCourses = useMemo(() => {
     if (!user) return courses;
@@ -42,9 +55,19 @@ export default function TeacherQuestionsPage() {
     [teacherCourses],
   );
 
+  const materialRequestMap = useMemo(
+    () => Object.fromEntries(materialRequests.map((item) => [item.id, item])),
+    [materialRequests],
+  );
+
   const loadNotifications = useCallback(async () => {
     const items = await api.listTeacherNotifications();
     setNotifications(items);
+  }, []);
+
+  const loadMaterialRequests = useCallback(async () => {
+    const items = await api.listMaterialRequests().catch(() => []);
+    setMaterialRequests(items);
   }, []);
 
   const loadAllQuestions = useCallback(async () => {
@@ -65,15 +88,17 @@ export default function TeacherQuestionsPage() {
     let alive = true;
     const load = async () => {
       try {
-        const [courseList, notificationList, questionList] = await Promise.all([
+        const [courseList, notificationList, questionList, requestList] = await Promise.all([
           api.listCourses(),
           api.listTeacherNotifications(),
           api.listTeacherQuestions(),
+          api.listMaterialRequests().catch(() => []),
         ]);
         if (!alive) return;
         setCourses(courseList);
         setNotifications(notificationList);
         setAllQuestions(questionList);
+        setMaterialRequests(requestList);
         const firstId = questionList[0]?.id || "";
         setActiveQuestionId(firstId);
         setReplyDraft(getVisibleTeacherReply(questionList[0] || null));
@@ -82,6 +107,7 @@ export default function TeacherQuestionsPage() {
         setCourses([]);
         setNotifications([]);
         setAllQuestions([]);
+        setMaterialRequests([]);
       }
     };
     void load();
@@ -151,8 +177,8 @@ export default function TeacherQuestionsPage() {
   }, [activeQuestion, language]);
 
   const refreshData = useCallback(async () => {
-    await Promise.all([loadNotifications(), loadAllQuestions()]);
-  }, [loadAllQuestions, loadNotifications]);
+    await Promise.all([loadNotifications(), loadAllQuestions(), loadMaterialRequests()]);
+  }, [loadAllQuestions, loadMaterialRequests, loadNotifications]);
 
   const openQuestionAttachment = async (question: QuestionRecord) => {
     for (const attachment of question.attachment_items) {
@@ -166,18 +192,73 @@ export default function TeacherQuestionsPage() {
     setNotifications(refreshed);
   };
 
-  const locateQuestionFromNotification = async (questionId: string) => {
+  const openMaterialRequestFromNotification = (notification: TeacherNotification) => {
+    const requestId = parseMaterialRequestId(notification);
+    const request = requestId ? materialRequestMap[requestId] : undefined;
+    const courseId = request?.course_id || parseCourseIdFromNotificationContent(notification.content);
+    const query = new URLSearchParams();
+    if (courseId) query.set("course_id", courseId);
+    if (requestId) query.set("request_id", requestId);
+    router.push(`/teacher/materials${query.toString() ? `?${query.toString()}` : ""}#material-requests`);
+  };
+
+  const locateQuestionFromNotification = async (notification: TeacherNotification) => {
+    if (notification.message_type === "material_request") {
+      openMaterialRequestFromNotification(notification);
+      setMessage(pick(language, "已定位到教学资料库，可直接处理该资料请求。", "Jumped to materials page, where you can process this material request."));
+      return;
+    }
+
+    const questionId = notification.related_question_id || "";
+    if (!questionId) {
+      setMessage(pick(language, "该提醒未关联具体问题。", "This alert is not linked to a specific question."));
+      return;
+    }
+
     let pool = allQuestions;
     if (!pool.some((item) => item.id === questionId)) {
       pool = await loadAllQuestions();
     }
     const target = pool.find((item) => item.id === questionId);
-    if (!target) return;
+    if (!target) {
+      setMessage(pick(language, "未找到对应问题，可能已删除或不在当前课程范围。", "The linked question was not found. It may be deleted or outside current course scope."));
+      return;
+    }
     setSelectedCourseId(target.course_id || "all");
     setStatusFilter("all");
     setActiveQuestionId(target.id);
     setReplyDraft(getVisibleTeacherReply(target));
     setMessage("");
+  };
+
+  const handleMaterialRequestFromNotification = async (
+    notification: TeacherNotification,
+    status: "approved" | "shared" | "rejected",
+  ) => {
+    const requestId = parseMaterialRequestId(notification);
+    if (!requestId) {
+      openMaterialRequestFromNotification(notification);
+      setMessage(pick(language, "该提醒未带请求编号，已跳转资料库处理。", "This alert has no request id, so we redirected you to handle it in materials."));
+      return;
+    }
+
+    setNotificationBusyId(`${notification.id}:${status}`);
+    try {
+      await api.handleMaterialRequest(requestId, status);
+      await api.updateTeacherNotificationRead(notification.id, true).catch(() => undefined);
+      await Promise.all([loadMaterialRequests(), loadNotifications()]);
+      setMessage(
+        status === "approved"
+          ? pick(language, "资料请求已标记为同意。", "Material request marked as approved.")
+          : status === "shared"
+            ? pick(language, "资料请求已标记为已共享。", "Material request marked as shared.")
+            : pick(language, "资料请求已标记为拒绝。", "Material request marked as rejected."),
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : pick(language, "处理资料请求失败，请重试。", "Failed to process this material request."));
+    } finally {
+      setNotificationBusyId("");
+    }
   };
 
   const applyFilters = (courseId: string, status: QuestionFilterStatus) => {
@@ -250,9 +331,18 @@ export default function TeacherQuestionsPage() {
                   <button onClick={() => void setNotificationReadState(item.id, !item.is_read)} className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
                     {item.is_read ? pick(language, "撤回已读", "Mark as Unread") : pick(language, "标记已读", "Mark as Read")}
                   </button>
-                  <button onClick={() => void locateQuestionFromNotification(item.related_question_id)} className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+                  <button onClick={() => void locateQuestionFromNotification(item)} className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
                     {pick(language, "定位问题", "Open Question")}
                   </button>
+                  {item.message_type === "material_request" ? (
+                    <button
+                      onClick={() => void handleMaterialRequestFromNotification(item, "approved")}
+                      disabled={notificationBusyId === `${item.id}:approved`}
+                      className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {pick(language, "快速同意", "Quick Approve")}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             ))}

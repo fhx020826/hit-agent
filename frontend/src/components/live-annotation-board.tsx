@@ -11,11 +11,21 @@ const TOOL_OPTIONS = [
   { key: "flash", label: "速消笔", alpha: 0.92 },
 ];
 
+const CANVAS_BASE_WIDTH = 1280;
+const CANVAS_BASE_HEIGHT = 800;
+
 function isPdfMaterial(material: MaterialItem | null) {
   if (!material) return false;
   const filename = material.filename.toLowerCase();
   const fileType = (material.file_type || "").toLowerCase();
   return filename.endsWith(".pdf") || fileType.includes("pdf");
+}
+
+function toCanvasPoint(point: { x: number; y: number }, width: number, height: number) {
+  if (point.x >= 0 && point.x <= 1.2 && point.y >= 0 && point.y <= 1.2) {
+    return { x: point.x * width, y: point.y * height };
+  }
+  return point;
 }
 
 export function LiveAnnotationBoard({
@@ -109,10 +119,11 @@ export function LiveAnnotationBoard({
       context.lineCap = "round";
       context.lineJoin = "round";
       const points = stroke.points_data || [];
-      if (points.length > 0) {
+      const mappedPoints = points.map((point) => toCanvasPoint(point, canvas.width, canvas.height));
+      if (mappedPoints.length > 0) {
         context.beginPath();
-        context.moveTo(points[0].x, points[0].y);
-        points.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+        context.moveTo(mappedPoints[0].x, mappedPoints[0].y);
+        mappedPoints.slice(1).forEach((point) => context.lineTo(point.x, point.y));
         context.stroke();
       }
       context.restore();
@@ -170,18 +181,29 @@ export function LiveAnnotationBoard({
     const target = e.currentTarget || canvasRef.current;
     if (!target) return null;
     const rect = target.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const scaleX = rect.width > 0 ? target.width / rect.width : 1;
+    const scaleY = rect.height > 0 ? target.height / rect.height : 1;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
   };
 
   const saveStroke = async (points: { x: number; y: number }[]) => {
     if (!teacherMode || points.length < 2) return;
+    const width = canvasRef.current?.width || CANVAS_BASE_WIDTH;
+    const height = canvasRef.current?.height || CANVAS_BASE_HEIGHT;
+    const normalizedPoints = points.map((point) => ({
+      x: Number((point.x / Math.max(width, 1)).toFixed(6)),
+      y: Number((point.y / Math.max(height, 1)).toFixed(6)),
+    }));
     try {
       const stroke = await api.createAnnotationStroke(share.id, {
         page_no: page,
         tool_type: tool,
         color,
         line_width: lineWidth,
-        points_data: points,
+        points_data: normalizedPoints,
         is_temporary: tool === "flash",
         expires_in_seconds: tool === "flash" ? 8 : undefined,
       });
@@ -304,8 +326,8 @@ export function LiveAnnotationBoard({
 
             <canvas
               ref={canvasRef}
-              width={1280}
-              height={800}
+              width={CANVAS_BASE_WIDTH}
+              height={CANVAS_BASE_HEIGHT}
               className={`absolute inset-0 z-10 h-full w-full bg-transparent touch-none ${teacherMode ? "cursor-crosshair" : "pointer-events-none"}`}
               onWheel={handleViewerWheel}
               onPointerDown={beginDrawing}

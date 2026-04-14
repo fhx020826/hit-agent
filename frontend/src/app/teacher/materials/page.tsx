@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { WorkspacePage } from "@/components/workspace-shell";
 import { api, type ClassroomShare, type Course, type LiveShareRecord, type MaterialItem, type MaterialRequestItem } from "@/lib/api";
 
 export default function TeacherMaterialsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
@@ -20,12 +21,23 @@ export default function TeacherMaterialsPage() {
   const [sharing, setSharing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [liveShare, setLiveShare] = useState<LiveShareRecord | null>(null);
+  const selectedCourseIdRef = useRef("");
+
+  const queryCourseId = searchParams.get("course_id") || "";
+  const focusRequestId = searchParams.get("request_id") || "";
+
+  useEffect(() => {
+    selectedCourseIdRef.current = selectedCourseId;
+  }, [selectedCourseId]);
 
   const load = useCallback(async (courseId?: string) => {
     const courseList = await api.listCourses().catch(() => []);
     setCourses(courseList);
-    const nextCourseId = courseId || selectedCourseId || courseList[0]?.id || "";
-    setSelectedCourseId(nextCourseId);
+    const nextCourseId = courseId || queryCourseId || selectedCourseIdRef.current || courseList[0]?.id || "";
+    if (nextCourseId !== selectedCourseIdRef.current) {
+      selectedCourseIdRef.current = nextCourseId;
+      setSelectedCourseId(nextCourseId);
+    }
     if (nextCourseId) {
       const [materialList, shareList, requestList, currentLive] = await Promise.all([
         api.listMaterials(nextCourseId).catch(() => []),
@@ -43,7 +55,7 @@ export default function TeacherMaterialsPage() {
       setRequests([]);
       setLiveShare(null);
     }
-  }, [selectedCourseId]);
+  }, [queryCourseId]);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "teacher")) router.push("/");
@@ -234,12 +246,12 @@ export default function TeacherMaterialsPage() {
           </div>
         </div>
 
-        <div className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
+        <div id="material-requests" className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
           <p className="text-sm font-semibold text-slate-500">学生资料请求</p>
           <h3 className="mt-2 text-2xl font-black text-slate-900">学生请求讲义 / 请求资料</h3>
           <div className="mt-5 space-y-3">
             {requests.length === 0 ? <div className="section-card rounded-[24px] p-5 text-sm text-slate-500">目前还没有新的资料请求。</div> : requests.map((item) => (
-              <div key={item.id} className="section-card rounded-[24px] p-5">
+              <div key={item.id} className={`section-card rounded-[24px] p-5 ${focusRequestId && focusRequestId === item.id ? "ring-2 ring-[var(--accent)]" : ""}`}>
                 <p className="font-semibold text-slate-900">{item.student_name}</p>
                 <p className="mt-1 text-xs text-slate-500">{item.created_at} · 状态：{item.status}</p>
                 <p className="mt-2 text-sm leading-7 text-slate-600">{item.request_text}</p>
