@@ -679,6 +679,25 @@
   - `当前页面不再像普通表单页`
   - `工作台默认保留当前真实功能`
 
+### 2026-04-14 夜间主题字体颜色适配
+- 夜间主题问题真实来源不是主题切换失效，而是首页学生端体验卡片本身使用浅色底板。
+- 该卡片在夜间模式下继承了全局 `--foreground = #edf3ff`，导致浅底卡片上出现浅色文字，形成低对比显示。
+- 这类问题不能只靠文本抓取发现，必须看真实渲染结果或检查 `computedStyle.color`。
+- 本轮修复方式：
+  - 给 `html[data-theme-mode="night"] .home-role-card[data-role="student"]` 增加专门的深色文字覆盖
+  - 同时覆盖 `home-role-note`、`workspace-eyebrow`、`home-highlight-item`
+- 新增防回归手段：
+  - `frontend/tests/atomic-features.spec.ts` 新增 `public homepage keeps the student card readable in night mode`
+  - 该用例会先把主题写入 `localStorage`，再检查学生卡片标题、说明、亮点项的真实计算颜色不再是夜间浅色字
+- 本地真实截图与颜色采样表明修复已生效：
+  - title：`rgb(23, 50, 77)`
+  - note：`rgba(23, 50, 77, 0.68)`
+  - item：`rgb(40, 71, 100)`
+- 重新跑统一全量验证后，当前最新结果为：
+  - `pytest -q` -> `22 passed`
+  - 浏览器回归 -> `12 passed`
+  - 日志目录：`/tmp/hit-agent-verify/20260414-182836`
+
 ### 服务面
 - 最新验证所依赖的在线服务是本轮代码重启后的新进程：
   - 前端生产模式：`http://127.0.0.1:3000`

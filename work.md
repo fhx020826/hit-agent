@@ -186,6 +186,46 @@
 - 前端静态校验：
   - `cd frontend && npm run lint` -> 通过
 
+## 2026-04-14 Bugfix：夜间主题字体颜色适配
+
+### 本轮处理范围
+- 修复首页夜间主题下学生端体验卡片文字颜色对比不足的问题。
+- 目标是不改变首页信息结构，只修正夜间模式下浅色卡片继承全局浅色文字后的可读性缺陷。
+
+### 修改文件
+- `frontend/src/app/globals.css`
+- `frontend/tests/atomic-features.spec.ts`
+
+### 实现方式
+- 为首页学生端体验卡片增加夜间模式专属文字颜色覆盖：
+  - 卡片主文字改为深蓝灰
+  - 辅助说明与 eyebrow 改为半透明深色
+  - 高亮条目改为更深的蓝灰色
+- 新增真实浏览器断言：
+  - `public homepage keeps the student card readable in night mode`
+- 断言方式不是抓文案存在性，而是直接检查真实渲染后的 `computedStyle.color`，避免再次出现“浅底卡片 + 夜间浅色字”的低对比回归。
+
+### 验证结果
+- 真实浏览器夜间主题定向回归：
+  - `cd frontend && npm run test:e2e -- --grep "public homepage keeps the student card readable in night mode"`
+  - 结果：`1 passed`
+- 本地真实渲染截图：
+  - `/home/hxfeng/fhx-hit-agent/.tmp/home-night-bug2-local.png`
+  - 可见学生端体验卡片文字已恢复清晰可读
+- 本地采样到的真实颜色：
+  - title：`rgb(23, 50, 77)`
+  - note：`rgba(23, 50, 77, 0.68)`
+  - item：`rgb(40, 71, 100)`
+- 前端静态校验：
+  - `cd frontend && npm run lint` -> 通过
+- 前端生产构建：
+  - `cd frontend && npm run build` -> 通过
+- 重新跑统一全量验证：
+  - `bash scripts/verify-all.sh` -> 通过
+  - `pytest -q` -> `22 passed`
+  - 浏览器回归 -> `12 passed`
+  - 最新日志目录：`/tmp/hit-agent-verify/20260414-182836`
+
 ## 本轮完成
 
 ### 新对话交接文档

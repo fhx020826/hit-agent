@@ -909,6 +909,20 @@ select:focus {
     linear-gradient(180deg, rgba(242, 251, 250, 0.98) 0%, rgba(227, 245, 244, 0.98) 100%);
 }
 
+html[data-theme-mode="night"] .home-role-card[data-role="student"] {
+  color: #17324d;
+  border-color: rgba(23, 50, 77, 0.14);
+}
+
+html[data-theme-mode="night"] .home-role-card[data-role="student"] .workspace-eyebrow,
+html[data-theme-mode="night"] .home-role-card[data-role="student"] .home-role-note {
+  color: rgba(23, 50, 77, 0.68);
+}
+
+html[data-theme-mode="night"] .home-role-card[data-role="student"] .home-highlight-item {
+  color: #284764;
+}
+
 .home-role-title {
   font-family: var(--font-display);
   font-size: 1.45rem;

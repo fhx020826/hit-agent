@@ -124,6 +124,29 @@ test.describe.serial("atomic feature verification", () => {
     await expect(page.getByText("兼容 OpenAI 模型清单")).toHaveCount(0);
   });
 
+  test("public homepage keeps the student card readable in night mode", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("hit-agent-active-appearance", JSON.stringify({
+        mode: "night",
+        accent: "gray",
+        font: "rounded",
+        skin: "tech",
+        language: "zh-CN",
+      }));
+    });
+
+    await page.goto("/");
+    await waitForAuthEntry(page);
+
+    const titleColor = await page.locator('[data-role="student"] .home-role-title').evaluate((el) => getComputedStyle(el).color);
+    const noteColor = await page.locator('[data-role="student"] .home-role-note').evaluate((el) => getComputedStyle(el).color);
+    const itemColor = await page.locator('[data-role="student"] .home-highlight-item').first().evaluate((el) => getComputedStyle(el).color);
+
+    expect(titleColor).not.toBe("rgb(237, 243, 255)");
+    expect(noteColor).not.toBe("rgb(237, 243, 255)");
+    expect(itemColor).not.toBe("rgb(237, 243, 255)");
+  });
+
   test("auth routing and admin user management", async ({ page }) => {
     await registerTeacher(page);
     await expect(page.getByText("当前工作台不再只罗列功能模块")).toHaveCount(0);

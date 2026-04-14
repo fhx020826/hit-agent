@@ -1,15 +1,15 @@
 # HIT-Agent Complete Feature Verification Matrix
 
-Updated 2026-04-14 after rerunning the unified frontend and backend verification stack.
+Updated 2026-04-14 after rerunning the unified frontend and backend verification stack with the homepage night-theme contrast regression check.
 
 ## Verification Batch
 
 - One-key verification: `bash scripts/verify-all.sh` -> passed
-- Frontend live browser batch: `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts` -> `10 passed`
+- Frontend live browser batch: `npm run test:e2e -- tests/atomic-features.spec.ts tests/extended-coverage.spec.ts tests/user-journeys.spec.ts` -> `12 passed`
 - Frontend lint batch: `npm run lint` -> passed
 - Frontend build batch: `npm run build` -> passed
 - Backend API batch: `pytest -q` -> `22 passed`
-- Verification log dir: `/tmp/hit-agent-verify/20260414-040104`
+- Verification log dir: `/tmp/hit-agent-verify/20260414-182836`
 - Current backend pytest warning count: `0`
 
 ## Matrix Rules
@@ -39,7 +39,7 @@ Updated 2026-04-14 after rerunning the unified frontend and backend verification
 | C1.3 | TC-C1.3 | Select preset avatar | `frontend/tests/atomic-features.spec.ts` :: `teacher profile settings course lesson-pack ai-config and material-update`<br>`frontend/tests/extended-coverage.spec.ts` :: `legacy redirects admin filter teacher settings profile assignment review and analytics pages`<br>`backend/tests/test_extended_feature_api.py` :: `test_profile_avatar_and_compatibility_endpoints` | PASS |  |
 | C1.4 | TC-C1.4 | Upload custom avatar | `frontend/tests/atomic-features.spec.ts` :: `teacher profile settings course lesson-pack ai-config and material-update`<br>`frontend/tests/extended-coverage.spec.ts` :: `legacy redirects admin filter teacher settings profile assignment review and analytics pages`<br>`backend/tests/test_extended_feature_api.py` :: `test_profile_avatar_and_compatibility_endpoints` | PASS |  |
 | C1.5 | TC-C1.5 | Save profile | `frontend/tests/atomic-features.spec.ts` :: `teacher profile settings course lesson-pack ai-config and material-update`<br>`frontend/tests/extended-coverage.spec.ts` :: `legacy redirects admin filter teacher settings profile assignment review and analytics pages`<br>`backend/tests/test_extended_feature_api.py` :: `test_profile_avatar_and_compatibility_endpoints` | PASS |  |
-| C2.1 | TC-C2.1 | Theme mode (day/night/eye-care) | `frontend/tests/atomic-features.spec.ts` :: `teacher profile settings course lesson-pack ai-config and material-update`<br>`frontend/tests/extended-coverage.spec.ts` :: `legacy redirects admin filter teacher settings profile assignment review and analytics pages`<br>`backend/tests/test_extended_feature_api.py` :: `test_profile_avatar_and_compatibility_endpoints` | PASS |  |
+| C2.1 | TC-C2.1 | Theme mode (day/night/eye-care) | `frontend/tests/atomic-features.spec.ts` :: `teacher profile settings course lesson-pack ai-config and material-update`<br>`frontend/tests/atomic-features.spec.ts` :: `public homepage keeps the student card readable in night mode`<br>`frontend/tests/extended-coverage.spec.ts` :: `legacy redirects admin filter teacher settings profile assignment review and analytics pages`<br>`backend/tests/test_extended_feature_api.py` :: `test_profile_avatar_and_compatibility_endpoints` | PASS | Public homepage night-theme contrast is now explicitly regression-tested in addition to the authenticated settings flow. |
 | C2.2 | TC-C2.2 | Accent color (blue/green/purple/orange/gray) | `frontend/tests/atomic-features.spec.ts` :: `teacher profile settings course lesson-pack ai-config and material-update`<br>`frontend/tests/extended-coverage.spec.ts` :: `legacy redirects admin filter teacher settings profile assignment review and analytics pages`<br>`backend/tests/test_extended_feature_api.py` :: `test_profile_avatar_and_compatibility_endpoints` | PASS |  |
 | C2.3 | TC-C2.3 | Font scheme (default/rounded/serif/mono) | `frontend/tests/atomic-features.spec.ts` :: `teacher profile settings course lesson-pack ai-config and material-update`<br>`frontend/tests/extended-coverage.spec.ts` :: `legacy redirects admin filter teacher settings profile assignment review and analytics pages`<br>`backend/tests/test_extended_feature_api.py` :: `test_profile_avatar_and_compatibility_endpoints` | PASS |  |
 | C2.4 | TC-C2.4 | Skin style (clean/tech/gentle) | `frontend/tests/atomic-features.spec.ts` :: `teacher profile settings course lesson-pack ai-config and material-update`<br>`frontend/tests/extended-coverage.spec.ts` :: `legacy redirects admin filter teacher settings profile assignment review and analytics pages`<br>`backend/tests/test_extended_feature_api.py` :: `test_profile_avatar_and_compatibility_endpoints` | PASS |  |

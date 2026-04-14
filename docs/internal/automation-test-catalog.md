@@ -1,6 +1,6 @@
 # HIT-Agent Automation Test Catalog
 
-Updated 2026-04-14 after the async task center rollout and a fresh `bash scripts/verify-all.sh` pass.
+Updated 2026-04-14 after the homepage night-theme contrast fix and a fresh `bash scripts/verify-all.sh` pass.
 
 ## Unified Entry
 
@@ -17,8 +17,8 @@ Updated 2026-04-14 after the async task center rollout and a fresh `bash scripts
     - `tests/user-journeys.spec.ts`
 - Latest one-key result:
   - backend `22 passed`
-  - browser `10 passed`
-  - log dir `/tmp/hit-agent-verify/20260414-040104`
+  - browser `12 passed`
+  - log dir `/tmp/hit-agent-verify/20260414-182836`
 - Validation policy after the frontend redesign:
   - tests should verify real functionality, not preserve old DOM nesting
   - selectors should prefer labels, roles, headings, and stable button names
@@ -85,6 +85,10 @@ Updated 2026-04-14 after the async task center rollout and a fresh `bash scripts
 
 ### `frontend/tests/atomic-features.spec.ts`
 
+- `public homepage hides internal annotations`
+  - Purpose: verify the public homepage no longer exposes internal-facing design annotations and product-internal phrasing.
+- `public homepage keeps the student card readable in night mode`
+  - Purpose: verify the public homepage student experience card remains readable in night mode instead of inheriting low-contrast light text on a light card.
 - `auth routing and admin user management`
   - Purpose: verify registration, login routing, admin create/search/delete user.
 - `teacher profile settings course lesson-pack ai-config and material-update`

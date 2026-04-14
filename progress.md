@@ -264,6 +264,21 @@
   - `backend/app/services/task_job_handlers.py`
   - `frontend/src/app/teacher/assignment-review/page.tsx`
   - `frontend/src/lib/api.ts`
+
+### 已完成：首页夜间主题字体颜色修复
+- 已定位首页夜间主题可读性问题根因：
+  - 学生端体验卡片为浅色背景
+  - 夜间模式下却继承了全局浅色前景文字
+- 已在 `frontend/src/app/globals.css` 增加学生端首页卡片的夜间模式专属深色文字覆盖。
+- 已在 `frontend/tests/atomic-features.spec.ts` 新增真实浏览器用例：
+  - `public homepage keeps the student card readable in night mode`
+- 已完成本地真实截图复核：
+  - `/home/hxfeng/fhx-hit-agent/.tmp/home-night-bug2-local.png`
+- 已刷新全量统一验证结果：
+  - `bash scripts/verify-all.sh` -> 通过
+  - `pytest -q` -> `22 passed`
+  - 浏览器回归 -> `12 passed`
+  - 日志目录：`/tmp/hit-agent-verify/20260414-182836`
 - 重新读取 ECS 运维与部署文档，并对 `8.152.202.171` 做新鲜连通性诊断：
   - `ping` 正常
   - `22/tcp` 可建连
