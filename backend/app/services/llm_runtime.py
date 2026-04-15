@@ -35,13 +35,22 @@ ARK_BASE_URL = _env("ARK_BASE_URL", default="https://ark.cn-beijing.volces.com/a
 ARK_MODEL_TEXT = _env("ARK_MODEL_TEXT", default="doubao-1-5-pro-32k-250115")
 ARK_MODEL_VISION = _env("ARK_MODEL_VISION", default="doubao-1-5-vision-pro-32k-250115")
 
+ZHIPU_API_KEY = _env("ZHIPU_API_KEY")
+ZHIPU_BASE_URL = _env("ZHIPU_BASE_URL", default="https://open.bigmodel.cn/api/coding/paas/v4")
+ZHIPU_MODELS = _env("ZHIPU_MODELS", default="glm-5.1,glm-5,glm-5-turbo,glm-4.7")
+
+DEEPSEEK_EXTRA_MODELS = _env("DEEPSEEK_EXTRA_MODELS", default="")
+
 
 MODEL_DESCRIPTIONS = {
     "default": "平台默认文本模型，适合高质量课程问答与综合解释。",
+    "default-fast": "平台快速模型，适合轻量问答与快速生成。",
     "gpt-smart": "GPT 高质量模型，适合课程概念解释、综合问答和结构化生成。",
     "gpt-fast": "GPT 快速模型，适合课堂即时问答、追问和轻量总结。",
-    "glm-smart": "GLM 高质量模型，适合课程概念解释、推理问答和结构化生成。",
-    "glm-fast": "GLM 快速模型，适合课堂即时问答、连续追问和轻量总结。",
+    "glm-5.1": "GLM-5.1 高质量模型，适合课程概念解释、推理问答和结构化生成。",
+    "glm-5": "GLM-5 通用模型，适合综合问答与内容生成。",
+    "glm-5-turbo": "GLM-5-Turbo 快速模型，适合课堂即时问答和轻量总结。",
+    "glm-4.7": "GLM-4.7 稳定模型，适合通用课程问答与内容创作。",
     "qwen-text": "千问文本模型，适合快速问答、文档总结与中文解释。",
     "qwen-vision": "千问视觉模型，适合图文理解、截图分析与多模态提问。",
     "doubao-text": "豆包文本模型，适合课堂概念讲解、内容生成与总结。",
@@ -161,8 +170,24 @@ def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
             "api_key": DEFAULT_API_KEY,
             "supports_vision": False,
             "is_default": False,
-            "description": "平台快速模型，适合轻量问答与快速生成。",
+            "description": MODEL_DESCRIPTIONS["default-fast"],
         }
+    if DEEPSEEK_EXTRA_MODELS and provider == "deepseek":
+        for model_name in DEEPSEEK_EXTRA_MODELS.split(","):
+            model_name = model_name.strip()
+            if not model_name or model_name in (smart_model, fast_model):
+                continue
+            key = model_name.lower().replace("_", "-")
+            items[key] = {
+                "label": _format_model_label(model_name),
+                "provider": "deepseek",
+                "model_name": model_name,
+                "base_url": DEFAULT_BASE_URL,
+                "api_key": DEFAULT_API_KEY,
+                "supports_vision": False,
+                "is_default": False,
+                "description": f"DeepSeek {model_name}，适合课程问答与内容生成。",
+            }
     return items
 
 
@@ -211,6 +236,24 @@ def _model_catalog() -> Dict[str, Dict[str, Any]]:
             "is_default": False,
             "description": MODEL_DESCRIPTIONS["doubao-vision"],
         }
+    if ZHIPU_API_KEY:
+        for model_name in ZHIPU_MODELS.split(","):
+            model_name = model_name.strip()
+            if not model_name:
+                continue
+            key = model_name.lower().replace("_", "-")
+            desc_key = key
+            description = MODEL_DESCRIPTIONS.get(desc_key, f"GLM {model_name}，适合课程问答与内容生成。")
+            catalog[f"zhipu-{key}"] = {
+                "label": _format_model_label(model_name),
+                "provider": "zhipu",
+                "model_name": model_name,
+                "base_url": ZHIPU_BASE_URL,
+                "api_key": ZHIPU_API_KEY,
+                "supports_vision": False,
+                "is_default": False,
+                "description": description,
+            }
     return catalog
 
 
