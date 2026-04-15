@@ -68,7 +68,7 @@ export default function TeacherAiConfigPage() {
             <Link href="/teacher" className="ui-pill rounded-full px-5 py-3 text-sm font-semibold">
               {pick(language, "返回教师工作台", "Back to Workspace")}
             </Link>
-            <button onClick={() => void saveConfig()} disabled={!selectedCourseId || saving} className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
+            <button onClick={() => void saveConfig()} disabled={!selectedCourseId || saving} className="button-primary rounded-full px-6 py-3 text-sm font-semibold disabled:opacity-60">
               {saving ? pick(language, "保存中...", "Saving...") : pick(language, "保存配置", "Save Setup")}
             </button>
           </>

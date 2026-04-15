@@ -2,6 +2,42 @@
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+
+def _load_env_file(env_path: Path) -> None:
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            continue
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+def _load_runtime_env() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    configured_env = os.getenv("HIT_AGENT_ENV_FILE", "").strip()
+    env_candidates = [
+        Path(configured_env) if configured_env else None,
+        Path("/etc/hit-agent/backend.env"),
+        Path(r"C:\hit-agent\backend.env"),
+        repo_root / ".env",
+    ]
+
+    for candidate in env_candidates:
+        if candidate is None:
+            continue
+        _load_env_file(candidate)
+
+
+_load_runtime_env()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

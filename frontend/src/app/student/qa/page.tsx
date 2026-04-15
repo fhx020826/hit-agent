@@ -293,8 +293,8 @@ export default function StudentQAPage() {
             <div className="space-y-3">
               {answerModes.map((item) => (
                 <button key={item.value} onClick={() => setSelectedMode(item.value)} className={`w-full rounded-[22px] px-4 py-4 text-left transition ${selectedMode === item.value ? "ui-card-active" : "section-card"}`}>
-                  <p className="font-semibold text-slate-900">{item.label}</p>
-                  <p className="mt-1 text-xs leading-6 text-slate-500">{item.desc}</p>
+                  <p className="font-semibold">{item.label}</p>
+                  <p className="mt-1 text-xs leading-6" data-ui-muted>{item.desc}</p>
                 </button>
               ))}
             </div>
@@ -323,8 +323,8 @@ export default function StudentQAPage() {
                 {models.map((model) => (
                   <button key={model.key} onClick={() => { setSelectedModel(model.key); setModelMenuOpen(false); }} className={`w-full rounded-[18px] px-4 py-3 text-left transition ${selectedModel === model.key ? "ui-card-active" : "ui-pill"}`}>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="font-semibold text-slate-900">{model.label}</span>
-                      <span className="text-xs text-slate-500">{getModelBadge(model, language)}</span>
+                      <span className="font-semibold">{model.label}</span>
+                      <span className="text-xs" data-ui-muted>{getModelBadge(model, language)}</span>
                     </div>
                   </button>
                 ))}
@@ -353,7 +353,7 @@ export default function StudentQAPage() {
               <button onClick={() => void handleRequestMaterials()} disabled={requestingMaterials} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">
                 {requestingMaterials ? pick(language, "发送中...", "Sending...") : pick(language, "请求教师共享资料", "Request Materials")}
               </button>
-              <button onClick={() => void handleAsk()} disabled={uploading || submitting} className="rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50">
+              <button onClick={() => void handleAsk()} disabled={uploading || submitting} className="button-primary rounded-full px-5 py-2.5 text-sm font-semibold disabled:opacity-60">
                 {uploading ? pick(language, "上传中...", "Uploading...") : submitting ? pick(language, "提交中...", "Submitting...") : pick(language, "提交问题", "Submit")}
               </button>
             </div>
@@ -430,8 +430,8 @@ export default function StudentQAPage() {
               </div>
 
               {item.ai_answer_content ? (
-                <div className="max-w-[96%] rounded-[26px] border border-[var(--active-border)] bg-[var(--active-surface)] px-5 py-4 text-sm leading-7 text-slate-800">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-contrast)]">{pick(language, "AI 回答", "AI Answer")}</p>
+                <div className="max-w-[96%] rounded-[26px] border px-5 py-4 text-sm leading-7" style={{ borderColor: "var(--interactive-selected-border)", background: "var(--interactive-selected-panel-bg)", color: "var(--interactive-selected-fg)" }}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--interactive-selected-fg)" }}>{pick(language, "AI 回答", "AI Answer")}</p>
                   <RichAnswer content={item.ai_answer_content} className="mt-2" />
                   {item.ai_answer_sources?.length ? (
                     <div className="mt-4 rounded-[18px] border border-slate-200/70 bg-white/70 px-3 py-3">

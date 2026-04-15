@@ -196,7 +196,7 @@ function TeacherMaterialsPageContent() {
                 <p className="text-lg font-bold text-slate-900">{pick(language, "上传教学资料", "Upload Teaching Materials")}</p>
                 <p className="mt-1 text-sm text-slate-500">{pick(language, "支持 PPT、PDF、图片、文档、Markdown 等课堂材料。", "Supports slides, PDFs, images, documents, and Markdown files.")}</p>
               </div>
-              <label className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+              <label className="button-primary rounded-full px-4 py-2 text-sm font-semibold">
                 {uploading ? pick(language, "上传中...", "Uploading...") : pick(language, "选择文件", "Choose File")}
                 <input type="file" className="hidden" onChange={(e) => void handleUpload(e.target.files?.[0] || null)} />
               </label>
@@ -230,7 +230,7 @@ function TeacherMaterialsPageContent() {
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => void handlePreviewMaterial(item)} className="ui-pill rounded-full px-3 py-1.5 text-xs font-semibold">{pick(language, "预览资料", "Preview")}</button>
                       <button onClick={() => void handleDownloadMaterial(item)} className="ui-pill rounded-full px-3 py-1.5 text-xs font-semibold">{pick(language, "下载资料", "Download")}</button>
-                      <button onClick={() => void handleStartLive(item.id)} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800">{pick(language, "开始共享展示", "Start Live View")}</button>
+                      <button onClick={() => void handleStartLive(item.id)} className="button-primary rounded-full px-3 py-1.5 text-xs font-semibold">{pick(language, "开始共享展示", "Start Live View")}</button>
                     </div>
                   </div>
                 </div>
@@ -238,7 +238,7 @@ function TeacherMaterialsPageContent() {
             </div>
             <div className="mt-4 flex items-center justify-between gap-3">
               <p className={`text-sm ${message.toLowerCase().includes("fail") || message.includes("失败") ? "text-rose-700" : "text-slate-500"}`}>{message || pick(language, "勾选资料后可共享到学生端，或直接发起课堂共享展示。", "Choose files to share them with students or start a live classroom view.")} </p>
-              <button onClick={() => void handleShare()} disabled={sharing} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">{sharing ? pick(language, "共享中...", "Sharing...") : pick(language, "共享到学生端", "Share with Students")}</button>
+              <button onClick={() => void handleShare()} disabled={sharing} className="button-primary rounded-full px-5 py-3 text-sm font-semibold disabled:opacity-60">{sharing ? pick(language, "共享中...", "Sharing...") : pick(language, "共享到学生端", "Share with Students")}</button>
             </div>
           </div>
         </div>
@@ -251,10 +251,10 @@ function TeacherMaterialsPageContent() {
           <p className="mt-3 text-sm leading-7 text-slate-600">{pick(language, "最近共享记录、当前课堂同步状态和共享入口都会显示在这里。", "Recent shares, current live state, and share entry points are shown here.")}</p>
           {liveShare ? (
             <div className="mt-4 rounded-[24px] border border-[var(--active-border)] bg-[var(--active-surface)] p-5">
-              <p className="text-sm font-semibold text-[var(--accent-contrast)]">{pick(language, "当前正在共享", "Live Now")}</p>
+              <p className="text-sm font-semibold text-[color:var(--accent-soft-fg)]">{pick(language, "当前正在共享", "Live Now")}</p>
               <p className="mt-2 text-lg font-bold text-slate-900">{pick(language, `共享记录 ${liveShare.id}`, `Share ${liveShare.id}`)}</p>
               <p className="mt-2 text-sm text-slate-600">{pick(language, `当前页：第 ${liveShare.current_page} 页`, `Current page: ${liveShare.current_page}`)}</p>
-              <button onClick={() => router.push(`/teacher/materials/live/${liveShare.id}`)} className="mt-4 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">{pick(language, "进入课堂展示", "Open Live View")}</button>
+              <button onClick={() => router.push(`/teacher/materials/live/${liveShare.id}`)} className="button-primary mt-4 rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "进入课堂展示", "Open Live View")}</button>
             </div>
           ) : null}
           <div className="mt-5 space-y-3">

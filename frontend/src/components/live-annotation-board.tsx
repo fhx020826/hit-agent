@@ -369,7 +369,7 @@ export function LiveAnnotationBoard({
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => updateCurrentPage(page - 1, true)} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "上一页", "Previous")}</button>
                   <button onClick={() => updateCurrentPage(page + 1, true)} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "下一页", "Next")}</button>
-                  <button onClick={() => void api.updateLiveSharePage(share.id, page)} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">{pick(language, "同步当前页", "Sync This Page")}</button>
+                  <button onClick={() => void api.updateLiveSharePage(share.id, page)} className="button-primary rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "同步当前页", "Sync This Page")}</button>
                 </div>
               </div>
             </>

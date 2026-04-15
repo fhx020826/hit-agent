@@ -295,6 +295,116 @@ def test_qa_attachment_folder_notification_and_legacy_student_flow(client):
     assert delete_folder_response.status_code == 200
 
 
+def test_learning_record_nested_folder_notebook_and_sorting_flow(client):
+    student_headers = _login(client, "student", "student_demo", "Student123!")
+
+    create_session_response = client.post(
+        "/api/qa/sessions",
+        json={
+            "course_id": "course-demo-001",
+            "lesson_pack_id": "lp-demo-001",
+            "title": "多级目录测试",
+            "selected_model": "default",
+        },
+        headers=student_headers,
+    )
+    assert create_session_response.status_code == 200
+    session_id = create_session_response.json()["id"]
+
+    root_folder_response = client.post(
+        "/api/qa/folders",
+        json={"course_id": "course-demo-001", "name": "计算机网络", "description": "课程总目录"},
+        headers=student_headers,
+    )
+    assert root_folder_response.status_code == 200
+    root_folder_id = root_folder_response.json()["id"]
+    assert root_folder_response.json()["parent_folder_id"] == ""
+
+    child_folder_response = client.post(
+        "/api/qa/folders",
+        json={"course_id": "course-demo-001", "name": "第2章", "parent_folder_id": root_folder_id},
+        headers=student_headers,
+    )
+    assert child_folder_response.status_code == 200
+    child_folder_id = child_folder_response.json()["id"]
+    assert child_folder_response.json()["parent_folder_id"] == root_folder_id
+
+    notebook_response = client.post(
+        "/api/qa/notebooks",
+        json={
+            "course_id": "course-demo-001",
+            "parent_folder_id": child_folder_id,
+            "title": "HTTP/3 复习提纲",
+            "content_text": "第一部分：连接建立\n第二部分：流复用",
+        },
+        headers=student_headers,
+    )
+    assert notebook_response.status_code == 200
+    notebook_id = notebook_response.json()["id"]
+    assert notebook_response.json()["parent_folder_id"] == child_folder_id
+
+    notebook_image_response = client.post(
+        f"/api/qa/notebooks/{notebook_id}/images",
+        files={"files": ("note.png", b"\x89PNG\r\n\x1a\nnotebook", "image/png")},
+        headers=student_headers,
+    )
+    assert notebook_image_response.status_code == 200
+    assert len(notebook_image_response.json()) == 1
+    image_id = notebook_image_response.json()[0]["id"]
+
+    notebook_detail_response = client.get(f"/api/qa/notebooks/{notebook_id}", headers=student_headers)
+    assert notebook_detail_response.status_code == 200
+    assert notebook_detail_response.json()["image_count"] == 1
+
+    ask_question_response = client.post(
+        "/api/qa/ask",
+        json={
+            "session_id": session_id,
+            "course_id": "course-demo-001",
+            "lesson_pack_id": "lp-demo-001",
+            "question": "请总结 HTTP/3 在学习资料中的核心变化",
+            "answer_target_type": "ai",
+            "anonymous": False,
+            "selected_model": "default",
+            "attachment_ids": [],
+        },
+        headers=student_headers,
+    )
+    assert ask_question_response.status_code == 200
+    question_id = ask_question_response.json()["id"]
+
+    move_question_response = client.put(
+        f"/api/qa/questions/{question_id}/folder",
+        json={"folder_id": child_folder_id},
+        headers=student_headers,
+    )
+    assert move_question_response.status_code == 200
+    assert move_question_response.json()["folder_id"] == child_folder_id
+
+    root_contents_response = client.get("/api/qa/folders/root/contents?course_id=course-demo-001", headers=student_headers)
+    assert root_contents_response.status_code == 200
+    assert any(item["id"] == root_folder_id and item["item_type"] == "folder" for item in root_contents_response.json()["items"])
+
+    child_contents_response = client.get(f"/api/qa/folders/{child_folder_id}/contents?sort_by=updated_at&sort_order=desc", headers=student_headers)
+    assert child_contents_response.status_code == 200
+    child_payload = child_contents_response.json()
+    assert [item["name"] for item in child_payload["breadcrumbs"]] == ["计算机网络", "第2章"]
+    assert any(item["id"] == notebook_id and item["item_type"] == "notebook" for item in child_payload["items"])
+    assert any(item["id"] == question_id and item["item_type"] == "question" for item in child_payload["items"])
+
+    delete_without_cascade_response = client.delete(f"/api/qa/folders/{root_folder_id}", headers=student_headers)
+    assert delete_without_cascade_response.status_code == 400
+
+    delete_image_response = client.delete(f"/api/qa/notebook-images/{image_id}", headers=student_headers)
+    assert delete_image_response.status_code == 200
+
+    cascade_delete_response = client.delete(f"/api/qa/folders/{root_folder_id}?cascade=true", headers=student_headers)
+    assert cascade_delete_response.status_code == 200
+
+    folder_after_delete_response = client.get(f"/api/qa/folders/{child_folder_id}/contents", headers=student_headers)
+    assert folder_after_delete_response.status_code == 404
+
+
 def test_discussion_attachment_and_live_share_end_to_end(client):
     teacher_headers = _login(client, "teacher", "teacher_demo", "Teacher123!")
     student_headers = _login(client, "student", "student_demo", "Student123!")

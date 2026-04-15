@@ -83,7 +83,7 @@ export default function TeacherAssignmentReviewPage() {
               <span className="mb-2 block text-sm font-semibold text-slate-700">{pick(language, "学生提交内容", "Student Submission")}</span>
               <textarea required value={form.submission_text} onChange={(e) => setForm({ ...form, submission_text: e.target.value })} rows={12} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3" placeholder={pick(language, "粘贴学生提交的正文内容", "Paste the student's submission here")} />
             </label>
-            <button disabled={loading || !form.title || !form.submission_text} className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">{loading ? pick(language, "生成中...", "Generating...") : pick(language, "生成辅助批改参考", "Generate Review Notes")}</button>
+            <button disabled={loading || !form.title || !form.submission_text} className="button-primary rounded-full px-6 py-3 text-sm font-semibold disabled:opacity-60">{loading ? pick(language, "生成中...", "Generating...") : pick(language, "生成辅助批改参考", "Generate Review Notes")}</button>
           </form>
 
           <section className="section-card rounded-[24px] p-6">

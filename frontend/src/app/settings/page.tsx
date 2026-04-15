@@ -123,6 +123,9 @@ export default function SettingsPage() {
 
   const roleLabel = user.role === "teacher" ? pick(language, "教师", "Teacher") : user.role === "student" ? pick(language, "学生", "Student") : pick(language, "管理员", "Admin");
 
+  const optionClass = (active: boolean) => active ? "ui-pill-active" : "ui-pill";
+  const optionCardClass = (active: boolean) => active ? "ui-card-active" : "section-card";
+
   return (
     <WorkspacePage tone={tone} className="space-y-5">
       <section className="glass-panel rounded-[32px] px-6 py-8 md:px-8">
@@ -145,7 +148,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-semibold text-slate-700">{pick(language, "语言模式", "Language")}</p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   {LANGUAGE_OPTIONS.map((item) => (
-                    <button key={item.value} onClick={() => updateAppearance("language", item.value)} className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${appearance.language === item.value ? "border-[var(--accent)] bg-[var(--accent-soft)] text-slate-900" : "border-slate-300 bg-white text-slate-700"}`}>
+                    <button key={item.value} onClick={() => updateAppearance("language", item.value)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${optionClass(appearance.language === item.value)}`}>
                       {item.label}
                     </button>
                   ))}
@@ -156,9 +159,9 @@ export default function SettingsPage() {
                 <p className="text-sm font-semibold text-slate-700">{pick(language, "主题模式", "Theme Mode")}</p>
                 <div className="mt-3 grid gap-3 md:grid-cols-3">
                   {modeOptions.map((item) => (
-                    <button key={item.value} onClick={() => updateAppearance("mode", item.value)} className={`rounded-[24px] border px-4 py-4 text-left transition ${appearance.mode === item.value ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-slate-300 bg-white"}`}>
-                      <p className="text-sm font-semibold text-slate-900">{pick(language, item.zh, item.en)}</p>
-                      <p className="mt-2 text-xs leading-6 text-slate-500">{pick(language, item.zhDesc, item.enDesc)}</p>
+                    <button key={item.value} onClick={() => updateAppearance("mode", item.value)} className={`rounded-[24px] px-4 py-4 text-left transition ${optionCardClass(appearance.mode === item.value)}`}>
+                      <p className="text-sm font-semibold">{pick(language, item.zh, item.en)}</p>
+                      <p className="mt-2 text-xs leading-6" data-ui-muted>{pick(language, item.zhDesc, item.enDesc)}</p>
                     </button>
                   ))}
                 </div>
@@ -168,7 +171,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-semibold text-slate-700">{pick(language, "主题主色", "Accent Color")}</p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   {accentOptions.map((item) => (
-                    <button key={item.value} onClick={() => updateAppearance("accent", item.value)} className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${appearance.accent === item.value ? "border-[var(--accent)] bg-[var(--accent-soft)] text-slate-900" : "border-slate-300 bg-white text-slate-700"}`}>
+                    <button key={item.value} onClick={() => updateAppearance("accent", item.value)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${optionClass(appearance.accent === item.value)}`}>
                       {pick(language, item.zh, item.en)}
                     </button>
                   ))}
@@ -179,7 +182,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-semibold text-slate-700">{pick(language, "字体方案", "Font Scheme")}</p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   {fontOptions.map((item) => (
-                    <button key={item.value} onClick={() => updateAppearance("font", item.value)} className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${appearance.font === item.value ? "border-[var(--accent)] bg-[var(--accent-soft)] text-slate-900" : "border-slate-300 bg-white text-slate-700"}`}>
+                    <button key={item.value} onClick={() => updateAppearance("font", item.value)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${optionClass(appearance.font === item.value)}`}>
                       {pick(language, item.zh, item.en)}
                     </button>
                   ))}
@@ -190,7 +193,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-semibold text-slate-700">{pick(language, "皮肤风格", "Skin Style")}</p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   {skinOptions.map((item) => (
-                    <button key={item.value} onClick={() => updateAppearance("skin", item.value)} className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${appearance.skin === item.value ? "border-[var(--accent)] bg-[var(--accent-soft)] text-slate-900" : "border-slate-300 bg-white text-slate-700"}`}>
+                    <button key={item.value} onClick={() => updateAppearance("skin", item.value)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${optionClass(appearance.skin === item.value)}`}>
                       {pick(language, item.zh, item.en)}
                     </button>
                   ))}
@@ -228,7 +231,7 @@ export default function SettingsPage() {
             </label>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button onClick={() => void handlePasswordChange()} disabled={passwordSaving} className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50">
+            <button onClick={() => void handlePasswordChange()} disabled={passwordSaving} className="button-primary rounded-full px-5 py-3 text-sm font-semibold disabled:opacity-60">
               {passwordSaving ? pick(language, "提交中...", "Submitting...") : pick(language, "更新密码", "Update Password")}
             </button>
             <button onClick={() => void logout().then(() => router.push("/"))} className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-white">
@@ -242,7 +245,7 @@ export default function SettingsPage() {
           <p className={`text-sm ${message.includes("已") || message.toLowerCase().includes("saved") ? "text-emerald-700" : "text-slate-500"}`}>
             {message || pick(language, "修改后建议点击保存，以便跨设备和下次登录自动恢复。", "Click save after changes so your preferences persist across devices and future sign-ins.")}
           </p>
-          <button onClick={() => void handleSave()} disabled={saving} className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50">
+          <button onClick={() => void handleSave()} disabled={saving} className="button-primary rounded-full px-6 py-3 text-sm font-semibold disabled:opacity-60">
             {saving ? pick(language, "保存中...", "Saving...") : pick(language, "保存设置", "Save Settings")}
           </button>
         </div>

@@ -96,11 +96,11 @@ export default function StudentFeedbackPage() {
                   <p className="font-semibold text-slate-900">{question.title}</p>
                   {question.type === "rating" ? (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {[1, 2, 3, 4, 5].map((score) => <button key={score} onClick={() => setAnswers((prev) => ({ ...prev, [survey.id]: { ...(prev[survey.id] || {}), [question.id]: score } }))} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${answers[survey.id]?.[question.id] === score ? "bg-slate-900 text-white" : "border border-slate-300 bg-white text-slate-700"}`}>{score}{pick(language, " 分", "",)}</button>)}
+                      {[1, 2, 3, 4, 5].map((score) => <button key={score} onClick={() => setAnswers((prev) => ({ ...prev, [survey.id]: { ...(prev[survey.id] || {}), [question.id]: score } }))} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${answers[survey.id]?.[question.id] === score ? "ui-pill-active" : "ui-pill"}`}>{score}{pick(language, " 分", "",)}</button>)}
                     </div>
                   ) : question.type === "choice" ? (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {(question.options || []).map((option) => <button key={option} onClick={() => setAnswers((prev) => ({ ...prev, [survey.id]: { ...(prev[survey.id] || {}), [question.id]: option } }))} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${answers[survey.id]?.[question.id] === option ? "bg-slate-900 text-white" : "border border-slate-300 bg-white text-slate-700"}`}>{option}</button>)}
+                      {(question.options || []).map((option) => <button key={option} onClick={() => setAnswers((prev) => ({ ...prev, [survey.id]: { ...(prev[survey.id] || {}), [question.id]: option } }))} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${answers[survey.id]?.[question.id] === option ? "ui-pill-active" : "ui-pill"}`}>{option}</button>)}
                     </div>
                   ) : (
                     <textarea rows={3} value={String(answers[survey.id]?.[question.id] || "")} onChange={(e) => setAnswers((prev) => ({ ...prev, [survey.id]: { ...(prev[survey.id] || {}), [question.id]: e.target.value } }))} placeholder={pick(language, "可选填文字建议", "Optional comments")} className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm" />
@@ -113,7 +113,7 @@ export default function StudentFeedbackPage() {
                 await api.submitSurvey(survey.id, answers[survey.id] || {});
                 setMessage(pick(language, "匿名反馈已提交，感谢你的教学改进建议。", "Feedback submitted. Thank you for helping improve the course."));
                 await reload();
-              }} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">{pick(language, "提交匿名反馈", "Submit Feedback")}</button>
+              }} className="button-primary rounded-full px-5 py-3 text-sm font-semibold">{pick(language, "提交匿名反馈", "Submit Feedback")}</button>
               <button onClick={async () => {
                 await api.skipSurvey(survey.id);
                 setMessage(pick(language, "已为你标记稍后忽略。", "Marked to ignore for now."));

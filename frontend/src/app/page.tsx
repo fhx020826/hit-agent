@@ -57,7 +57,7 @@ export default function HomePage() {
             <Link
               href={loading ? "/" : user ? targetHref : "/settings"}
               data-home-action="primary"
-              className="home-hero-action rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+              className="home-hero-action button-primary rounded-full px-6 py-3 text-sm font-semibold"
             >
               {loading
                 ? pick(language, "正在识别身份...", "Checking role...")

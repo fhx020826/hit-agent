@@ -232,7 +232,7 @@ export function AuthModal({ open, initialMode = "login", onClose }: { open: bool
               ? pick(language, "注册后会保留你的学习记录与作业记录。", "Your learning and assignment records stay with this account after registration.")
               : pick(language, "登录后会自动进入对应角色的工作台。", "After signing in, the correct workspace opens automatically.")}
           </p>
-          <button onClick={handleSubmit} disabled={submitting || !form.account.trim() || !form.password.trim()} className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+          <button onClick={handleSubmit} disabled={submitting || !form.account.trim() || !form.password.trim()} className="button-primary rounded-full px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60">
             {submitting ? pick(language, "提交中...", "Submitting...") : mode === "login" ? pick(language, "立即登录", "Sign In Now") : pick(language, "完成注册", "Create Account")}
           </button>
         </div>

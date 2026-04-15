@@ -129,7 +129,7 @@ export default function TeacherDashboard() {
         }
         actions={
           <>
-            <Link href="/teacher/course" className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+            <Link href="/teacher/course" className="button-primary rounded-full px-6 py-3 text-sm font-semibold">
               {pick(language, "新建课程设计", "New Course Design")}
             </Link>
             <Link href="/teacher/questions" className="ui-pill rounded-full px-6 py-3 text-sm font-semibold">

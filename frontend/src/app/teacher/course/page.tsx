@@ -108,7 +108,7 @@ export default function CourseCreatePage() {
           <Link href="/teacher" className="ui-pill rounded-full px-5 py-3 text-sm font-semibold">
             {pick(language, "取消", "Cancel")}
           </Link>
-          <button type="submit" disabled={loading} className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
+          <button type="submit" disabled={loading} className="button-primary rounded-full px-6 py-3 text-sm font-semibold disabled:opacity-60">
             {loading ? pick(language, "创建中...", "Creating...") : pick(language, "创建并生成课程包", "Create and Generate")}
           </button>
         </div>

@@ -26,6 +26,7 @@ _RUNTIME_DIRECTORIES = {
     "uploads": _UPLOAD_DIR_PATH,
     "backups": _BACKUP_DIR_PATH,
     "questions": _UPLOAD_DIR_PATH / "questions",
+    "notebooks": _UPLOAD_DIR_PATH / "notebooks",
     "assignments": _UPLOAD_DIR_PATH / "assignments",
     "profiles": _UPLOAD_DIR_PATH / "profiles",
     "material_updates": _UPLOAD_DIR_PATH / "material_updates",
@@ -40,6 +41,7 @@ DATA_DIR = str(_RUNTIME_DIRECTORIES["data"])
 UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["uploads"])
 BACKUP_DIR = str(_RUNTIME_DIRECTORIES["backups"])
 QUESTION_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["questions"])
+NOTEBOOK_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["notebooks"])
 ASSIGNMENT_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["assignments"])
 PROFILE_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["profiles"])
 MATERIAL_UPDATE_UPLOAD_DIR = str(_RUNTIME_DIRECTORIES["material_updates"])

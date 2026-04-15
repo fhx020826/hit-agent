@@ -286,6 +286,8 @@ export interface QuestionRecord {
   collected: boolean;
   folder_id: string;
   folder_name: string;
+  title: string;
+  note: string;
   created_at: string;
   updated_at: string;
   attachment_items: UploadedAttachment[];
@@ -320,11 +322,68 @@ export interface WeaknessAnalysis {
 export interface QuestionFolderItem {
   id: string;
   course_id: string;
+  parent_folder_id: string;
   name: string;
   description: string;
+  depth: number;
   question_count: number;
+  notebook_count: number;
+  child_folder_count: number;
+  total_item_count: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface QuestionFolderBreadcrumb {
+  id: string;
+  name: string;
+}
+
+export interface LearningNotebookImageItem {
+  id: string;
+  notebook_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  created_at: string;
+  download_url: string;
+}
+
+export interface LearningNotebookItem {
+  id: string;
+  course_id: string;
+  parent_folder_id: string;
+  title: string;
+  content_text: string;
+  is_starred: boolean;
+  image_count: number;
+  created_at: string;
+  updated_at: string;
+  images: LearningNotebookImageItem[];
+}
+
+export interface LearningDirectoryItem {
+  id: string;
+  item_type: "folder" | "notebook" | "question";
+  course_id: string;
+  parent_folder_id: string;
+  name: string;
+  summary: string;
+  updated_at: string;
+  created_at: string;
+  folder?: QuestionFolderItem | null;
+  notebook?: LearningNotebookItem | null;
+  question?: QuestionRecord | null;
+}
+
+export interface FolderContentsResponse {
+  folder?: QuestionFolderItem | null;
+  breadcrumbs: QuestionFolderBreadcrumb[];
+  items: LearningDirectoryItem[];
+  sort_by: string;
+  sort_order: string;
+  current_depth: number;
+  max_depth: number;
 }
 
 export interface AssignmentSummary {
@@ -736,9 +795,32 @@ export const api = {
   getChatSession: (sessionId: string) => request<ChatSessionDetail>(`/api/qa/sessions/${sessionId}`),
   askQuestion: (payload: { session_id: string; course_id: string; lesson_pack_id?: string; question: string; answer_target_type: "ai" | "teacher" | "both"; anonymous: boolean; selected_model: string; attachment_ids: string[] }) => request<QuestionRecord>("/api/qa/ask", { method: "POST", body: JSON.stringify(payload) }),
   listQuestionFolders: (courseId?: string) => request<QuestionFolderItem[]>(`/api/qa/folders${courseId ? `?course_id=${courseId}` : ""}`),
-  createQuestionFolder: (payload: { course_id: string; name: string; description?: string }) => request<QuestionFolderItem>("/api/qa/folders", { method: "POST", body: JSON.stringify(payload) }),
+  getRootQuestionFolderContents: (params?: { courseId?: string; sortBy?: string; sortOrder?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.courseId) q.set("course_id", params.courseId);
+    if (params?.sortBy) q.set("sort_by", params.sortBy);
+    if (params?.sortOrder) q.set("sort_order", params.sortOrder);
+    return request<FolderContentsResponse>(`/api/qa/folders/root/contents${q.toString() ? `?${q.toString()}` : ""}`);
+  },
+  getQuestionFolderContents: (folderId: string, params?: { sortBy?: string; sortOrder?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.sortBy) q.set("sort_by", params.sortBy);
+    if (params?.sortOrder) q.set("sort_order", params.sortOrder);
+    return request<FolderContentsResponse>(`/api/qa/folders/${folderId}/contents${q.toString() ? `?${q.toString()}` : ""}`);
+  },
+  createQuestionFolder: (payload: { course_id: string; name: string; description?: string; parent_folder_id?: string }) => request<QuestionFolderItem>("/api/qa/folders", { method: "POST", body: JSON.stringify(payload) }),
   updateQuestionFolder: (folderId: string, payload: { name: string; description?: string }) => request<QuestionFolderItem>(`/api/qa/folders/${folderId}`, { method: "PUT", body: JSON.stringify(payload) }),
-  deleteQuestionFolder: (folderId: string) => request<{ status: string }>(`/api/qa/folders/${folderId}`, { method: "DELETE" }),
+  deleteQuestionFolder: (folderId: string, cascade = false) => request<{ status: string }>(`/api/qa/folders/${folderId}${cascade ? "?cascade=true" : ""}`, { method: "DELETE" }),
+  createLearningNotebook: (payload: { course_id: string; parent_folder_id?: string; title: string; content_text?: string }) => request<LearningNotebookItem>("/api/qa/notebooks", { method: "POST", body: JSON.stringify(payload) }),
+  getLearningNotebook: (notebookId: string) => request<LearningNotebookItem>(`/api/qa/notebooks/${notebookId}`),
+  updateLearningNotebook: (notebookId: string, payload: { title: string; content_text: string; is_starred?: boolean }) => request<LearningNotebookItem>(`/api/qa/notebooks/${notebookId}`, { method: "PUT", body: JSON.stringify(payload) }),
+  deleteLearningNotebook: (notebookId: string) => request<{ status: string }>(`/api/qa/notebooks/${notebookId}`, { method: "DELETE" }),
+  uploadLearningNotebookImages: async (notebookId: string, files: File[]) => {
+    const form = new FormData();
+    files.forEach((file) => form.append("files", file));
+    return request<LearningNotebookImageItem[]>(`/api/qa/notebooks/${notebookId}/images`, { method: "POST", body: form });
+  },
+  deleteLearningNotebookImage: (imageId: string) => request<{ status: string }>(`/api/qa/notebook-images/${imageId}`, { method: "DELETE" }),
   listQuestionHistory: (params?: { courseId?: string; folderId?: string; collectedOnly?: boolean }) => {
     const q = new URLSearchParams();
     if (params?.courseId) q.set("course_id", params.courseId);

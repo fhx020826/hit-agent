@@ -151,7 +151,7 @@ function GenerateContent() {
             description={`${pick(language, "当前状态：", "Status: ")}${pack.status === "published" ? pick(language, "已发布", "Published") : pick(language, "草稿", "Draft")}`}
             actions={
               <div className="workspace-inline-actions">
-                <button onClick={handlePublish} disabled={publishing || pack.status === "published"} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
+                <button onClick={handlePublish} disabled={publishing || pack.status === "published"} className="button-primary rounded-full px-5 py-3 text-sm font-semibold disabled:opacity-60">
                   {pack.status === "published" ? pick(language, "已发布给学生", "Published to Students") : publishing ? pick(language, "发布中...", "Publishing...") : pick(language, "发布给学生", "Publish to Students")}
                 </button>
                 <Link href={`/teacher/lesson-pack/${pack.id}`} className="ui-pill rounded-full px-5 py-3 text-sm font-semibold">

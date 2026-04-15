@@ -220,7 +220,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-900">{pick(language, "上传自定义头像", "Upload a Custom Avatar")}</p>
-                <label className="mt-3 inline-flex cursor-pointer rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white">
+                <label className="button-primary mt-3 inline-flex cursor-pointer rounded-full px-4 py-2 text-sm font-semibold">
                   {uploadingAvatar ? pick(language, "上传中...", "Uploading...") : pick(language, "上传图片", "Upload Image")}
                   <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => void handleAvatarUpload(e.target.files?.[0] || null)} />
                 </label>
@@ -245,7 +245,7 @@ export default function ProfilePage() {
           <p className={`text-sm ${(message.includes("已") || message.toLowerCase().includes("saved") || message.toLowerCase().includes("updated")) ? "text-emerald-700" : "text-slate-500"}`}>
             {message || pick(language, "建议完善资料，便于教师进行班级管理与教学统计。", "Keeping your profile complete helps with class management and teaching analytics.")}
           </p>
-          <button onClick={() => void handleSave()} disabled={saving} className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50">
+          <button onClick={() => void handleSave()} disabled={saving} className="button-primary rounded-full px-6 py-3 text-sm font-semibold disabled:opacity-60">
             {saving ? pick(language, "保存中...", "Saving...") : pick(language, "保存个人资料", "Save Profile")}
           </button>
         </div>

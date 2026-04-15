@@ -467,7 +467,7 @@ export default function TeacherQuestionsPage() {
               </div>
               <textarea value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} rows={7} placeholder={pick(language, "请输入教师回复内容，可用于补充、纠正或延伸说明。", "Enter the teacher reply here to supplement, correct, or extend the explanation.")} className="mt-4 w-full rounded-[24px] border border-slate-300 bg-white px-4 py-4 text-sm leading-7 text-slate-900" />
               <div className="mt-4 flex flex-wrap gap-3">
-                <button onClick={() => void submitReply("replied")} className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90">
+                <button onClick={() => void submitReply("replied")} className="button-primary rounded-full px-5 py-3 text-sm font-semibold">
                   {pick(language, "提交回复", "Submit Reply")}
                 </button>
                 <button onClick={() => void submitReply("pending")} className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-white">

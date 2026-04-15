@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -39,6 +39,7 @@ class QuestionFolderCreate(BaseModel):
     course_id: str
     name: str
     description: str = ""
+    parent_folder_id: str = ""
 
 
 class QuestionFolderUpdate(BaseModel):
@@ -50,14 +51,84 @@ class QuestionFolderAssign(BaseModel):
     folder_id: str = ""
 
 
+class QuestionFolderBreadcrumb(BaseModel):
+    id: str
+    name: str
+
+
 class QuestionFolderItem(BaseModel):
     id: str
     course_id: str
+    parent_folder_id: str = ""
     name: str
     description: str = ""
+    depth: int = 0
     question_count: int = 0
+    notebook_count: int = 0
+    child_folder_count: int = 0
+    total_item_count: int = 0
     created_at: str
     updated_at: str
+
+
+class LearningNotebookCreate(BaseModel):
+    course_id: str
+    parent_folder_id: str = ""
+    title: str
+    content_text: str = ""
+
+
+class LearningNotebookUpdate(BaseModel):
+    title: str
+    content_text: str = ""
+    is_starred: bool = False
+
+
+class LearningNotebookImageItem(BaseModel):
+    id: str
+    notebook_id: str
+    file_name: str
+    file_type: str
+    file_size: int
+    created_at: str
+    download_url: str
+
+
+class LearningNotebookItem(BaseModel):
+    id: str
+    course_id: str
+    parent_folder_id: str = ""
+    title: str
+    content_text: str = ""
+    is_starred: bool = False
+    image_count: int = 0
+    created_at: str
+    updated_at: str
+    images: List[LearningNotebookImageItem] = Field(default_factory=list)
+
+
+class LearningDirectoryItem(BaseModel):
+    id: str
+    item_type: Literal["folder", "notebook", "question"]
+    course_id: str = ""
+    parent_folder_id: str = ""
+    name: str
+    summary: str = ""
+    updated_at: str
+    created_at: str
+    folder: Optional[QuestionFolderItem] = None
+    notebook: Optional[LearningNotebookItem] = None
+    question: Optional["QuestionRecord"] = None
+
+
+class FolderContentsResponse(BaseModel):
+    folder: Optional[QuestionFolderItem] = None
+    breadcrumbs: List[QuestionFolderBreadcrumb] = Field(default_factory=list)
+    items: List[LearningDirectoryItem] = Field(default_factory=list)
+    sort_by: str = "updated_at"
+    sort_order: str = "desc"
+    current_depth: int = 0
+    max_depth: int = 0
 
 
 class StudentQuestionCreate(BaseModel):
@@ -93,6 +164,8 @@ class QuestionRecord(BaseModel):
     collected: bool = False
     folder_id: str = ""
     folder_name: str = ""
+    title: str = ""
+    note: str = ""
     created_at: str
     updated_at: str
     attachment_items: List[UploadedAttachment] = Field(default_factory=list)

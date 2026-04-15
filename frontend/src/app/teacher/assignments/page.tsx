@@ -258,7 +258,7 @@ export default function TeacherAssignmentsPage() {
                 setMessage(error instanceof Error ? error.message : pick(language, "发布失败，请稍后重试", "Publish failed. Please try again."));
               }
             }}
-            className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="button-primary rounded-full px-5 py-3 text-sm font-semibold"
           >
             {pick(language, "发布作业", "Publish Assignment")}
           </button>

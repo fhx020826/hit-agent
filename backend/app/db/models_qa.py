@@ -40,10 +40,38 @@ class DBQuestionFolder(Base):
     id = Column(String, primary_key=True)
     user_id = Column(String, nullable=False)
     course_id = Column(String, default="")
+    parent_folder_id = Column(String, default="")
     name = Column(String, nullable=False)
     description = Column(Text, default="")
     created_at = Column(String)
     updated_at = Column(String)
+
+
+class DBLearningNotebook(Base):
+    __tablename__ = "learning_notebooks"
+
+    id = Column(String, primary_key=True)
+    user_id = Column(String, nullable=False)
+    course_id = Column(String, default="")
+    parent_folder_id = Column(String, default="")
+    title = Column(String, nullable=False)
+    content_text = Column(Text, default="")
+    is_starred = Column(Integer, default=0)
+    created_at = Column(String)
+    updated_at = Column(String)
+
+
+class DBLearningNotebookImage(Base):
+    __tablename__ = "learning_notebook_images"
+
+    id = Column(String, primary_key=True)
+    notebook_id = Column(String, nullable=False)
+    uploader_user_id = Column(String, nullable=False)
+    file_name = Column(String, nullable=False)
+    file_path = Column(String, default="")
+    file_type = Column(String, default="")
+    file_size = Column(Integer, default=0)
+    created_at = Column(String)
 
 
 class DBQuestion(Base):
@@ -69,6 +97,9 @@ class DBQuestion(Base):
     attachment_count = Column(Integer, default=0)
     input_mode = Column(String, default="text")
     collected = Column(Integer, default=0)
+    title = Column(String, default="")
+    note = Column(Text, default="")
+    parent_folder_id = Column(String, default="")
     folder_id = Column(String, default="")
     created_at = Column(String)
     updated_at = Column(String)

@@ -88,7 +88,7 @@ export default function StudentAssignmentsPage() {
                 } finally {
                   setSubmittingId("");
                 }
-              }} disabled={submittingId === item.assignment.id} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">{submittingId === item.assignment.id ? pick(language, "提交中...", "Submitting...") : item.submission ? pick(language, "重新提交", "Resubmit") : pick(language, "提交作业", "Submit")}</button>
+              }} disabled={submittingId === item.assignment.id} className="button-primary rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60">{submittingId === item.assignment.id ? pick(language, "提交中...", "Submitting...") : item.submission ? pick(language, "重新提交", "Resubmit") : pick(language, "提交作业", "Submit")}</button>
             </div>
 
             {(selectedFiles[item.assignment.id] || []).length > 0 ? <p className="mt-3 text-sm text-slate-500">{pick(language, "待提交文件：", "Queued files: ")}{(selectedFiles[item.assignment.id] || []).map((file) => file.name).join("、")}</p> : null}

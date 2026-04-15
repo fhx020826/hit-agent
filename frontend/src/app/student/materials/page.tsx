@@ -144,11 +144,11 @@ export default function StudentMaterialsPage() {
 
           {liveShare ? (
             <div className="rounded-[26px] border border-[var(--active-border)] bg-[var(--active-surface)] p-6">
-              <p className="text-sm font-semibold text-[var(--accent-contrast)]">{pick(language, "教师正在共享课堂内容", "The teacher is sharing live class content")}</p>
+              <p className="text-sm font-semibold text-[color:var(--accent-soft-fg)]">{pick(language, "教师正在共享课堂内容", "The teacher is sharing live class content")}</p>
               <p className="mt-2 text-lg font-bold text-slate-900">{pick(language, `当前页：第 ${liveShare.current_page} 页`, `Current page: ${liveShare.current_page}`)}</p>
               <button
                 onClick={() => router.push(`/student/materials/live/${liveShare.id}`)}
-                className="mt-4 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="button-primary mt-4 rounded-full px-4 py-2 text-sm font-semibold"
               >
                 {pick(language, "进入同步查看", "Open Live View")}
               </button>
@@ -175,7 +175,7 @@ export default function StudentMaterialsPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         onClick={() => void handlePreviewMaterial(material)}
-                        className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent-contrast)]"
+                        className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--accent-soft-fg)]"
                       >
                         {pick(language, "打开资料", "Open")}
                       </button>
@@ -214,7 +214,7 @@ export default function StudentMaterialsPage() {
           <button
             onClick={() => void handleRequest()}
             disabled={sending}
-            className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+            className="button-primary rounded-full px-5 py-3 text-sm font-semibold disabled:opacity-60"
           >
             {sending ? pick(language, "发送中...", "Sending...") : pick(language, "发送资料请求", "Send Request")}
           </button>

@@ -190,7 +190,7 @@ export default function TeacherFeedbackPage() {
                     setMessage(error instanceof Error ? error.message : pick(language, "创建失败，请稍后重试", "Creation failed. Please try again."));
                   }
                 }}
-                className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="button-primary rounded-full px-5 py-3 text-sm font-semibold"
               >
                 {pick(language, "手动触发反馈问卷", "Trigger Feedback Survey")}
               </button>

@@ -59,7 +59,7 @@ export default function TeacherLiveMaterialPage() {
         title={pick(language, "课堂控制", "Classroom Controls")}
         actions={(
           <div className="workspace-inline-actions">
-            <button onClick={async () => { setClosing(true); await api.endLiveShare(share.id, { save_mode: "save", version_name: pick(language, "课堂批注保存版", "Saved annotated classroom version") }); router.push("/teacher/materials"); }} disabled={closing} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">{pick(language, "结束共享并保存批注", "End and Save Annotations")}</button>
+            <button onClick={async () => { setClosing(true); await api.endLiveShare(share.id, { save_mode: "save", version_name: pick(language, "课堂批注保存版", "Saved annotated classroom version") }); router.push("/teacher/materials"); }} disabled={closing} className="button-primary rounded-full px-5 py-3 text-sm font-semibold">{pick(language, "结束共享并保存批注", "End and Save Annotations")}</button>
             <button onClick={async () => { setClosing(true); await api.endLiveShare(share.id, { save_mode: "discard" }); router.push("/teacher/materials"); }} disabled={closing} className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">{pick(language, "结束共享不保存", "End Without Saving")}</button>
           </div>
         )}

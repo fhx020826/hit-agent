@@ -271,7 +271,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <button onClick={() => openAuth("login")} className="ui-pill rounded-full px-4 py-2 text-sm font-semibold">
                       {t(language, "login")}
                     </button>
-                    <button onClick={() => openAuth("register")} className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90">
+                    <button onClick={() => openAuth("register")} className="button-primary rounded-full px-4 py-2 text-sm font-semibold">
                       {t(language, "register")}
                     </button>
                   </>
@@ -350,7 +350,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               ))}
             </div>
-            <Link href="/settings" className="mt-4 inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white">
+            <Link href="/settings" className="button-primary mt-4 inline-flex rounded-full px-4 py-2 text-sm font-semibold">
               {t(language, "enterSettings")}
             </Link>
           </div>
@@ -379,11 +379,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="mt-4 grid gap-2 text-sm">
-            <Link href="/profile" className="ui-pill rounded-[18px] px-4 py-3 font-semibold text-slate-800">{t(language, "profileCenter")}</Link>
-            <Link href="/settings" className="ui-pill rounded-[18px] px-4 py-3 font-semibold text-slate-800">{t(language, "settingsCenter")}</Link>
-            <Link href="/settings#account-security" className="ui-pill rounded-[18px] px-4 py-3 font-semibold text-slate-800">{t(language, "changePassword")}</Link>
-            {user.role === "admin" ? <Link href="/admin/users" className="ui-pill rounded-[18px] px-4 py-3 font-semibold text-slate-800">{pick(language, "用户管理", "User Management")}</Link> : null}
-            <button onClick={() => void handleLogout()} className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-left font-semibold text-rose-600">{t(language, "logout")}</button>
+            <Link href="/profile" className="ui-pill rounded-[18px] px-4 py-3 font-semibold">{t(language, "profileCenter")}</Link>
+            <Link href="/settings" className="ui-pill rounded-[18px] px-4 py-3 font-semibold">{t(language, "settingsCenter")}</Link>
+            <Link href="/settings#account-security" className="ui-pill rounded-[18px] px-4 py-3 font-semibold">{t(language, "changePassword")}</Link>
+            {user.role === "admin" ? <Link href="/admin/users" className="ui-pill rounded-[18px] px-4 py-3 font-semibold">{pick(language, "用户管理", "User Management")}</Link> : null}
+            <button onClick={() => void handleLogout()} className="button-danger rounded-[18px] px-4 py-3 text-left font-semibold">{t(language, "logout")}</button>
           </div>
         </div>
       ) : null}

@@ -93,8 +93,8 @@ export default function LessonPackDetailPage() {
               <p className="mt-3 text-sm leading-7 text-slate-600">{pick(language, "前沿主题：", "Topic: ")}{frontierTopic?.name || pick(language, "暂无", "Not set")} | {pick(language, "插入位置：", "Placement: ")}{frontierTopic?.insert_position || pick(language, "暂无", "Not set")} | {pick(language, "建议时长：", "Suggested time: ")}{frontierTopic?.time_suggestion || pick(language, "暂无", "Not set")}</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              {pack.status !== "published" && <button onClick={handlePublish} disabled={publishing} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">{publishing ? pick(language, "发布中...", "Publishing...") : pick(language, "发布给学生", "Publish to Students")}</button>}
-              <Link href={`/teacher/review?lp_id=${pack.id}`} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">{pick(language, "查看复盘", "Open Review")}</Link>
+              {pack.status !== "published" && <button onClick={handlePublish} disabled={publishing} className="button-primary rounded-full px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60">{publishing ? pick(language, "发布中...", "Publishing...") : pick(language, "发布给学生", "Publish to Students")}</button>}
+              <Link href={`/teacher/review?lp_id=${pack.id}`} className="button-primary rounded-full px-5 py-3 text-sm font-semibold">{pick(language, "查看复盘", "Open Review")}</Link>
             </div>
           </div>
         </section>

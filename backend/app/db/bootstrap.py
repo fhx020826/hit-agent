@@ -53,7 +53,23 @@ def init_db() -> None:
         ],
     )
     _ensure_columns("courses", [("owner_user_id", "TEXT DEFAULT ''"), ("class_name", "TEXT DEFAULT ''")])
-    _ensure_columns("questions", [("folder_id", "TEXT DEFAULT ''")])
+    _ensure_columns(
+        "questions",
+        [
+            ("folder_id", "TEXT DEFAULT ''"),
+            ("parent_folder_id", "TEXT DEFAULT ''"),
+            ("title", "TEXT DEFAULT ''"),
+            ("note", "TEXT DEFAULT ''"),
+            ("updated_at", "TEXT DEFAULT ''"),
+        ],
+    )
+    _ensure_columns(
+        "question_folders",
+        [
+            ("parent_folder_id", "TEXT DEFAULT ''"),
+            ("description", "TEXT DEFAULT ''"),
+        ],
+    )
     _ensure_columns(
         "materials",
         [

@@ -102,7 +102,7 @@ export default function WeaknessPage() {
           <button
             onClick={() => void loadAnalysis(selectedCourseId, true)}
             disabled={analyzing || !selectedCourseId}
-            className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="button-primary rounded-full px-5 py-3 text-sm font-semibold disabled:opacity-60"
           >
             {analyzing ? pick(language, "分析中...", "Analyzing...") : pick(language, "重新分析", "Refresh Analysis")}
           </button>

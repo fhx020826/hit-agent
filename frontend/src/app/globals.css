@@ -15,11 +15,27 @@
   --accent-soft: rgba(40, 83, 216, 0.14);
   --accent-strong: #17348a;
   --accent-contrast: #0e2148;
+  --accent-soft-fg: #102039;
   --shadow: 0 28px 80px rgba(16, 32, 57, 0.13);
   --shadow-soft: 0 16px 40px rgba(16, 32, 57, 0.08);
   --active-surface: rgba(40, 83, 216, 0.12);
   --active-border: rgba(40, 83, 216, 0.24);
   --active-shadow: 0 12px 32px rgba(40, 83, 216, 0.18);
+  --interactive-selected-bg: linear-gradient(180deg, color-mix(in srgb, var(--active-surface) 72%, white 28%) 0%, color-mix(in srgb, var(--surface-strong) 78%, white 22%) 100%);
+  --interactive-selected-panel-bg: color-mix(in srgb, var(--active-surface) 82%, white 18%);
+  --interactive-selected-border: var(--active-border);
+  --interactive-selected-fg: #102039;
+  --interactive-selected-muted: #344257;
+  --button-primary-bg: var(--accent);
+  --button-primary-hover-bg: var(--accent-strong);
+  --button-primary-fg: #ffffff;
+  --button-primary-disabled-bg: color-mix(in srgb, var(--accent) 44%, var(--surface-strong) 56%);
+  --button-primary-disabled-fg: rgba(255, 255, 255, 0.84);
+  --button-danger-bg: #b42318;
+  --button-danger-hover-bg: #8f1d14;
+  --button-danger-fg: #ffffff;
+  --button-danger-disabled-bg: color-mix(in srgb, #b42318 42%, var(--surface-strong) 58%);
+  --button-danger-disabled-fg: rgba(255, 255, 255, 0.84);
   --font-body: "Avenir Next", "Segoe UI", "Helvetica Neue", "Inter", "Noto Sans", sans-serif;
   --font-display: "Avenir Next", "Segoe UI", "Helvetica Neue", "Inter", "Noto Sans", sans-serif;
   --font-mono: "Cascadia Code", "Consolas", monospace;
@@ -45,6 +61,19 @@ html[data-theme-mode="night"] {
   --border-strong: rgba(154, 172, 199, 0.3);
   --shadow: 0 28px 80px rgba(2, 6, 18, 0.42);
   --shadow-soft: 0 16px 40px rgba(2, 6, 18, 0.26);
+  --interactive-selected-bg: linear-gradient(180deg, color-mix(in srgb, var(--accent) 54%, #16233a 46%) 0%, color-mix(in srgb, var(--accent-strong) 62%, #101a2d 38%) 100%);
+  --interactive-selected-panel-bg: color-mix(in srgb, var(--accent) 32%, #122036 68%);
+  --interactive-selected-border: color-mix(in srgb, var(--accent) 52%, white 48%);
+  --interactive-selected-fg: #f7fbff;
+  --interactive-selected-muted: rgba(237, 243, 255, 0.82);
+  --button-primary-hover-bg: color-mix(in srgb, var(--accent-strong) 78%, #0f1d33 22%);
+  --button-primary-disabled-bg: color-mix(in srgb, var(--accent) 30%, #17253b 70%);
+  --button-primary-disabled-fg: rgba(247, 251, 255, 0.72);
+  --button-danger-bg: #d94937;
+  --button-danger-hover-bg: #b93828;
+  --button-danger-disabled-bg: color-mix(in srgb, #d94937 28%, #17253b 72%);
+  --button-danger-disabled-fg: rgba(247, 251, 255, 0.72);
+  --accent-soft-fg: #f7fbff;
 }
 
 html[data-theme-mode="eye-care"] {
@@ -60,6 +89,8 @@ html[data-theme-mode="eye-care"] {
   --border-strong: rgba(47, 73, 60, 0.22);
   --shadow: 0 28px 80px rgba(47, 73, 60, 0.14);
   --shadow-soft: 0 16px 40px rgba(47, 73, 60, 0.1);
+  --interactive-selected-fg: #17352c;
+  --interactive-selected-muted: #2f493c;
 }
 
 html[data-theme-accent="green"] {
@@ -327,10 +358,22 @@ input[type="radio"]:focus {
 .ui-pill-active,
 .ui-card-active,
 .ui-tab-active {
-  border-color: var(--active-border);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--active-surface) 72%, white 28%) 0%, color-mix(in srgb, var(--surface-strong) 78%, white 22%) 100%);
-  color: var(--accent-contrast);
+  border-color: var(--interactive-selected-border);
+  background: var(--interactive-selected-bg);
+  color: var(--interactive-selected-fg);
   box-shadow: var(--active-shadow);
+}
+
+.ui-pill-active :is(p, span, strong, small),
+.ui-card-active :is(p, span, strong, small),
+.ui-tab-active :is(p, span, strong, small) {
+  color: inherit;
+}
+
+.ui-pill-active [data-ui-muted],
+.ui-card-active [data-ui-muted],
+.ui-tab-active [data-ui-muted] {
+  color: var(--interactive-selected-muted);
 }
 
 .ui-tab-active {
@@ -492,9 +535,9 @@ input[type="radio"]:focus {
 }
 
 .shell-nav-link-active {
-  border-color: color-mix(in srgb, var(--active-border) 90%, white 10%);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--active-surface) 72%, white 28%) 0%, color-mix(in srgb, var(--surface-strong) 82%, white 18%) 100%);
-  color: var(--accent-contrast);
+  border-color: var(--interactive-selected-border);
+  background: var(--interactive-selected-bg);
+  color: var(--interactive-selected-fg);
   box-shadow: var(--active-shadow);
 }
 
@@ -684,8 +727,8 @@ html[data-theme-mode="night"] .app-shell[data-app-role="guest"] .shell-context-n
 }
 
 .shell-mobile-link-active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--active-surface) 74%, white 26%) 0%, color-mix(in srgb, var(--surface-strong) 82%, white 18%) 100%);
-  color: var(--accent-contrast);
+  background: var(--interactive-selected-bg);
+  color: var(--interactive-selected-fg);
   box-shadow: var(--active-shadow);
 }
 
@@ -772,6 +815,55 @@ html[data-theme-mode="night"] .app-shell[data-app-role="guest"] .shell-context-n
     background 180ms ease,
     opacity 180ms ease,
     transform 180ms ease;
+}
+
+.button-primary,
+.button-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px solid transparent;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.button-primary {
+  background: var(--button-primary-bg);
+  color: var(--button-primary-fg) !important;
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--button-primary-bg) 26%, transparent 74%);
+}
+
+.button-primary:hover {
+  background: var(--button-primary-hover-bg);
+}
+
+.button-primary:disabled,
+.button-primary[aria-disabled="true"] {
+  background: var(--button-primary-disabled-bg);
+  color: var(--button-primary-disabled-fg) !important;
+  box-shadow: none;
+}
+
+.button-danger {
+  background: var(--button-danger-bg);
+  color: var(--button-danger-fg) !important;
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--button-danger-bg) 22%, transparent 78%);
+}
+
+.button-danger:hover {
+  background: var(--button-danger-hover-bg);
+}
+
+.button-danger:disabled,
+.button-danger[aria-disabled="true"] {
+  background: var(--button-danger-disabled-bg);
+  color: var(--button-danger-disabled-fg) !important;
+  box-shadow: none;
 }
 
 .button-strong:hover {

@@ -152,7 +152,7 @@ export default function MaterialUpdatePage() {
                   {models.length === 0 ? <div className="rounded-[18px] border border-dashed border-slate-300 px-4 py-5 text-sm text-slate-500">{pick(language, "当前没有已接入模型。请在后端配置 API Key、Base URL 和模型名称。", "No models are connected yet. Configure the API key, base URL, and model name on the backend.")}</div> : models.map((model) => (
                     <button key={model.key} type="button" onClick={() => { setSelectedModel(model.key); setModelMenuOpen(false); }} className={`mb-2 w-full rounded-[20px] px-4 py-4 text-left transition last:mb-0 ${selectedModel === model.key ? "ui-card-active" : "ui-pill"}`}>
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-slate-900">{model.label}</p>
+                        <p className="text-sm font-semibold">{model.label}</p>
                         <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-500">{model.provider}</span>
                       </div>
                       <p className="mt-2 text-xs leading-6 text-slate-500">{model.description}</p>
@@ -213,7 +213,7 @@ export default function MaterialUpdatePage() {
               }
             }}
             disabled={running || !canRun}
-            className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="button-primary rounded-full px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
           >
             {running ? (activeJob?.status === "queued" ? pick(language, "排队中...", "Queued...") : pick(language, "生成中...", "Generating...")) : pick(language, "生成更新建议", "Generate Update Plan")}
           </button>

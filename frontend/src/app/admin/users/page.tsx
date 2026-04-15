@@ -115,7 +115,7 @@ export default function AdminUsersPage() {
           title={pick(language, "用户管理与角色权限控制", "User management and role control")}
           description={pick(language, "保留搜索、筛选和删除能力，并统一到同一管理面板。", "Keep search, filtering, and deletion in one management surface.")}
           actions={
-            <button onClick={() => void load()} className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+            <button onClick={() => void load()} className="button-primary rounded-full px-5 py-3 text-sm font-semibold">
               {pick(language, "搜索", "Search")}
             </button>
           }
@@ -221,7 +221,7 @@ export default function AdminUsersPage() {
                   setForm({ role: "student", account: "", password: "", display_name: "", status: "active", profile: { ...EMPTY_PROFILE } });
                   await load();
                 }}
-                className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="button-primary rounded-full px-5 py-3 text-sm font-semibold"
               >
                 {pick(language, "创建用户", "Create User")}
               </button>

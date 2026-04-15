@@ -147,7 +147,7 @@ export function DiscussionWorkspace({ user }: { user: CurrentUser }) {
                 </button>
               ))}
             </div>
-            <button onClick={() => void handleSearch()} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">{pick(language, "搜索消息", "Search")}</button>
+            <button onClick={() => void handleSearch()} className="button-primary rounded-full px-4 py-2 text-sm font-semibold">{pick(language, "搜索消息", "Search")}</button>
           </div>
           {searchResult ? (
             <div className="mt-4 space-y-3">
@@ -222,7 +222,7 @@ export function DiscussionWorkspace({ user }: { user: CurrentUser }) {
                       <input type="checkbox" checked={mentionAi} onChange={(e) => setMentionAi(e.target.checked)} />
                       {pick(language, "请 AI 回答", "Ask AI to reply")}
                     </label>
-                    <button onClick={() => void handleSend()} className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">{pick(language, "发送", "Send")}</button>
+                    <button onClick={() => void handleSend()} className="button-primary rounded-full px-5 py-2.5 text-sm font-semibold">{pick(language, "发送", "Send")}</button>
                   </div>
                   {attachments.length > 0 ? (
                     <div className="mt-3 flex flex-wrap gap-2">

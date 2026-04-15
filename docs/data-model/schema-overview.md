@@ -135,8 +135,50 @@
 - `attachment_count`
 - `input_mode`
 - `collected`
+- `title`
+- `note`
+- `parent_folder_id`
 - `created_at`
 - `updated_at`
+
+说明：
+- `parent_folder_id` 用于把问答记录放入任意层级文件夹
+- `folder_id` 继续保留为兼容字段，当前与 `parent_folder_id` 同步维护
+
+### `question_folders`
+- `id`
+- `user_id`
+- `course_id`
+- `parent_folder_id`
+- `name`
+- `description`
+- `created_at`
+- `updated_at`
+
+说明：
+- 通过 `parent_folder_id` 表示多级嵌套
+- 文件夹自身重命名，以及子文件夹/记事簿/问答记录变更时，都会同步刷新祖先目录 `updated_at`
+
+### `learning_notebooks`
+- `id`
+- `user_id`
+- `course_id`
+- `parent_folder_id`
+- `title`
+- `content_text`
+- `is_starred`
+- `created_at`
+- `updated_at`
+
+### `learning_notebook_images`
+- `id`
+- `notebook_id`
+- `uploader_user_id`
+- `file_name`
+- `file_path`
+- `file_type`
+- `file_size`
+- `created_at`
 
 ### `question_attachments`
 - `id`

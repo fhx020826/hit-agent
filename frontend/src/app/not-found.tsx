@@ -25,7 +25,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="button-primary rounded-full px-6 py-3 text-sm font-semibold"
         >
           {pick(language, "返回首页", "Back to Home")}
         </Link>

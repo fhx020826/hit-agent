@@ -113,7 +113,7 @@ export default function StudentDashboard() {
         }
         actions={
           <>
-            <Link href="/student/qa" className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+            <Link href="/student/qa" className="button-primary rounded-full px-6 py-3 text-sm font-semibold">
               {pick(language, "开始提问", "Ask a Question")}
             </Link>
             <Link href="/student/assignments" className="ui-pill rounded-full px-6 py-3 text-sm font-semibold">
