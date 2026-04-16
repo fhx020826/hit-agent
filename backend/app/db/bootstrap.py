@@ -12,6 +12,7 @@ from sqlalchemy import inspect, text
 from .models import (
     DBCourse,
     DBCourseClass,
+    DBCourseMember,
     DBDiscussionMessage,
     DBDiscussionSpace,
     DBDiscussionSpaceMember,
@@ -27,6 +28,7 @@ from .models import (
     DBWeaknessAnalysis,
 )
 from .session import Base, SessionLocal, engine
+from ..services.course_membership import ensure_course_class, ensure_course_member
 
 
 def _ensure_columns(table_name: str, column_defs: Iterable[tuple[str, str]]) -> None:
@@ -52,7 +54,15 @@ def init_db() -> None:
             ("is_anonymous", "INTEGER DEFAULT 0"),
         ],
     )
-    _ensure_columns("courses", [("owner_user_id", "TEXT DEFAULT ''"), ("class_name", "TEXT DEFAULT ''")])
+    _ensure_columns("courses", [("owner_user_id", "TEXT DEFAULT ''"), ("class_name", "TEXT DEFAULT ''"), ("term", "TEXT DEFAULT ''"), ("invite_code", "TEXT DEFAULT ''")])
+    _ensure_columns(
+        "course_classes",
+        [
+            ("term", "TEXT DEFAULT ''"),
+            ("invite_code", "TEXT DEFAULT ''"),
+            ("invite_link_token", "TEXT DEFAULT ''"),
+        ],
+    )
     _ensure_columns(
         "questions",
         [
@@ -271,10 +281,17 @@ def init_db() -> None:
                     id="course-class-demo-001",
                     course_id=demo_course.id,
                     class_name="计科2301班",
+                    term=demo_course.term or "2026春",
                     discussion_space_id=space_id,
+                    invite_code="DEMO2301",
+                    invite_link_token="demo2301link",
                     created_at=datetime.now().isoformat(),
                 )
             )
+        if demo_course:
+            ensure_course_class(db, course_id=demo_course.id, class_name="计科2301班", term=demo_course.term or "2026春")
+            ensure_course_member(db, course_id=demo_course.id, user_id="user-teacher-demo", role="teacher", source="bootstrap")
+            ensure_course_member(db, course_id=demo_course.id, user_id="user-student-demo", role="student", class_name="计科2301班", source="bootstrap")
             db.flush()
             existing_members = db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id == space_id).count()
             if existing_members == 0:

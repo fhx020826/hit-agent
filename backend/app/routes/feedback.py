@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from ..database import DBUser, DBUserProfile, DBSurveyInstance, DBSurveyResponse, DBSurveyTemplate, get_db
 from ..models.schemas import SurveyAnalytics, SurveyInstance, SurveyInstanceCreate, SurveyPendingItem, SurveySubmit, SurveyTemplate
 from ..security import require_roles
+from ..services.course_membership import ensure_student_course_access, ensure_teacher_course_access, list_course_members
 
 router = APIRouter(prefix="/api/feedback", tags=["feedback"])
 
@@ -36,6 +37,7 @@ def list_templates(current_user: dict = Depends(require_roles("teacher", "studen
 
 @router.post("/instances", response_model=SurveyInstance)
 def create_survey_instance(body: SurveyInstanceCreate, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
+    ensure_teacher_course_access(body.course_id, current_user, db)
     template = db.query(DBSurveyTemplate).filter(DBSurveyTemplate.id == body.template_id).first()
     if not template:
         raise HTTPException(status_code=404, detail="问卷模板不存在")
@@ -53,6 +55,8 @@ def list_survey_instances(
     current_user: dict = Depends(require_roles("teacher")),
     db: Session = Depends(get_db),
 ):
+    if course_id:
+        ensure_teacher_course_access(course_id, current_user, db)
     query = db.query(DBSurveyInstance)
     if course_id:
         query = query.filter(DBSurveyInstance.course_id == course_id)
@@ -71,6 +75,10 @@ def list_pending_surveys(current_user: dict = Depends(require_roles("student")),
     for instance in instances:
         if instance.id in handled:
             continue
+        try:
+            ensure_student_course_access(instance.course_id, current_user, db)
+        except HTTPException:
+            continue
         template = db.query(DBSurveyTemplate).filter(DBSurveyTemplate.id == instance.template_id).first()
         items.append(SurveyPendingItem(id=instance.id, lesson_pack_id=instance.lesson_pack_id, course_id=instance.course_id, title=instance.title, questions=json.loads(template.questions_json) if template else [], created_at=instance.created_at))
     return items
@@ -81,6 +89,7 @@ def submit_survey(survey_instance_id: str, body: SurveySubmit, current_user: dic
     instance = db.query(DBSurveyInstance).filter(DBSurveyInstance.id == survey_instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="问卷不存在")
+    ensure_student_course_access(instance.course_id, current_user, db)
     response = db.query(DBSurveyResponse).filter(DBSurveyResponse.survey_instance_id == survey_instance_id, DBSurveyResponse.student_id == current_user["id"]).first()
     if not response:
         response = DBSurveyResponse(survey_instance_id=survey_instance_id, student_id=current_user["id"])
@@ -98,6 +107,7 @@ def skip_survey(survey_instance_id: str, current_user: dict = Depends(require_ro
     instance = db.query(DBSurveyInstance).filter(DBSurveyInstance.id == survey_instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="问卷不存在")
+    ensure_student_course_access(instance.course_id, current_user, db)
     response = db.query(DBSurveyResponse).filter(DBSurveyResponse.survey_instance_id == survey_instance_id, DBSurveyResponse.student_id == current_user["id"]).first()
     if not response:
         response = DBSurveyResponse(survey_instance_id=survey_instance_id, student_id=current_user["id"])
@@ -115,9 +125,10 @@ def get_survey_analytics(survey_instance_id: str, current_user: dict = Depends(r
     instance = db.query(DBSurveyInstance).filter(DBSurveyInstance.id == survey_instance_id).first()
     if not instance:
         raise HTTPException(status_code=404, detail="问卷不存在")
+    ensure_teacher_course_access(instance.course_id, current_user, db)
     template = db.query(DBSurveyTemplate).filter(DBSurveyTemplate.id == instance.template_id).first()
     questions = json.loads(template.questions_json) if template else []
-    students = db.query(DBUser).filter(DBUser.role == "student").all()
+    students = list_course_members(db, instance.course_id, role="student")
     responses = db.query(DBSurveyResponse).filter(DBSurveyResponse.survey_instance_id == survey_instance_id, DBSurveyResponse.submitted == 1).all()
     rating_breakdown = defaultdict(Counter)
     choice_breakdown = defaultdict(Counter)

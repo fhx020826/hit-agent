@@ -34,6 +34,14 @@ from ..models.schemas import (
     CourseClassItem,
 )
 from ..security import get_current_user, require_roles
+from ..services.course_membership import (
+    active_course_member,
+    ensure_student_course_access,
+    ensure_teacher_course_access,
+    list_course_class_rows,
+    list_course_members,
+    student_course_class_names,
+)
 from ..services.llm_service import assignment_review_preview, extract_text_from_file
 
 router = APIRouter(prefix="/api/assignments", tags=["assignments"])
@@ -99,7 +107,7 @@ def _teacher_class_options(current_user: dict, db: Session, course_id: str = "")
             seen.add((course.id, primary_class))
             options.append(CourseClassItem(id=f"{course.id}:{primary_class}", course_id=course.id, class_name=primary_class, discussion_space_id=""))
 
-        extra_classes = db.query(DBCourseClass).filter(DBCourseClass.course_id == course.id).order_by(DBCourseClass.created_at.asc()).all()
+        extra_classes = list_course_class_rows(db, course.id)
         for item in extra_classes:
             class_name = (item.class_name or "").strip()
             if not class_name or (course.id, class_name) in seen:
@@ -107,19 +115,12 @@ def _teacher_class_options(current_user: dict, db: Session, course_id: str = "")
             seen.add((course.id, class_name))
             options.append(CourseClassItem(id=item.id, course_id=course.id, class_name=class_name, discussion_space_id=item.discussion_space_id or ""))
 
-    profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
-    linked_classes = json.loads(profile.linked_classes_json or "[]") if profile and profile.linked_classes_json else []
-    fallback_course_id = course_id or (rows[0].id if rows else "")
-    for class_name in linked_classes:
-        normalized = str(class_name).strip()
-        if normalized and (fallback_course_id, normalized) not in seen:
-            seen.add((fallback_course_id, normalized))
-            options.append(CourseClassItem(id=f"linked:{normalized}", course_id=fallback_course_id, class_name=normalized, discussion_space_id=""))
     return options
 
 
 @router.post("", response_model=AssignmentSummary)
 def create_assignment(body: AssignmentCreate, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
+    ensure_teacher_course_access(body.course_id, current_user, db)
     row = DBAssignment(
         id=f"asg-{uuid4().hex[:8]}",
         teacher_id=current_user["id"],
@@ -160,11 +161,14 @@ def list_teacher_class_options(
 
 @router.get("/student", response_model=list[AssignmentStudentView])
 def list_student_assignments(current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
-    profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
-    class_name = profile.class_name if profile else ""
-    rows = db.query(DBAssignment).filter((DBAssignment.target_class == class_name) | (DBAssignment.target_class == "")).order_by(DBAssignment.created_at.desc()).all()
+    rows = db.query(DBAssignment).order_by(DBAssignment.created_at.desc()).all()
     result = []
     for row in rows:
+        member = active_course_member(db, course_id=row.course_id, user_id=current_user["id"], role="student")
+        if not member:
+            continue
+        if row.target_class and row.target_class != (member.class_name or ""):
+            continue
         receipt = db.query(DBAssignmentReceipt).filter(DBAssignmentReceipt.assignment_id == row.id, DBAssignmentReceipt.student_id == current_user["id"]).first()
         submission = db.query(DBAssignmentSubmission).filter(DBAssignmentSubmission.assignment_id == row.id, DBAssignmentSubmission.student_id == current_user["id"]).first()
         feedback = db.query(DBAssignmentFeedback).filter(DBAssignmentFeedback.submission_id == submission.id).first() if submission else None
@@ -190,6 +194,7 @@ def confirm_assignment(assignment_id: str, current_user: dict = Depends(require_
     assignment = db.query(DBAssignment).filter(DBAssignment.id == assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=404, detail="作业不存在")
+    ensure_student_course_access(assignment.course_id, current_user, db)
     row = db.query(DBAssignmentReceipt).filter(DBAssignmentReceipt.assignment_id == assignment_id, DBAssignmentReceipt.student_id == current_user["id"]).first()
     if not row:
         row = DBAssignmentReceipt(id=f"rcpt-{uuid4().hex[:8]}", assignment_id=assignment_id, student_id=current_user["id"], created_at=datetime.now().isoformat())
@@ -205,6 +210,7 @@ def submit_assignment(assignment_id: str, files: list[UploadFile] = File(...), c
     assignment = db.query(DBAssignment).filter(DBAssignment.id == assignment_id).first()
     if not assignment:
         raise HTTPException(status_code=404, detail="作业不存在")
+    ensure_student_course_access(assignment.course_id, current_user, db)
     submission = db.query(DBAssignmentSubmission).filter(DBAssignmentSubmission.assignment_id == assignment_id, DBAssignmentSubmission.student_id == current_user["id"]).first()
     now = datetime.now().isoformat()
     if submission and not bool(assignment.allow_resubmit):
@@ -278,7 +284,13 @@ def get_assignment_teacher_detail(assignment_id: str, current_user: dict = Depen
     receipts = {(row.student_id): row for row in db.query(DBAssignmentReceipt).filter(DBAssignmentReceipt.assignment_id == assignment_id).all()}
     submissions = {(row.student_id): row for row in db.query(DBAssignmentSubmission).filter(DBAssignmentSubmission.assignment_id == assignment_id).all()}
 
-    target_students = [student for student in students if assignment.target_class in {"", (profiles.get(student.id).class_name if profiles.get(student.id) else "")}]
+    member_rows = list_course_members(db, assignment.course_id, role="student")
+    allowed_ids = {
+        item.user_id
+        for item in member_rows
+        if assignment.target_class in {"", (item.class_name or "")}
+    }
+    target_students = [student for student in students if student.id in allowed_ids]
     submitted_students = []
     unsubmitted_students = []
     confirmed_but_unsubmitted = []

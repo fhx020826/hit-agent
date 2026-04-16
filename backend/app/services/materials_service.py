@@ -38,6 +38,7 @@ from ..models.schemas import (
     MaterialRequestItem,
     SavedAnnotationVersionItem,
 )
+from .course_membership import active_course_member, ensure_student_course_access, ensure_teacher_course_access
 
 
 class LiveShareManager:
@@ -93,9 +94,9 @@ def can_access_material(row: DBMaterial, current_user: dict[str, Any], db: Sessi
             db.query(DBCourse).filter(DBCourse.id == row.course_id, DBCourse.owner_user_id == current_user["id"]).first()
         )
     if current_user["role"] == "student":
-        profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
-        return bool(row.allow_student_view) and (
-            row.share_scope in {"course", "classroom"} or row.class_name in {"", profile.class_name if profile else ""}
+        member = active_course_member(db, course_id=row.course_id, user_id=current_user["id"], role="student")
+        return bool(member) and bool(row.allow_student_view) and (
+            row.share_scope in {"course", "classroom"} or row.class_name in {"", member.class_name if member else ""}
         )
     return False
 
@@ -174,6 +175,7 @@ def list_visible_material_items(course_id: str, current_user: dict[str, Any], db
 
 
 def create_classroom_share_item(body: ClassroomShareCreate, current_user: dict[str, Any], db: Session) -> ClassroomShare:
+    ensure_teacher_course_access(body.course_id, current_user, db)
     materials = db.query(DBMaterial).filter(DBMaterial.course_id == body.course_id, DBMaterial.id.in_(body.material_ids)).all() if body.material_ids else []
     if body.material_ids and len(materials) != len(body.material_ids):
         raise HTTPException(status_code=400, detail="存在无效的共享资料")
@@ -215,11 +217,12 @@ def list_teacher_share_items(course_id: str | None, current_user: dict[str, Any]
 
 def create_material_request_item(body: MaterialRequestCreate, current_user: dict[str, Any], db: Session) -> MaterialRequestItem:
     now = datetime.now().isoformat()
-    profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
+    ensure_student_course_access(body.course_id, current_user, db)
+    member = active_course_member(db, course_id=body.course_id, user_id=current_user["id"], role="student")
     request_row = DBMaterialRequest(
         id=f"req-{uuid4().hex[:8]}",
         course_id=body.course_id,
-        class_name=profile.class_name if profile else "",
+        class_name=member.class_name if member else "",
         student_id=current_user["id"],
         request_text=body.request_text or "希望教师上传或共享本节课讲义资料。",
         anonymous=0,
@@ -228,7 +231,8 @@ def create_material_request_item(body: MaterialRequestCreate, current_user: dict
     )
     db.add(request_row)
 
-    teachers = db.query(DBUser).filter(DBUser.role == "teacher", DBUser.status == "active").all()
+    course = db.query(DBCourse).filter(DBCourse.id == body.course_id).first()
+    teachers = db.query(DBUser).filter(DBUser.id == (course.owner_user_id if course else "")).all() if course else []
     for teacher in teachers:
         db.add(
             DBTeacherNotification(

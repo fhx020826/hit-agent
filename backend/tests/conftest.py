@@ -16,7 +16,7 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app import database, main
-from app.database import Base, DBCourse, DBLessonPack, DBSurveyTemplate, DBUser, DBUserProfile
+from app.database import Base, DBCourse, DBCourseClass, DBCourseMember, DBLessonPack, DBSurveyTemplate, DBUser, DBUserProfile
 from app.security import hash_password
 from app.services.task_jobs import TaskJobService
 
@@ -120,7 +120,39 @@ def _seed_demo_data(db: Session) -> None:
         duration_minutes=90,
         frontier_direction="智能网络",
         owner_user_id="user-teacher-demo",
+        term="2026春",
+        invite_code="DEMO2301",
         created_at=now,
+    )
+    course_class = DBCourseClass(
+        id="course-class-demo-001",
+        course_id="course-demo-001",
+        class_name="计科2301班",
+        term="2026春",
+        discussion_space_id="",
+        invite_code="DEMO2301",
+        invite_link_token="demo-link-001",
+        created_at=now,
+    )
+    teacher_member = DBCourseMember(
+        id="course-member-teacher-demo",
+        course_id="course-demo-001",
+        class_name="",
+        user_id="user-teacher-demo",
+        role="teacher",
+        status="active",
+        source="seed",
+        joined_at=now,
+    )
+    student_member = DBCourseMember(
+        id="course-member-student-demo",
+        course_id="course-demo-001",
+        class_name="计科2301班",
+        user_id="user-student-demo",
+        role="student",
+        status="active",
+        source="seed",
+        joined_at=now,
     )
 
     lesson_pack = DBLessonPack(
@@ -156,5 +188,5 @@ def _seed_demo_data(db: Session) -> None:
         created_at=now,
     )
 
-    db.add_all([teacher_user, teacher_profile, student_user, student_profile, admin_user, admin_profile, course, lesson_pack, survey_template])
+    db.add_all([teacher_user, teacher_profile, student_user, student_profile, admin_user, admin_profile, course, course_class, teacher_member, student_member, lesson_pack, survey_template])
     db.commit()

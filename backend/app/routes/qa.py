@@ -47,6 +47,7 @@ from ..models.schemas import (
 )
 from ..security import get_current_user, require_roles
 from ..services.llm_service import extract_text_from_file, generate_weakness_analysis, list_available_models
+from ..services.course_membership import ensure_student_course_access
 from ..services.qa_service import (
     attachment_to_schema,
     build_course_context,
@@ -156,6 +157,8 @@ def upload_question_attachments(files: list[UploadFile] = File(...), current_use
 
 @router.post("/sessions", response_model=ChatSessionSummary)
 def create_session(body: ChatSessionCreate, current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
+    if body.course_id:
+        ensure_student_course_access(body.course_id, current_user, db)
     now = _now()
     row = DBChatSession(
         id=f"chat-{uuid4().hex[:8]}",
@@ -175,6 +178,8 @@ def create_session(body: ChatSessionCreate, current_user: dict = Depends(require
 
 @router.get("/sessions", response_model=list[ChatSessionSummary])
 def list_sessions(course_id: str | None = None, current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
+    if course_id:
+        ensure_student_course_access(course_id, current_user, db)
     query = db.query(DBChatSession).filter(DBChatSession.user_id == current_user["id"])
     if course_id:
         query = query.filter(DBChatSession.course_id == course_id)
@@ -197,6 +202,8 @@ def get_session(session_id: str, current_user: dict = Depends(get_current_user),
 
 @router.get("/folders", response_model=list[QuestionFolderItem])
 def list_question_folders(course_id: str | None = None, current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
+    if course_id:
+        ensure_student_course_access(course_id, current_user, db)
     query = db.query(DBQuestionFolder).filter(DBQuestionFolder.user_id == current_user["id"])
     if course_id:
         query = query.filter(DBQuestionFolder.course_id == course_id)
@@ -213,6 +220,8 @@ def get_root_folder_contents(
     db: Session = Depends(get_db),
 ):
     actual_sort_by, actual_sort_order = _normalize_sort(sort_by, sort_order)
+    if course_id:
+        ensure_student_course_access(course_id, current_user, db)
     return build_folder_contents(
         user_id=current_user["id"],
         course_id=course_id,
@@ -245,6 +254,8 @@ def get_folder_contents(
 
 @router.post("/folders", response_model=QuestionFolderItem)
 def create_question_folder(body: QuestionFolderCreate, current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
+    if body.course_id:
+        ensure_student_course_access(body.course_id, current_user, db)
     if not body.name.strip():
         raise HTTPException(status_code=400, detail="文件夹名称不能为空")
     parent = _validate_folder_parent(
@@ -339,6 +350,8 @@ def delete_question_folder(
 
 @router.post("/notebooks", response_model=LearningNotebookItem)
 def create_learning_notebook(body: LearningNotebookCreate, current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
+    if body.course_id:
+        ensure_student_course_access(body.course_id, current_user, db)
     if not body.title.strip():
         raise HTTPException(status_code=400, detail="记事簿标题不能为空")
     parent = _validate_folder_parent(
@@ -485,6 +498,9 @@ def ask_question(body: StudentQuestionCreate, current_user: dict = Depends(requi
     if not body.question.strip() and not body.attachment_ids:
         raise HTTPException(status_code=400, detail="请至少输入问题文字或上传附件")
     session = db.query(DBChatSession).filter(DBChatSession.id == body.session_id, DBChatSession.user_id == current_user["id"]).first()
+    effective_course_id = body.course_id or (session.course_id if session else "")
+    if effective_course_id:
+        ensure_student_course_access(effective_course_id, current_user, db)
     if not session:
         raise HTTPException(status_code=404, detail="问答会话不存在")
 

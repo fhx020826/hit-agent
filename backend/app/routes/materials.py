@@ -8,12 +8,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from ..database import (
-    DBCourse,
-    DBMaterial,
-    MATERIAL_UPLOAD_DIR,
-    get_db,
-)
+from ..database import DBCourse, DBMaterial, MATERIAL_UPLOAD_DIR, get_db
 from ..models.schemas import (
     AnnotationStroke,
     AnnotationStrokeCreate,
@@ -30,6 +25,7 @@ from ..models.schemas import (
     SavedAnnotationVersionItem,
 )
 from ..security import get_current_user, require_roles
+from ..services.course_membership import ensure_student_course_access, ensure_teacher_course_access
 from ..services.llm_service import extract_text_from_file
 from ..services.materials_service import (
     can_access_material,
@@ -57,9 +53,7 @@ router = APIRouter(prefix="/api/materials", tags=["materials"])
 
 @router.post("/upload/{course_id}", response_model=MaterialUploadResponse)
 def upload_material(course_id: str, file: UploadFile = File(...), current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
-    course = db.query(DBCourse).filter(DBCourse.id == course_id).first()
-    if not course:
-        raise HTTPException(status_code=404, detail="课程不存在")
+    course = ensure_teacher_course_access(course_id, current_user, db)
 
     course_dir = os.path.join(MATERIAL_UPLOAD_DIR, course_id)
     os.makedirs(course_dir, exist_ok=True)
@@ -103,6 +97,10 @@ def upload_material(course_id: str, file: UploadFile = File(...), current_user: 
 
 @router.get("/{course_id}", response_model=list[MaterialItem])
 def list_materials(course_id: str, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user["role"] == "student":
+        ensure_student_course_access(course_id, current_user, db)
+    elif current_user["role"] == "teacher":
+        ensure_teacher_course_access(course_id, current_user, db)
     return list_visible_material_items(course_id, current_user, db)
 
 
@@ -125,11 +123,18 @@ def create_classroom_share(body: ClassroomShareCreate, current_user: dict = Depe
 
 @router.get("/shares/current", response_model=list[ClassroomShare])
 def list_current_shares(course_id: str | None = None, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    if course_id:
+        if current_user["role"] == "student":
+            ensure_student_course_access(course_id, current_user, db)
+        elif current_user["role"] == "teacher":
+            ensure_teacher_course_access(course_id, current_user, db)
     return list_current_share_items(course_id, db)
 
 
 @router.get("/shares/teacher", response_model=list[ClassroomShare])
 def list_teacher_shares(course_id: str | None = None, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
+    if course_id:
+        ensure_teacher_course_access(course_id, current_user, db)
     return list_teacher_share_items(course_id, current_user, db)
 
 
@@ -140,6 +145,8 @@ def create_material_request(body: MaterialRequestCreate, current_user: dict = De
 
 @router.get("/requests/teacher", response_model=list[MaterialRequestItem])
 def list_material_requests(course_id: str | None = None, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
+    if course_id:
+        ensure_teacher_course_access(course_id, current_user, db)
     return list_material_request_items(course_id, db)
 
 
@@ -165,6 +172,10 @@ def create_annotation(share_id: str, body: AnnotationStrokeCreate, current_user:
 
 @router.get("/live/current", response_model=LiveShareRecord | None)
 def get_current_live_share(course_id: str, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user["role"] == "student":
+        ensure_student_course_access(course_id, current_user, db)
+    elif current_user["role"] == "teacher":
+        ensure_teacher_course_access(course_id, current_user, db)
     return get_current_live_share_item(course_id, db)
 
 

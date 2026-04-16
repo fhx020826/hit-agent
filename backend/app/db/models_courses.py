@@ -15,12 +15,14 @@ class DBCourse(Base):
     name = Column(String, nullable=False)
     audience = Column(String, default="")
     class_name = Column(String, default="")
+    term = Column(String, default="")
     student_level = Column(String, default="")
     chapter = Column(String, default="")
     objectives = Column(Text, default="")
     duration_minutes = Column(Integer, default=90)
     frontier_direction = Column(String, default="")
     owner_user_id = Column(String, default="")
+    invite_code = Column(String, default="")
     created_at = Column(String)
 
 
@@ -41,5 +43,21 @@ class DBCourseClass(Base):
     id = Column(String, primary_key=True)
     course_id = Column(String, nullable=False)
     class_name = Column(String, nullable=False)
+    term = Column(String, default="")
     discussion_space_id = Column(String, default="")
+    invite_code = Column(String, default="")
+    invite_link_token = Column(String, default="")
     created_at = Column(String)
+
+
+class DBCourseMember(Base):
+    __tablename__ = "course_members"
+
+    id = Column(String, primary_key=True)
+    course_id = Column(String, nullable=False)
+    class_name = Column(String, default="")
+    user_id = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+    status = Column(String, default="active")
+    source = Column(String, default="manual")
+    joined_at = Column(String)
