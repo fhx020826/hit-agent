@@ -129,6 +129,9 @@ export default function TeacherDashboard() {
         }
         actions={
           <>
+            <Link href="/teacher/course-management" className="ui-pill rounded-full px-6 py-3 text-sm font-semibold">
+              {pick(language, "课程与班级管理", "Course & Class Management")}
+            </Link>
             <Link href="/teacher/course" className="button-primary rounded-full px-6 py-3 text-sm font-semibold">
               {pick(language, "新建课程设计", "New Course Design")}
             </Link>

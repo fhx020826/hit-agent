@@ -113,6 +113,9 @@ export default function StudentDashboard() {
         }
         actions={
           <>
+            <Link href="/student/courses" className="ui-pill rounded-full px-6 py-3 text-sm font-semibold">
+              {pick(language, "我的课程 / 加入课程", "My Courses / Join")}
+            </Link>
             <Link href="/student/qa" className="button-primary rounded-full px-6 py-3 text-sm font-semibold">
               {pick(language, "开始提问", "Ask a Question")}
             </Link>

@@ -197,13 +197,52 @@ export interface Course {
   name: string;
   audience: string;
   class_name: string;
+  term: string;
   student_level: string;
   chapter: string;
   objectives: string;
   duration_minutes: number;
   frontier_direction: string;
   owner_user_id: string;
+  invite_code: string;
+  teacher_name: string;
+  discussion_space_count: number;
+  bound_classes: CourseClassBinding[];
+  member_count: number;
+  student_count: number;
+  joined: boolean;
   created_at: string;
+}
+
+export interface CourseClassBinding {
+  id: string;
+  course_id: string;
+  class_name: string;
+  term: string;
+  discussion_space_id: string;
+  invite_code: string;
+  invite_link: string;
+}
+
+export interface CourseMemberSummary {
+  user_id: string;
+  display_name: string;
+  role: string;
+  class_name: string;
+  status: string;
+  joined_at: string;
+}
+
+export interface TeacherCourseManagementDetail extends Course {
+  members: CourseMemberSummary[];
+}
+
+export interface CourseCatalogItem {
+  course_id: string;
+  course_name: string;
+  teacher_name: string;
+  term: string;
+  class_options: string[];
 }
 
 export interface LessonPack {
@@ -711,7 +750,12 @@ export const api = {
   updateMyAppearance: (payload: { mode: string; accent: string; font: string; skin: string; language: string }) => request<AppearanceSetting>("/api/settings/me", { method: "PUT", body: JSON.stringify(payload) }),
 
   listCourses: () => request<Course[]>("/api/courses"),
-  createCourse: (payload: Omit<Course, "id" | "owner_user_id" | "created_at">) => request<Course>("/api/courses", { method: "POST", body: JSON.stringify(payload) }),
+  listTeacherCourseManagement: () => request<TeacherCourseManagementDetail[]>("/api/courses/teacher/manage"),
+  listCourseCatalog: () => request<CourseCatalogItem[]>("/api/courses/student/catalog"),
+  createCourse: (payload: { name: string; audience?: string; class_name?: string; term?: string; student_level?: string; chapter?: string; objectives?: string; duration_minutes?: number; frontier_direction?: string }) => request<TeacherCourseManagementDetail>("/api/courses", { method: "POST", body: JSON.stringify(payload) }),
+  addCourseClass: (courseId: string, payload: { class_name: string; term?: string }) => request<TeacherCourseManagementDetail>(`/api/courses/${courseId}/classes`, { method: "POST", body: JSON.stringify(payload) }),
+  regenerateCourseInviteCode: (courseId: string) => request<TeacherCourseManagementDetail>(`/api/courses/${courseId}/invite-code/regenerate`, { method: "POST" }),
+  joinCourse: (payload: { invite_code: string; class_name?: string }) => request<Course>("/api/courses/join", { method: "POST", body: JSON.stringify(payload) }),
   listLessonPacks: (courseId?: string) => request<LessonPack[]>(`/api/lesson-packs${courseId ? `?course_id=${courseId}` : ""}`),
   generateLessonPack: (courseId: string) => request<LessonPack>(`/api/lesson-packs/generate/${courseId}`, { method: "POST" }),
   createLessonPackJob: (courseId: string) => request<TaskJobRecord>(`/api/task-jobs/lesson-pack-generate/${courseId}`, { method: "POST" }),
