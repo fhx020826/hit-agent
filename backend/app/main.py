@@ -43,7 +43,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import init_db
-from .routes import admin, agent_config, analytics, assignment_review, assignments, auth, courses, discussion, feedback, lesson_packs, material_update, materials, profile, qa, settings, student, task_jobs, users
+from .routes import academic, admin, agent_config, analytics, assignment_review, assignments, auth, courses, discussion, feedback, lesson_packs, material_update, materials, profile, qa, settings, student, task_jobs, users
 from .services.task_jobs import TaskJobService
 
 @asynccontextmanager
@@ -105,6 +105,7 @@ app.include_router(student.router)
 app.include_router(users.router)
 app.include_router(admin.router)
 app.include_router(assignment_review.router)
+app.include_router(academic.router)
 
 
 @app.get("/api/health")

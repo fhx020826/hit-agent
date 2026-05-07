@@ -16,7 +16,9 @@ from ..database import (
     DBAssignmentReceipt,
     DBAssignmentSubmission,
     DBCourse,
+    DBCourseEnrollment,
     DBCourseClass,
+    DBCourseOffering,
     DBUser,
     DBUserProfile,
     get_db,
@@ -34,6 +36,7 @@ from ..models.schemas import (
     CourseClassItem,
 )
 from ..security import get_current_user, require_roles
+from ..services.course_access import assert_student_enrolled, assert_teacher_can_manage_offering
 from ..services.llm_service import assignment_review_preview, extract_text_from_file
 
 router = APIRouter(prefix="/api/assignments", tags=["assignments"])
@@ -44,6 +47,7 @@ def _assignment_to_schema(row: DBAssignment) -> AssignmentSummary:
         id=row.id,
         teacher_id=row.teacher_id,
         course_id=row.course_id,
+        offering_id=row.offering_id or "",
         title=row.title,
         description=row.description,
         target_class=row.target_class,
@@ -124,6 +128,7 @@ def create_assignment(body: AssignmentCreate, current_user: dict = Depends(requi
         id=f"asg-{uuid4().hex[:8]}",
         teacher_id=current_user["id"],
         course_id=body.course_id,
+        offering_id=body.offering_id or "",
         title=body.title,
         description=body.description,
         target_class=body.target_class,
@@ -137,6 +142,8 @@ def create_assignment(body: AssignmentCreate, current_user: dict = Depends(requi
         status="open",
         created_at=datetime.now().isoformat(),
     )
+    if body.offering_id:
+        assert_teacher_can_manage_offering(db, current_user["id"], body.offering_id)
     db.add(row)
     db.commit()
     db.refresh(row)
@@ -160,9 +167,14 @@ def list_teacher_class_options(
 
 @router.get("/student", response_model=list[AssignmentStudentView])
 def list_student_assignments(current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
+    enrolled = db.query(DBCourseEnrollment).filter(DBCourseEnrollment.student_user_id == current_user["id"], DBCourseEnrollment.status == "active").all()
+    offering_ids = [item.offering_id for item in enrolled]
     profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
     class_name = profile.class_name if profile else ""
-    rows = db.query(DBAssignment).filter((DBAssignment.target_class == class_name) | (DBAssignment.target_class == "")).order_by(DBAssignment.created_at.desc()).all()
+    rows = db.query(DBAssignment).filter(
+        (DBAssignment.offering_id.in_(offering_ids)) |
+        ((DBAssignment.offering_id == "") & ((DBAssignment.target_class == class_name) | (DBAssignment.target_class == "")))
+    ).order_by(DBAssignment.created_at.desc()).all()
     result = []
     for row in rows:
         receipt = db.query(DBAssignmentReceipt).filter(DBAssignmentReceipt.assignment_id == row.id, DBAssignmentReceipt.student_id == current_user["id"]).first()
@@ -278,7 +290,11 @@ def get_assignment_teacher_detail(assignment_id: str, current_user: dict = Depen
     receipts = {(row.student_id): row for row in db.query(DBAssignmentReceipt).filter(DBAssignmentReceipt.assignment_id == assignment_id).all()}
     submissions = {(row.student_id): row for row in db.query(DBAssignmentSubmission).filter(DBAssignmentSubmission.assignment_id == assignment_id).all()}
 
-    target_students = [student for student in students if assignment.target_class in {"", (profiles.get(student.id).class_name if profiles.get(student.id) else "")}]
+    if assignment.offering_id:
+        enrolled_students = {e.student_user_id for e in db.query(DBCourseEnrollment).filter(DBCourseEnrollment.offering_id == assignment.offering_id, DBCourseEnrollment.status == "active").all()}
+        target_students = [student for student in students if student.id in enrolled_students]
+    else:
+        target_students = [student for student in students if assignment.target_class in {"", (profiles.get(student.id).class_name if profiles.get(student.id) else "")}]
     submitted_students = []
     unsubmitted_students = []
     confirmed_but_unsubmitted = []
@@ -329,3 +345,7 @@ def download_submission_file(submission_id: str, token: str, current_user: dict 
         if item["token"] == token:
             return FileResponse(item["file_path"], filename=item["file_name"])
     raise HTTPException(status_code=404, detail="文件不存在")
+    if assignment.offering_id:
+        assert_student_enrolled(db, current_user["id"], assignment.offering_id)
+    if assignment.offering_id:
+        assert_student_enrolled(db, current_user["id"], assignment.offering_id)

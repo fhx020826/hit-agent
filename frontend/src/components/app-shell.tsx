@@ -42,6 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const teacherNav = useMemo<NavItem[]>(
     () => [
       { href: "/teacher", label: pick(language, "教师工作台", "Teacher Workspace"), note: pick(language, "总览", "Overview") },
+      { href: "/teacher/course-management", label: pick(language, "课程与班级管理", "Course & Class Management"), note: pick(language, "关系", "Relation") },
       { href: "/teacher/course", label: pick(language, "智能课程设计", "Course Design"), note: pick(language, "设计", "Design") },
       { href: "/teacher/lesson-pack", label: pick(language, "课程包生成", "Lesson Packs"), note: pick(language, "课程包", "Packs") },
       { href: "/teacher/ai-config", label: pick(language, "AI 助教配置", "AI Assistant Setup"), note: pick(language, "配置", "Setup") },
@@ -58,6 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const studentNav = useMemo<NavItem[]>(
     () => [
       { href: "/student", label: pick(language, "学生学习台", "Student Workspace"), note: pick(language, "总览", "Overview") },
+      { href: "/student/courses", label: pick(language, "我的课程", "My Courses"), note: pick(language, "加入", "Join") },
       { href: "/student/qa", label: pick(language, "课程专属 AI 助教", "Course AI Assistant"), note: pick(language, "提问", "Ask") },
       { href: "/student/questions", label: pick(language, "学习问答记录", "Q&A History"), note: pick(language, "归档", "Archive") },
       { href: "/student/discussions", label: pick(language, "课程讨论空间", "Discussion Spaces"), note: pick(language, "讨论", "Discuss") },
@@ -72,6 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const adminNav = useMemo<NavItem[]>(
     () => [
       { href: "/admin/users", label: pick(language, "用户管理", "User Management"), note: pick(language, "账号", "Accounts") },
+      { href: "/admin/academic", label: pick(language, "教务数据管理", "Academic Data"), note: pick(language, "排课", "Schedule") },
       { href: "/teacher/discussions", label: pick(language, "讨论空间总览", "Discussion Overview"), note: pick(language, "讨论", "Discuss") },
       { href: "/teacher/materials", label: pick(language, "资料共享总览", "Material Overview"), note: pick(language, "资料", "Materials") },
     ],

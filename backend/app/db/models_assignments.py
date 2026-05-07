@@ -14,6 +14,7 @@ class DBAssignment(Base):
     id = Column(String, primary_key=True)
     teacher_id = Column(String, nullable=False)
     course_id = Column(String, default="")
+    offering_id = Column(String, default="")
     title = Column(String, nullable=False)
     description = Column(Text, default="")
     target_class = Column(String, default="")

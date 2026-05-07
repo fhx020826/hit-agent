@@ -654,6 +654,49 @@ export interface AdminUserItem {
   email: string;
 }
 
+export interface SchoolClassItem {
+  id: string;
+  name: string;
+  college: string;
+  major: string;
+  grade: string;
+  year: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AcademicCourseItem {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  credit: string;
+  department: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseOfferingItem {
+  id: string;
+  academic_course_id: string;
+  academic_course_name: string;
+  course_id: string;
+  teacher_user_id: string;
+  teacher_name: string;
+  class_id: string;
+  class_name: string;
+  semester: string;
+  invite_code: string;
+  join_enabled: boolean;
+  discussion_space_id: string;
+  status: string;
+  enrolled_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface LiveShareRecord {
   id: string;
   material_id: number;
@@ -780,6 +823,29 @@ export const api = {
   createAdminUser: (payload: { role: "admin" | "teacher" | "student"; account: string; password: string; display_name: string; status: string; profile: Omit<UserProfile, "updated_at"> }) => request<AdminUserItem>("/api/admin/users", { method: "POST", body: JSON.stringify(payload) }),
   updateAdminUser: (userId: string, payload: { display_name: string; status: string; profile: Omit<UserProfile, "updated_at"> }) => request<AdminUserItem>(`/api/admin/users/${userId}`, { method: "PUT", body: JSON.stringify(payload) }),
   deleteAdminUser: (userId: string) => request<{ status: string }>(`/api/admin/users/${userId}`, { method: "DELETE" }),
+  adminListSchoolClasses: () => request<SchoolClassItem[]>("/api/admin/academic/classes"),
+  adminCreateSchoolClass: (payload: { name: string; college?: string; major?: string; grade?: string; year?: string; status?: string }) => request<SchoolClassItem>("/api/admin/academic/classes", { method: "POST", body: JSON.stringify(payload) }),
+  adminListAcademicCourses: () => request<AcademicCourseItem[]>("/api/admin/academic/courses"),
+  adminCreateAcademicCourse: (payload: { name: string; code?: string; description?: string; credit?: string; department?: string; status?: string }) => request<AcademicCourseItem>("/api/admin/academic/courses", { method: "POST", body: JSON.stringify(payload) }),
+  adminSeedDemoSchool: () => request<{ status: string; summary: Record<string, number> }>("/api/admin/academic/seed-demo-school", { method: "POST" }),
+  adminListOfferings: () => request<CourseOfferingItem[]>("/api/admin/academic/offerings"),
+  adminCreateOffering: (payload: { academic_course_id: string; teacher_user_id: string; class_id: string; semester: string; course_id?: string; join_enabled?: boolean }) => request<CourseOfferingItem>("/api/admin/academic/offerings", { method: "POST", body: JSON.stringify(payload) }),
+  adminSyncOfferingStudents: (offeringId: string) => request<{ status: string; synced_students: number }>(`/api/admin/academic/offerings/${offeringId}/sync-class-students`, { method: "POST" }),
+  adminListTeachers: () => request<CurrentUser[]>("/api/admin/academic/teachers"),
+  adminListStudents: (classId?: string) => request<CurrentUser[]>(`/api/admin/academic/students${classId ? `?class_id=${classId}` : ""}`),
+
+  teacherListManagedOfferings: () => request<CourseOfferingItem[]>("/api/teacher/course-management/offerings"),
+  teacherCreateManagedCourse: (payload: { name: string; code?: string; description?: string; credit?: string; department?: string }) => request<AcademicCourseItem>("/api/teacher/course-management/courses", { method: "POST", body: JSON.stringify(payload) }),
+  teacherCreateManagedOffering: (payload: { academic_course_id: string; class_id: string; semester: string; course_id?: string; join_enabled?: boolean }) => request<CourseOfferingItem>("/api/teacher/course-management/offerings", { method: "POST", body: JSON.stringify(payload) }),
+  teacherListOfferingStudents: (offeringId: string) => request<{ student_user_id: string; student_no: string; display_name: string; class_name: string; source: string; joined_at: string }[]>(`/api/teacher/course-management/offerings/${offeringId}/students`),
+  teacherRefreshOfferingInvite: (offeringId: string) => request<CourseOfferingItem>(`/api/teacher/course-management/offerings/${offeringId}/invite`, { method: "POST" }),
+  teacherPatchOffering: (offeringId: string, payload: Record<string, unknown>) => request<CourseOfferingItem>(`/api/teacher/course-management/offerings/${offeringId}`, { method: "PATCH", body: JSON.stringify(payload) }),
+
+  studentMyCourses: () => request<CourseOfferingItem[]>("/api/student/courses"),
+  studentClasses: () => request<SchoolClassItem[]>("/api/student/classes"),
+  studentSearchJoinCourses: (keyword: string) => request<CourseOfferingItem[]>(`/api/student/courses/search?keyword=${encodeURIComponent(keyword)}`),
+  studentJoinCourseByCode: (code: string) => request<CourseOfferingItem>("/api/student/courses/join", { method: "POST", body: JSON.stringify({ code }) }),
+  studentSelectClass: (classId: string) => request<{ status: string; class_name: string }>("/api/student/courses/select-class", { method: "POST", body: JSON.stringify({ class_id: classId }) }),
 
   getAgentConfig: (courseId: string) => request<AgentConfig>(`/api/agent-config/${courseId}`),
   updateAgentConfig: (courseId: string, payload: Omit<AgentConfig, "course_id" | "updated_at">) => request<AgentConfig>(`/api/agent-config/${courseId}`, { method: "PUT", body: JSON.stringify({ ...payload, course_id: courseId }) }),

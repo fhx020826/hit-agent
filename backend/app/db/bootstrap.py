@@ -10,14 +10,18 @@ from uuid import uuid4
 from sqlalchemy import inspect, text
 
 from .models import (
+    DBAcademicCourse,
     DBCourse,
+    DBCourseEnrollment,
     DBCourseClass,
+    DBCourseOffering,
     DBDiscussionMessage,
     DBDiscussionSpace,
     DBDiscussionSpaceMember,
     DBLessonPack,
     DBMaterialUpdateJob,
     DBQALog,
+    DBSchoolClass,
     DBSurveyInstance,
     DBSurveyTemplate,
     DBTeacher,
@@ -27,6 +31,173 @@ from .models import (
     DBWeaknessAnalysis,
 )
 from .session import Base, SessionLocal, engine
+
+
+def _ensure_user(
+    db,
+    *,
+    role: str,
+    account: str,
+    password_hash: str,
+    display_name: str,
+    user_id: str,
+):
+    row = db.query(DBUser).filter(DBUser.account == account).first()
+    if row:
+        return row
+    row = DBUser(
+        id=user_id,
+        role=role,
+        account=account,
+        password_hash=password_hash,
+        display_name=display_name,
+        status="active",
+        created_at=datetime.now().isoformat(),
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def seed_demo_school_data(db) -> dict:
+    from ..security import hash_password
+
+    now = datetime.now().isoformat()
+    classes = [
+        {"name": "2024级智能车辆工程1班", "college": "未来交通学院", "major": "智能车辆工程", "grade": "2024", "year": "2024"},
+        {"name": "2024级人工智能2班", "college": "计算学部", "major": "人工智能", "grade": "2024", "year": "2024"},
+        {"name": "2023级软件工程1班", "college": "计算学部", "major": "软件工程", "grade": "2023", "year": "2023"},
+    ]
+    class_rows: dict[str, DBSchoolClass] = {}
+    for item in classes:
+        row = db.query(DBSchoolClass).filter(DBSchoolClass.name == item["name"]).first()
+        if not row:
+            row = DBSchoolClass(id=f"class-{uuid4().hex[:10]}", status="active", created_at=now, updated_at=now, **item)
+            db.add(row)
+            db.flush()
+        class_rows[item["name"]] = row
+
+    teacher_specs = [
+        ("teacher_demo", "Teacher123!", "示例教师A", "user-teacher-demo"),
+        ("teacher_demo_2", "Teacher123!", "示例教师B", "user-teacher-002"),
+        ("teacher_demo_3", "Teacher123!", "示例教师C", "user-teacher-003"),
+    ]
+    teacher_users = []
+    for account, pwd, name, uid in teacher_specs:
+        teacher_users.append(_ensure_user(db, role="teacher", account=account, password_hash=hash_password(pwd), display_name=name, user_id=uid))
+
+    student_users = []
+    for idx in range(1, 28):
+        account = "student_demo" if idx == 1 else f"student_demo_{idx:02d}"
+        uid = "user-student-demo" if idx == 1 else f"user-student-{idx:03d}"
+        display = f"示例学生{idx:02d}"
+        student_users.append(_ensure_user(db, role="student", account=account, password_hash=hash_password("Student123!"), display_name=display, user_id=uid))
+
+    for idx, stu in enumerate(student_users):
+        class_name = classes[idx % len(classes)]["name"]
+        profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == stu.id).first()
+        if not profile:
+            profile = DBUserProfile(user_id=stu.id, created_at=now)
+            db.add(profile)
+        profile.real_name = stu.display_name
+        profile.class_name = class_name
+        profile.student_no = profile.student_no or f"S2026{idx+1:04d}"
+        profile.college = profile.college or "模拟学院"
+        profile.major = profile.major or "模拟专业"
+        profile.updated_at = now
+
+    for teacher in teacher_users:
+        profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == teacher.id).first()
+        if not profile:
+            profile = DBUserProfile(user_id=teacher.id, created_at=now)
+            db.add(profile)
+        profile.real_name = teacher.display_name
+        profile.department = profile.department or "模拟教研室"
+        profile.teacher_no = profile.teacher_no or f"T2026{teacher.id[-3:]}"
+        profile.updated_at = now
+
+    course_specs = [
+        ("新能源汽车热安全", "NEV-TS-001"),
+        ("智能驾驶感知系统", "AIDR-002"),
+        ("车载嵌入式软件工程", "AUTO-SE-003"),
+        ("数据结构与算法实践", "DSA-004"),
+        ("工程伦理与科研规范", "ETH-005"),
+    ]
+    ac_rows = []
+    for name, code in course_specs:
+        row = db.query(DBAcademicCourse).filter(DBAcademicCourse.code == code).first()
+        if not row:
+            row = DBAcademicCourse(id=f"ac-{uuid4().hex[:10]}", name=name, code=code, description="模拟课程", credit="2.0", department="示例院系", status="active", created_at=now, updated_at=now)
+            db.add(row)
+            db.flush()
+        ac_rows.append(row)
+
+    # Ensure teacher_demo has at least one underlying legacy course.
+    legacy_course = db.query(DBCourse).filter(DBCourse.owner_user_id == "user-teacher-demo").first()
+    if not legacy_course:
+        legacy_course = DBCourse(
+            id=f"course-{uuid4().hex[:8]}",
+            name="示例课程闭环演示",
+            class_name=classes[0]["name"],
+            audience=classes[0]["name"],
+            owner_user_id="user-teacher-demo",
+            frontier_direction="智能教学",
+            created_at=now,
+        )
+        db.add(legacy_course)
+        db.flush()
+
+    for i, ac in enumerate(ac_rows):
+        class_name = classes[i % len(classes)]["name"]
+        teacher = teacher_users[i % len(teacher_users)]
+        clazz = class_rows[class_name]
+        existed = db.query(DBCourseOffering).filter(
+            DBCourseOffering.academic_course_id == ac.id,
+            DBCourseOffering.teacher_user_id == teacher.id,
+            DBCourseOffering.class_id == clazz.id,
+            DBCourseOffering.semester == "2025-2026-2",
+        ).first()
+        if existed:
+            continue
+        invite_code = f"C{i+1}A{abs(hash(ac.code)) % 10000:04d}"
+        space = DBDiscussionSpace(
+            id=f"space-{uuid4().hex[:10]}",
+            course_id=legacy_course.id if i == 0 else "",
+            class_name=class_name,
+            space_name=f"{ac.name}-{class_name}-讨论空间",
+            ai_assistant_enabled=1,
+            created_at=now,
+        )
+        db.add(space)
+        db.flush()
+        off = DBCourseOffering(
+            id=f"off-{uuid4().hex[:10]}",
+            academic_course_id=ac.id,
+            course_id=legacy_course.id if i == 0 else "",
+            teacher_user_id=teacher.id,
+            class_id=clazz.id,
+            semester="2025-2026-2",
+            invite_code=invite_code,
+            join_enabled=1,
+            discussion_space_id=space.id,
+            status="active",
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(off)
+        db.flush()
+        if not db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id == space.id, DBDiscussionSpaceMember.user_id == teacher.id).first():
+            db.add(DBDiscussionSpaceMember(id=f"mem-{uuid4().hex[:8]}", space_id=space.id, user_id=teacher.id, role_in_space="teacher", joined_at=now))
+        for stu in student_users:
+            profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == stu.id).first()
+            if not profile or profile.class_name != class_name:
+                continue
+            if not db.query(DBCourseEnrollment).filter(DBCourseEnrollment.offering_id == off.id, DBCourseEnrollment.student_user_id == stu.id).first():
+                db.add(DBCourseEnrollment(id=f"enr-{uuid4().hex[:10]}", offering_id=off.id, student_user_id=stu.id, class_id=clazz.id, source="admin", status="active", joined_at=now, created_at=now))
+            if not db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id == space.id, DBDiscussionSpaceMember.user_id == stu.id).first():
+                db.add(DBDiscussionSpaceMember(id=f"mem-{uuid4().hex[:8]}", space_id=space.id, user_id=stu.id, role_in_space="student", joined_at=now))
+
+    return {"classes": len(classes), "teachers": len(teacher_users), "students": len(student_users), "academic_courses": len(ac_rows)}
 
 
 def _ensure_columns(table_name: str, column_defs: Iterable[tuple[str, str]]) -> None:
@@ -111,6 +282,11 @@ def init_db() -> None:
             ("embedding_updated_at", "TEXT DEFAULT ''"),
         ],
     )
+    _ensure_columns("assignments", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("chat_sessions", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("questions", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("survey_instances", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("materials", [("offering_id", "TEXT DEFAULT ''")])
 
     from ..security import hash_password
     from ..services.mock_data import get_demo_course, get_demo_lesson_pack
@@ -345,6 +521,7 @@ def init_db() -> None:
                 )
             )
 
+        seed_demo_school_data(db)
         db.commit()
     finally:
         db.close()

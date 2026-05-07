@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class AssignmentCreate(BaseModel):
     course_id: str
+    offering_id: str = ""
     title: str
     description: str = ""
     target_class: str = ""
@@ -23,6 +24,7 @@ class AssignmentSummary(BaseModel):
     id: str
     teacher_id: str
     course_id: str
+    offering_id: str = ""
     title: str
     description: str
     target_class: str
