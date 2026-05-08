@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -9,6 +10,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from ..models.schemas import ModelOption
+from .mimo_client import MiMoClient, MiMoClientError
 
 
 def _env(*names: str, default: Optional[str] = None) -> Optional[str]:
@@ -18,6 +20,7 @@ def _env(*names: str, default: Optional[str] = None) -> Optional[str]:
             return value
     return default
 
+LLM_PROVIDER = (_env("LLM_PROVIDER", default="") or "").strip().lower()
 
 DEFAULT_BASE_URL = _env("LLM_BASE_URL", default="https://api.deepseek.com/chat/completions")
 DEFAULT_API_KEY = _env("LLM_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY", "ZHIPU_API_KEY")
@@ -40,6 +43,10 @@ ZHIPU_BASE_URL = _env("ZHIPU_BASE_URL", default="https://open.bigmodel.cn/api/co
 ZHIPU_MODELS = _env("ZHIPU_MODELS", default="glm-5.1,glm-5,glm-5-turbo,glm-4.7")
 
 DEEPSEEK_EXTRA_MODELS = _env("DEEPSEEK_EXTRA_MODELS", default="")
+MIMO_API_KEY = _env("MIMO_API_KEY")
+MIMO_BASE_URL = _env("MIMO_BASE_URL", default="https://api.xiaomimimo.com/v1")
+MIMO_CHAT_MODEL = _env("MIMO_CHAT_MODEL", default="mimo-v2.5-pro")
+MIMO_TIMEOUT_SECONDS = float(_env("MIMO_TIMEOUT_SECONDS", default="60") or "60")
 
 
 MODEL_DESCRIPTIONS = {
@@ -66,6 +73,8 @@ FALLBACK_NOTES = {
 
 
 def _infer_default_provider() -> str:
+    if LLM_PROVIDER:
+        return LLM_PROVIDER
     base_url = (DEFAULT_BASE_URL or "").lower()
     model_name = (DEFAULT_MODEL_SMART or DEFAULT_MODEL_FAST or "").lower()
     if "openai.com" in base_url or model_name.startswith("gpt") or model_name.startswith("o"):
@@ -74,6 +83,8 @@ def _infer_default_provider() -> str:
         return "zhipu"
     if "deepseek" in base_url or "deepseek" in model_name:
         return "deepseek"
+    if "xiaomimimo.com" in base_url or model_name.startswith("mimo"):
+        return "mimo"
     return "default"
 
 
@@ -96,6 +107,19 @@ def _format_model_label(model_name: str) -> str:
 
 
 def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
+    if _infer_default_provider() == "mimo" and MIMO_API_KEY:
+        return {
+            "default": {
+                "label": _format_model_label(MIMO_CHAT_MODEL or "mimo-v2.5-pro"),
+                "provider": "mimo",
+                "model_name": MIMO_CHAT_MODEL or "mimo-v2.5-pro",
+                "base_url": MIMO_BASE_URL,
+                "api_key": "configured",
+                "supports_vision": False,
+                "is_default": True,
+                "description": "Xiaomi MiMo 大模型，适合课程设计、课堂助教、教师答疑与教学分析。",
+            }
+        }
     if not DEFAULT_API_KEY:
         return {}
     provider = _infer_default_provider()
@@ -381,6 +405,29 @@ def _call_chat_model(messages: List[Dict[str, Any]], *, model_key: str = "defaul
 
     start = time.perf_counter()
     try:
+        if config["provider"] == "mimo":
+            result = asyncio.run(
+                MiMoClient().chat(
+                    messages=messages,
+                    model=config["model_name"],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=False,
+                )
+            )
+            duration_ms = int((time.perf_counter() - start) * 1000)
+            print(f"[LLM] requested={requested_key} used={config['model_name']} provider=mimo ok=true fallback={fallback_used} duration_ms={duration_ms}")
+            return {
+                "success": bool(result.get("content")),
+                "content": result.get("content"),
+                "error": fallback_note,
+                "requested_model_key": requested_key,
+                "used_model_key": next((key for key, value in catalog.items() if value is config), requested_key),
+                "used_model_name": config["model_name"],
+                "provider": "mimo",
+                "duration_ms": duration_ms,
+                "fallback_used": fallback_used,
+            }
         with _get_http_client() as client:
             response = client.post(
                 _normalize_chat_endpoint(config["base_url"]),
@@ -415,6 +462,20 @@ def _call_chat_model(messages: List[Dict[str, Any]], *, model_key: str = "defaul
             "success": bool(content),
             "content": content,
             "error": fallback_note,
+            "requested_model_key": requested_key,
+            "used_model_key": next((key for key, value in catalog.items() if value is config), requested_key),
+            "used_model_name": config["model_name"],
+            "provider": config["provider"],
+            "duration_ms": duration_ms,
+            "fallback_used": fallback_used,
+        }
+    except MiMoClientError as exc:
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        print(f"[LLM] requested={requested_key} provider=mimo ok=false duration_ms={duration_ms} error={type(exc).__name__}")
+        return {
+            "success": False,
+            "content": None,
+            "error": str(exc) or FALLBACK_NOTES["provider_unavailable"],
             "requested_model_key": requested_key,
             "used_model_key": next((key for key, value in catalog.items() if value is config), requested_key),
             "used_model_name": config["model_name"],
