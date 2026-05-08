@@ -18,7 +18,7 @@ from ..database import (
     DBUserProfile,
     get_db,
 )
-from ..db.bootstrap import seed_demo_school_data
+from ..db.bootstrap import export_demo_school_accounts, reset_demo_school_data, seed_demo_school_data
 from ..models.schemas import (
     AcademicCourseCreate,
     AcademicCourseItem,
@@ -184,26 +184,92 @@ def admin_create_academic_course(body: AcademicCourseCreate, current_user: dict 
 
 @router.get("/admin/academic/teachers")
 def admin_list_teachers(current_user: dict = Depends(require_roles("admin")), db: Session = Depends(get_db)):
-    return db.query(DBUser).filter(DBUser.role == "teacher").order_by(DBUser.created_at.desc()).all()
+    teacher_rows = db.query(DBUser).filter(DBUser.role == "teacher").order_by(DBUser.account.asc()).all()
+    offerings = db.query(DBCourseOffering).filter(DBCourseOffering.status == "active").all()
+    profiles = {row.user_id: row for row in db.query(DBUserProfile).all()}
+    return [
+        {
+            "user_id": row.id,
+            "account": row.account,
+            "display_name": row.display_name,
+            "teacher_no": profiles[row.id].teacher_no if profiles.get(row.id) else "",
+            "department": profiles[row.id].department if profiles.get(row.id) else "",
+            "role_title": profiles[row.id].role_title if profiles.get(row.id) else "",
+            "course_count": sum(1 for offering in offerings if offering.teacher_user_id == row.id),
+        }
+        for row in teacher_rows
+    ]
 
 
 @router.get("/admin/academic/students")
 def admin_list_students(class_id: str | None = Query(default=None), current_user: dict = Depends(require_roles("admin")), db: Session = Depends(get_db)):
-    students = db.query(DBUser).filter(DBUser.role == "student").order_by(DBUser.created_at.desc()).all()
-    if not class_id:
-        return students
-    clazz = db.query(DBSchoolClass).filter(DBSchoolClass.id == class_id).first()
-    if not clazz:
-        return []
-    profiles = {p.user_id: p for p in db.query(DBUserProfile).all()}
-    return [s for s in students if profiles.get(s.id) and profiles[s.id].class_name == clazz.name]
+    student_rows = db.query(DBUser).filter(DBUser.role == "student").order_by(DBUser.account.asc()).all()
+    clazz = db.query(DBSchoolClass).filter(DBSchoolClass.id == class_id).first() if class_id else None
+    profiles = {row.user_id: row for row in db.query(DBUserProfile).all()}
+    enrollments = db.query(DBCourseEnrollment).filter(DBCourseEnrollment.status == "active").all()
+    result = []
+    for row in student_rows:
+        profile = profiles.get(row.id)
+        if clazz and (not profile or profile.class_name != clazz.name):
+            continue
+        result.append(
+            {
+                "user_id": row.id,
+                "account": row.account,
+                "display_name": row.display_name,
+                "student_no": profile.student_no if profile else "",
+                "class_name": profile.class_name if profile else "",
+                "major": profile.major if profile else "",
+                "grade": profile.grade if profile else "",
+                "course_count": sum(1 for enrollment in enrollments if enrollment.student_user_id == row.id),
+            }
+        )
+    return result
 
 
 @router.post("/admin/academic/seed-demo-school")
 def admin_seed_demo_school(current_user: dict = Depends(require_roles("admin")), db: Session = Depends(get_db)):
     summary = seed_demo_school_data(db)
     db.commit()
+    return {
+        "status": "ok",
+        "message": "Demo academic data already exists. No duplicate data was created." if summary.get("already_seeded") else "Demo academic data has been generated or completed.",
+        "summary": summary,
+    }
+
+
+@router.post("/admin/academic/reset-demo-school")
+def admin_reset_demo_school(current_user: dict = Depends(require_roles("admin")), db: Session = Depends(get_db)):
+    summary = reset_demo_school_data(db)
+    db.commit()
     return {"status": "ok", "summary": summary}
+
+
+@router.get("/admin/academic/export-accounts")
+def admin_export_demo_accounts(current_user: dict = Depends(require_roles("admin")), db: Session = Depends(get_db)):
+    return export_demo_school_accounts(db)
+
+
+@router.get("/admin/academic/enrollments")
+def admin_list_enrollments(current_user: dict = Depends(require_roles("admin")), db: Session = Depends(get_db)):
+    enrollments = db.query(DBCourseEnrollment).filter(DBCourseEnrollment.status == "active").order_by(DBCourseEnrollment.created_at.desc()).all()
+    offerings = {row.id: row for row in db.query(DBCourseOffering).all()}
+    academic_courses = {row.id: row for row in db.query(DBAcademicCourse).all()}
+    teachers = {row.id: row for row in db.query(DBUser).filter(DBUser.role == "teacher").all()}
+    students = {row.id: row for row in db.query(DBUser).filter(DBUser.role == "student").all()}
+    return [
+        {
+            "enrollment_id": row.id,
+            "student_user_id": row.student_user_id,
+            "student_name": students[row.student_user_id].display_name if students.get(row.student_user_id) else "",
+            "course_id": offerings[row.offering_id].academic_course_id if offerings.get(row.offering_id) else "",
+            "course_name": academic_courses[offerings[row.offering_id].academic_course_id].name if offerings.get(row.offering_id) and academic_courses.get(offerings[row.offering_id].academic_course_id) else "",
+            "teacher_name": teachers[offerings[row.offering_id].teacher_user_id].display_name if offerings.get(row.offering_id) and teachers.get(offerings[row.offering_id].teacher_user_id) else "",
+            "semester": offerings[row.offering_id].semester if offerings.get(row.offering_id) else "",
+            "source": row.source,
+        }
+        for row in enrollments
+    ]
 
 
 @router.post("/admin/academic/offerings", response_model=CourseOfferingItem)
@@ -268,35 +334,12 @@ def teacher_list_offerings(current_user: dict = Depends(require_roles("teacher")
 
 @router.post("/teacher/course-management/courses", response_model=AcademicCourseItem)
 def teacher_create_academic_course(body: TeacherCourseCreate, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
-    now = _now()
-    row = DBAcademicCourse(
-        id=f"ac-{uuid4().hex[:10]}",
-        name=body.name.strip(),
-        code=body.code.strip(),
-        description=body.description,
-        credit=body.credit,
-        department=body.department,
-        status="active",
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return _course_item(row)
+    raise HTTPException(status_code=403, detail="Course relationships are initialized by the admin registrar simulation.")
 
 
 @router.post("/teacher/course-management/offerings", response_model=CourseOfferingItem)
 def teacher_create_offering(body: TeacherCourseOfferingCreate, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
-    payload = CourseOfferingCreate(
-        academic_course_id=body.academic_course_id,
-        teacher_user_id=current_user["id"],
-        class_id=body.class_id,
-        semester=body.semester,
-        course_id=body.course_id,
-        join_enabled=body.join_enabled,
-    )
-    return admin_create_offering(payload, {"id": current_user["id"], "role": "admin"}, db)
+    raise HTTPException(status_code=403, detail="Teaching assignments are initialized by the admin registrar simulation.")
 
 
 @router.get("/teacher/course-management/offerings/{offering_id}/students")
@@ -320,27 +363,12 @@ def teacher_offering_students(offering_id: str, current_user: dict = Depends(req
 
 @router.post("/teacher/course-management/offerings/{offering_id}/invite", response_model=CourseOfferingItem)
 def teacher_refresh_invite_code(offering_id: str, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
-    offering = assert_teacher_can_manage_offering(db, current_user["id"], offering_id)
-    offering.invite_code = _new_invite_code()
-    offering.updated_at = _now()
-    db.commit()
-    db.refresh(offering)
-    return _offering_item(offering, db)
+    raise HTTPException(status_code=403, detail="Invite codes are disabled in the registrar-seeded workflow.")
 
 
 @router.patch("/teacher/course-management/offerings/{offering_id}", response_model=CourseOfferingItem)
 def teacher_patch_offering(offering_id: str, payload: dict, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
-    offering = assert_teacher_can_manage_offering(db, current_user["id"], offering_id)
-    if "semester" in payload:
-        offering.semester = str(payload["semester"])
-    if "join_enabled" in payload:
-        offering.join_enabled = 1 if bool(payload["join_enabled"]) else 0
-    if "status" in payload:
-        offering.status = str(payload["status"])
-    offering.updated_at = _now()
-    db.commit()
-    db.refresh(offering)
-    return _offering_item(offering, db)
+    raise HTTPException(status_code=403, detail="Teaching assignments are managed by the admin registrar simulation.")
 
 
 @router.get("/student/courses", response_model=list[CourseOfferingItem])
@@ -357,25 +385,12 @@ def student_classes(current_user: dict = Depends(require_roles("student")), db: 
 
 @router.get("/student/courses/search", response_model=list[CourseOfferingItem])
 def student_search_courses(keyword: str = Query(default=""), current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
-    rows = db.query(DBCourseOffering).filter(DBCourseOffering.join_enabled == 1, DBCourseOffering.status == "active").all()
-    items = [_offering_item(row, db) for row in rows]
-    text = keyword.strip().lower()
-    if not text:
-        return items
-    return [item for item in items if text in item.academic_course_name.lower() or text in item.class_name.lower() or text in item.invite_code.lower()]
+    return []
 
 
 @router.post("/student/courses/join", response_model=CourseOfferingItem)
 def student_join_course(body: StudentJoinCourseRequest, current_user: dict = Depends(require_roles("student")), db: Session = Depends(get_db)):
-    code = body.code.strip().upper()
-    offering = db.query(DBCourseOffering).filter(DBCourseOffering.invite_code == code, DBCourseOffering.status == "active").first()
-    if not offering or not bool(offering.join_enabled):
-        raise HTTPException(status_code=400, detail="课程码无效或未开放加入")
-    _ensure_enrollment(db, offering, current_user["id"], "code")
-    _sync_offering_members(db, offering)
-    db.commit()
-    db.refresh(offering)
-    return _offering_item(offering, db)
+    raise HTTPException(status_code=403, detail="Students cannot join courses manually in the registrar-seeded workflow.")
 
 
 @router.post("/student/courses/select-class")

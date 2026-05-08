@@ -1,74 +1,83 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 
 def _login(client, role: str, account: str, password: str) -> dict[str, str]:
     resp = client.post("/api/auth/login", json={"role": role, "account": account, "password": password})
     assert resp.status_code == 200
-    token = resp.json()["token"]
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {resp.json()['token']}"}
 
 
-def test_admin_seed_and_offering_flow(client):
+def test_admin_seed_demo_school_is_idempotent(client):
     admin = _login(client, "admin", "admin_demo", "Admin123!")
 
-    seed1 = client.post("/api/admin/academic/seed-demo-school", headers=admin)
-    assert seed1.status_code == 200
-    seed2 = client.post("/api/admin/academic/seed-demo-school", headers=admin)
-    assert seed2.status_code == 200
+    first = client.post("/api/admin/academic/seed-demo-school", headers=admin)
+    second = client.post("/api/admin/academic/seed-demo-school", headers=admin)
 
-    classes = client.get("/api/admin/academic/classes", headers=admin)
-    assert classes.status_code == 200
-    assert len(classes.json()) >= 1
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["summary"]["already_seeded"] is True
 
-    courses = client.get("/api/admin/academic/courses", headers=admin)
-    assert courses.status_code == 200
-    assert len(courses.json()) >= 1
+    teachers = client.get("/api/admin/academic/teachers", headers=admin).json()
+    students = client.get("/api/admin/academic/students", headers=admin).json()
+    courses = client.get("/api/admin/academic/courses", headers=admin).json()
+    offerings = client.get("/api/admin/academic/offerings", headers=admin).json()
+    enrollments = client.get("/api/admin/academic/enrollments", headers=admin).json()
 
-    teachers = client.get("/api/admin/academic/teachers", headers=admin)
-    assert teachers.status_code == 200
-    assert len(teachers.json()) >= 1
-
-    class_id = classes.json()[0]["id"]
-    course_id = courses.json()[0]["id"]
-    teacher_id = teachers.json()[0]["id"]
-
-    create_off = client.post(
-        "/api/admin/academic/offerings",
-        json={
-            "academic_course_id": course_id,
-            "teacher_user_id": teacher_id,
-            "class_id": class_id,
-            "semester": "2025-2026-2",
-            "join_enabled": True,
-        },
-        headers=admin,
-    )
-    assert create_off.status_code == 200
-    offering = create_off.json()
-    assert offering["invite_code"]
-
-    sync = client.post(f"/api/admin/academic/offerings/{offering['id']}/sync-class-students", headers=admin)
-    assert sync.status_code == 200
+    assert len(teachers) >= 6
+    assert len(students) >= 60
+    assert len(courses) >= 8
+    assert len(offerings) >= 8
+    assert len(enrollments) > 0
+    assert all(offering["teacher_user_id"] for offering in offerings)
+    assert all(offering["enrolled_count"] >= 1 for offering in offerings)
 
 
-def test_teacher_student_course_relationship_access(client):
+def test_teacher_and_student_only_see_seeded_relationships(client):
     admin = _login(client, "admin", "admin_demo", "Admin123!")
-    _ = client.post("/api/admin/academic/seed-demo-school", headers=admin)
+    client.post("/api/admin/academic/seed-demo-school", headers=admin)
 
     teacher = _login(client, "teacher", "teacher_demo", "Teacher123!")
     student = _login(client, "student", "student_demo", "Student123!")
 
     teacher_offerings = client.get("/api/teacher/course-management/offerings", headers=teacher)
+    student_courses = client.get("/api/student/courses", headers=student)
+
     assert teacher_offerings.status_code == 200
+    assert student_courses.status_code == 200
     assert len(teacher_offerings.json()) >= 1
+    assert len(student_courses.json()) >= 1
+    assert all(item["teacher_user_id"] == "user-teacher-demo" for item in teacher_offerings.json())
+    assert all(item["enrolled_count"] >= 1 for item in student_courses.json())
 
-    my_courses = client.get("/api/student/courses", headers=student)
-    assert my_courses.status_code == 200
-    assert len(my_courses.json()) >= 1
 
-    invite_code = teacher_offerings.json()[0]["invite_code"]
-    joined = client.post("/api/student/courses/join", json={"code": invite_code}, headers=student)
-    assert joined.status_code == 200
+def test_manual_join_and_teacher_self_binding_are_disabled(client):
+    admin = _login(client, "admin", "admin_demo", "Admin123!")
+    client.post("/api/admin/academic/seed-demo-school", headers=admin)
 
-    bad_join = client.post("/api/student/courses/join", json={"code": "INVALID"}, headers=student)
-    assert bad_join.status_code == 400
+    teacher = _login(client, "teacher", "teacher_demo", "Teacher123!")
+    student = _login(client, "student", "student_demo", "Student123!")
+
+    join_resp = client.post("/api/student/courses/join", json={"code": "DEBUG-001"}, headers=student)
+    create_course_resp = client.post("/api/teacher/course-management/courses", json={"name": "Should Fail"}, headers=teacher)
+    create_offering_resp = client.post(
+        "/api/teacher/course-management/offerings",
+        json={"academic_course_id": "demo-academic-001", "class_id": "demo-class-001", "semester": "2025-2026-2"},
+        headers=teacher,
+    )
+
+    assert join_resp.status_code == 403
+    assert create_course_resp.status_code == 403
+    assert create_offering_resp.status_code == 403
+
+
+def test_admin_can_export_demo_accounts(client):
+    admin = _login(client, "admin", "admin_demo", "Admin123!")
+    client.post("/api/admin/academic/seed-demo-school", headers=admin)
+
+    export_resp = client.get("/api/admin/academic/export-accounts", headers=admin)
+
+    assert export_resp.status_code == 200
+    payload = export_resp.json()
+    assert len(payload["teachers"]) >= 1
+    assert len(payload["students"]) >= 1
+    assert payload["teachers"][0]["initial_password"]

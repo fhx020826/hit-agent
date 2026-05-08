@@ -268,6 +268,7 @@ export interface QuestionRecord {
   id: string;
   session_id: string;
   course_id: string;
+  offering_id: string;
   lesson_pack_id: string;
   question_text: string;
   answer_target_type: "ai" | "teacher" | "both";
@@ -298,6 +299,7 @@ export interface QuestionRecord {
 export interface ChatSessionSummary {
   id: string;
   course_id: string;
+  offering_id: string;
   lesson_pack_id: string;
   title: string;
   selected_model: string;
@@ -390,6 +392,7 @@ export interface AssignmentSummary {
   id: string;
   teacher_id: string;
   course_id: string;
+  offering_id: string;
   title: string;
   description: string;
   target_class: string;
@@ -486,6 +489,7 @@ export interface SurveyPendingItem {
   id: string;
   lesson_pack_id: string;
   course_id: string;
+  offering_id: string;
   title: string;
   questions: { id: string; type: string; title: string; options?: string[] }[];
   created_at: string;
@@ -495,6 +499,7 @@ export interface SurveyInstanceItem {
   id: string;
   lesson_pack_id: string;
   course_id: string;
+  offering_id: string;
   template_id: string;
   title: string;
   status: string;
@@ -546,6 +551,7 @@ export interface TeacherNotification {
 
 export interface MaterialItem {
   id: number;
+  offering_id: string;
   filename: string;
   file_type: string;
   created_at: string;
@@ -556,6 +562,7 @@ export interface MaterialItem {
 export interface ClassroomShare {
   id: string;
   course_id: string;
+  offering_id: string;
   teacher_id: string;
   title: string;
   description: string;
@@ -569,6 +576,7 @@ export interface ClassroomShare {
 export interface MaterialRequestItem {
   id: string;
   course_id: string;
+  offering_id: string;
   student_id: string;
   student_name: string;
   anonymous: boolean;
@@ -580,6 +588,7 @@ export interface MaterialRequestItem {
 export interface DiscussionSpaceSummary {
   id: string;
   course_id: string;
+  offering_id: string;
   class_name: string;
   space_name: string;
   ai_assistant_enabled: boolean;
@@ -697,6 +706,43 @@ export interface CourseOfferingItem {
   updated_at: string;
 }
 
+export interface AdminAcademicTeacherItem {
+  user_id: string;
+  account: string;
+  display_name: string;
+  teacher_no: string;
+  department: string;
+  role_title: string;
+  course_count: number;
+}
+
+export interface AdminAcademicStudentItem {
+  user_id: string;
+  account: string;
+  display_name: string;
+  student_no: string;
+  class_name: string;
+  major: string;
+  grade: string;
+  course_count: number;
+}
+
+export interface AdminAcademicEnrollmentItem {
+  enrollment_id: string;
+  student_user_id: string;
+  student_name: string;
+  course_id: string;
+  course_name: string;
+  teacher_name: string;
+  semester: string;
+  source: string;
+}
+
+export interface DemoAccountExport {
+  teachers: Array<{ account: string; display_name: string; teacher_no: string; department: string; initial_password: string; courses: string[] }>;
+  students: Array<{ account: string; display_name: string; student_no: string; class_name: string; initial_password: string; courses: string[] }>;
+}
+
 export interface LiveShareRecord {
   id: string;
   material_id: number;
@@ -773,10 +819,10 @@ export const api = {
     return request<MaterialItem & { message: string }>(`/api/materials/upload/${courseId}`, { method: "POST", body: form });
   },
   listMaterials: (courseId: string) => request<MaterialItem[]>(`/api/materials/${courseId}`),
-  createClassroomShare: (payload: { course_id: string; material_ids: number[]; title: string; description: string; share_scope?: string; share_type?: string }) => request<ClassroomShare>("/api/materials/share", { method: "POST", body: JSON.stringify(payload) }),
+  createClassroomShare: (payload: { course_id: string; offering_id?: string; material_ids: number[]; title: string; description: string; share_scope?: string; share_type?: string }) => request<ClassroomShare>("/api/materials/share", { method: "POST", body: JSON.stringify(payload) }),
   listCurrentShares: (courseId?: string) => request<ClassroomShare[]>(`/api/materials/shares/current${courseId ? `?course_id=${courseId}` : ""}`),
   listTeacherShares: (courseId?: string) => request<ClassroomShare[]>(`/api/materials/shares/teacher${courseId ? `?course_id=${courseId}` : ""}`),
-  requestCourseMaterial: (payload: { course_id: string; request_text: string }) => request<MaterialRequestItem>("/api/materials/requests", { method: "POST", body: JSON.stringify(payload) }),
+  requestCourseMaterial: (payload: { course_id: string; offering_id?: string; request_text: string }) => request<MaterialRequestItem>("/api/materials/requests", { method: "POST", body: JSON.stringify(payload) }),
   listMaterialRequests: (courseId?: string) => request<MaterialRequestItem[]>(`/api/materials/requests/teacher${courseId ? `?course_id=${courseId}` : ""}`),
   handleMaterialRequest: (requestId: string, status: "approved" | "rejected" | "shared") => request<MaterialRequestItem>(`/api/materials/requests/${requestId}/handle?status=${status}`, { method: "POST" }),
   startLiveShare: (payload: { material_id: number; share_target_type?: string; share_target_id?: string }) => request<LiveShareRecord>("/api/materials/live/start", { method: "POST", body: JSON.stringify(payload) }),
@@ -827,12 +873,15 @@ export const api = {
   adminCreateSchoolClass: (payload: { name: string; college?: string; major?: string; grade?: string; year?: string; status?: string }) => request<SchoolClassItem>("/api/admin/academic/classes", { method: "POST", body: JSON.stringify(payload) }),
   adminListAcademicCourses: () => request<AcademicCourseItem[]>("/api/admin/academic/courses"),
   adminCreateAcademicCourse: (payload: { name: string; code?: string; description?: string; credit?: string; department?: string; status?: string }) => request<AcademicCourseItem>("/api/admin/academic/courses", { method: "POST", body: JSON.stringify(payload) }),
-  adminSeedDemoSchool: () => request<{ status: string; summary: Record<string, number> }>("/api/admin/academic/seed-demo-school", { method: "POST" }),
+  adminSeedDemoSchool: () => request<{ status: string; message: string; summary: Record<string, unknown> }>("/api/admin/academic/seed-demo-school", { method: "POST" }),
+  adminResetDemoSchool: () => request<{ status: string; summary: Record<string, number> }>("/api/admin/academic/reset-demo-school", { method: "POST" }),
+  adminExportDemoAccounts: () => request<DemoAccountExport>("/api/admin/academic/export-accounts"),
   adminListOfferings: () => request<CourseOfferingItem[]>("/api/admin/academic/offerings"),
   adminCreateOffering: (payload: { academic_course_id: string; teacher_user_id: string; class_id: string; semester: string; course_id?: string; join_enabled?: boolean }) => request<CourseOfferingItem>("/api/admin/academic/offerings", { method: "POST", body: JSON.stringify(payload) }),
   adminSyncOfferingStudents: (offeringId: string) => request<{ status: string; synced_students: number }>(`/api/admin/academic/offerings/${offeringId}/sync-class-students`, { method: "POST" }),
-  adminListTeachers: () => request<CurrentUser[]>("/api/admin/academic/teachers"),
-  adminListStudents: (classId?: string) => request<CurrentUser[]>(`/api/admin/academic/students${classId ? `?class_id=${classId}` : ""}`),
+  adminListTeachers: () => request<AdminAcademicTeacherItem[]>("/api/admin/academic/teachers"),
+  adminListStudents: (classId?: string) => request<AdminAcademicStudentItem[]>(`/api/admin/academic/students${classId ? `?class_id=${classId}` : ""}`),
+  adminListEnrollments: () => request<AdminAcademicEnrollmentItem[]>("/api/admin/academic/enrollments"),
 
   teacherListManagedOfferings: () => request<CourseOfferingItem[]>("/api/teacher/course-management/offerings"),
   teacherCreateManagedCourse: (payload: { name: string; code?: string; description?: string; credit?: string; department?: string }) => request<AcademicCourseItem>("/api/teacher/course-management/courses", { method: "POST", body: JSON.stringify(payload) }),
@@ -856,10 +905,10 @@ export const api = {
     files.forEach((file) => form.append("files", file));
     return request<UploadedAttachment[]>("/api/qa/attachments", { method: "POST", body: form });
   },
-  createChatSession: (payload: { course_id: string; lesson_pack_id?: string; title?: string; selected_model?: string }) => request<ChatSessionSummary>("/api/qa/sessions", { method: "POST", body: JSON.stringify(payload) }),
+  createChatSession: (payload: { course_id: string; offering_id?: string; lesson_pack_id?: string; title?: string; selected_model?: string }) => request<ChatSessionSummary>("/api/qa/sessions", { method: "POST", body: JSON.stringify(payload) }),
   listChatSessions: (courseId?: string) => request<ChatSessionSummary[]>(`/api/qa/sessions${courseId ? `?course_id=${courseId}` : ""}`),
   getChatSession: (sessionId: string) => request<ChatSessionDetail>(`/api/qa/sessions/${sessionId}`),
-  askQuestion: (payload: { session_id: string; course_id: string; lesson_pack_id?: string; question: string; answer_target_type: "ai" | "teacher" | "both"; anonymous: boolean; selected_model: string; attachment_ids: string[] }) => request<QuestionRecord>("/api/qa/ask", { method: "POST", body: JSON.stringify(payload) }),
+  askQuestion: (payload: { session_id: string; course_id: string; offering_id?: string; lesson_pack_id?: string; question: string; answer_target_type: "ai" | "teacher" | "both"; anonymous: boolean; selected_model: string; attachment_ids: string[] }) => request<QuestionRecord>("/api/qa/ask", { method: "POST", body: JSON.stringify(payload) }),
   listQuestionFolders: (courseId?: string) => request<QuestionFolderItem[]>(`/api/qa/folders${courseId ? `?course_id=${courseId}` : ""}`),
   getRootQuestionFolderContents: (params?: { courseId?: string; sortBy?: string; sortOrder?: string }) => {
     const q = new URLSearchParams();
@@ -908,7 +957,7 @@ export const api = {
   listTeacherNotifications: () => request<TeacherNotification[]>("/api/qa/teacher/notifications"),
   updateTeacherNotificationRead: (id: string, isRead: boolean) => request<{ status: string; is_read: boolean }>(`/api/qa/teacher/notifications/${id}/read?is_read=${isRead ? "true" : "false"}`, { method: "POST" }),
 
-  createAssignment: (payload: { course_id: string; title: string; description: string; target_class: string; deadline: string; attachment_requirements: string; submission_format: string; grading_notes: string; allow_resubmit: boolean; enable_ai_feedback: boolean; remind_days: number }) => request<AssignmentSummary>("/api/assignments", { method: "POST", body: JSON.stringify(payload) }),
+  createAssignment: (payload: { course_id: string; offering_id?: string; title: string; description: string; target_class: string; deadline: string; attachment_requirements: string; submission_format: string; grading_notes: string; allow_resubmit: boolean; enable_ai_feedback: boolean; remind_days: number }) => request<AssignmentSummary>("/api/assignments", { method: "POST", body: JSON.stringify(payload) }),
   listTeacherAssignments: () => request<AssignmentSummary[]>("/api/assignments/teacher"),
   listTeacherCourseClasses: (courseId?: string) => request<CourseClassItem[]>(`/api/assignments/teacher/class-options${courseId ? `?course_id=${courseId}` : ""}`),
   listStudentAssignments: () => request<AssignmentStudentView[]>("/api/assignments/student"),
@@ -952,7 +1001,7 @@ export const api = {
     if (params?.lessonPackId) q.set("lesson_pack_id", params.lessonPackId);
     return request<SurveyInstanceItem[]>(`/api/feedback/instances${q.toString() ? `?${q.toString()}` : ""}`);
   },
-  createSurveyInstance: (payload: { lesson_pack_id: string; course_id: string; template_id?: string; title?: string; trigger_mode?: string }) => request<SurveyInstanceItem>("/api/feedback/instances", { method: "POST", body: JSON.stringify(payload) }),
+  createSurveyInstance: (payload: { lesson_pack_id: string; course_id: string; offering_id?: string; template_id?: string; title?: string; trigger_mode?: string }) => request<SurveyInstanceItem>("/api/feedback/instances", { method: "POST", body: JSON.stringify(payload) }),
   submitSurvey: (surveyId: string, answers: Record<string, unknown>) => request<{ status: string }>(`/api/feedback/instances/${surveyId}/submit`, { method: "POST", body: JSON.stringify({ answers }) }),
   skipSurvey: (surveyId: string) => request<{ status: string }>(`/api/feedback/instances/${surveyId}/skip`, { method: "POST" }),
   getSurveyAnalytics: (surveyId: string) => request<SurveyAnalytics>(`/api/feedback/analytics/${surveyId}`),
