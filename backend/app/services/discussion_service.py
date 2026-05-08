@@ -9,10 +9,11 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from ..database import (
+    DBCourseEnrollment,
+    DBCourseOffering,
     DBAIDiscussionContextLog,
     DBAppearanceSetting,
     DBCourse,
-    DBCourseClass,
     DBDiscussionMessage,
     DBDiscussionMessageAttachment,
     DBDiscussionSpace,
@@ -43,16 +44,21 @@ def ensure_discussion_space_for_course_class(db: Session, *, course: DBCourse, c
     if not class_name:
         return None
 
-    course_class = db.query(DBCourseClass).filter(DBCourseClass.course_id == course.id, DBCourseClass.class_name == class_name).first()
-    if course_class and course_class.discussion_space_id:
-        space = db.query(DBDiscussionSpace).filter(DBDiscussionSpace.id == course_class.discussion_space_id).first()
+    offering = db.query(DBCourseOffering).filter(
+        DBCourseOffering.course_id == course.id,
+        DBCourseOffering.teacher_user_id == teacher_user_id,
+        DBCourseOffering.status == "active",
+    ).first()
+    if offering and offering.discussion_space_id:
+        space = db.query(DBDiscussionSpace).filter(DBDiscussionSpace.id == offering.discussion_space_id).first()
         if space:
-            _ensure_space_members(db, space_id=space.id, class_name=class_name, teacher_user_id=teacher_user_id)
+            _ensure_space_members_for_offering(db, offering)
             return space
 
     space = DBDiscussionSpace(
         id=f"space-{uuid4().hex[:8]}",
         course_id=course.id,
+        offering_id=offering.id if offering else "",
         class_name=class_name,
         space_name=f"{course.name}-{class_name}讨论空间",
         ai_assistant_enabled=1,
@@ -61,19 +67,9 @@ def ensure_discussion_space_for_course_class(db: Session, *, course: DBCourse, c
     db.add(space)
     db.flush()
 
-    if not course_class:
-        course_class = DBCourseClass(
-            id=f"course-class-{uuid4().hex[:8]}",
-            course_id=course.id,
-            class_name=class_name,
-            discussion_space_id=space.id,
-            created_at=datetime.now().isoformat(),
-        )
-        db.add(course_class)
-    else:
-        course_class.discussion_space_id = space.id
-
-    _ensure_space_members(db, space_id=space.id, class_name=class_name, teacher_user_id=teacher_user_id)
+    if offering:
+        offering.discussion_space_id = space.id
+    _ensure_space_members_for_offering(db, offering) if offering else _ensure_space_members(db, space_id=space.id, class_name=class_name, teacher_user_id=teacher_user_id)
     return space
 
 
@@ -136,6 +132,7 @@ def space_to_summary(row: DBDiscussionSpace, db: Session) -> DiscussionSpaceSumm
     return DiscussionSpaceSummary(
         id=row.id,
         course_id=row.course_id,
+        offering_id=row.offering_id or "",
         class_name=row.class_name,
         space_name=row.space_name,
         ai_assistant_enabled=bool(row.ai_assistant_enabled),
@@ -414,23 +411,17 @@ def _ensure_space_members(db: Session, *, space_id: str, class_name: str, teache
             )
         )
 
-    student_profiles = db.query(DBUserProfile).filter(DBUserProfile.class_name == class_name).all()
-    valid_student_ids = {profile.user_id for profile in student_profiles}
-    students = db.query(DBUser).filter(DBUser.id.in_(valid_student_ids)).all() if valid_student_ids else []
-    for student in students:
-        if student.role != "student":
-            continue
-        if not db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id == space_id, DBDiscussionSpaceMember.user_id == student.id).first():
-            db.add(
-                DBDiscussionSpaceMember(
-                    id=f"mem-{uuid4().hex[:8]}",
-                    space_id=space_id,
-                    user_id=student.id,
-                    role_in_space="student",
-                    joined_at=datetime.now().isoformat(),
-                )
-            )
 
+def _ensure_space_members_for_offering(db: Session, offering: DBCourseOffering | None) -> None:
+    if not offering or not offering.discussion_space_id:
+        return
+    space_id = offering.discussion_space_id
+    if not db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id == space_id, DBDiscussionSpaceMember.user_id == offering.teacher_user_id).first():
+        db.add(DBDiscussionSpaceMember(id=f"mem-{uuid4().hex[:8]}", space_id=space_id, user_id=offering.teacher_user_id, role_in_space="teacher", joined_at=datetime.now().isoformat()))
+    enrollments = db.query(DBCourseEnrollment).filter(DBCourseEnrollment.offering_id == offering.id, DBCourseEnrollment.status == "active").all()
+    for enrollment in enrollments:
+        if not db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id == space_id, DBDiscussionSpaceMember.user_id == enrollment.student_user_id).first():
+            db.add(DBDiscussionSpaceMember(id=f"mem-{uuid4().hex[:8]}", space_id=space_id, user_id=enrollment.student_user_id, role_in_space="student", joined_at=datetime.now().isoformat()))
     if not db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id == space_id, DBDiscussionSpaceMember.user_id == "ai-course-assistant").first():
         db.add(
             DBDiscussionSpaceMember(

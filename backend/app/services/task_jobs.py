@@ -55,7 +55,7 @@ class TaskJobService:
             self._executor = None
             self._scheduled_job_ids.clear()
         if executor is not None:
-            executor.shutdown(wait=False, cancel_futures=True)
+            executor.shutdown(wait=True, cancel_futures=True)
 
     def create_job(
         self,

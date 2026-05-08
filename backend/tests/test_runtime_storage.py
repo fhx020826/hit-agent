@@ -5,6 +5,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import shutil
 from pathlib import Path
 
 import pytest
@@ -62,6 +63,9 @@ def test_sqlite_engine_enables_pragmas(monkeypatch: pytest.MonkeyPatch, tmp_path
 
 
 def test_backup_and_restore_scripts_round_trip(tmp_path: Path) -> None:
+    if shutil.which("bash") is None:
+        pytest.skip("bash is not available in this environment")
+
     data_root = tmp_path / "server-data"
     backups_dir = data_root / "backups"
     uploads_dir = data_root / "uploads" / "materials"
