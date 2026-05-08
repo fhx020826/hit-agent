@@ -12,11 +12,235 @@ from .llm_runtime import (
     FALLBACK_NOTES,
     _call_chat_model,
     _clean_answer_text,
+    _dedupe_text_parts,
     _extract_json,
     _get_model_config,
     _truncate,
 )
 
+
+
+def _stringify_lesson_pack_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    if isinstance(value, dict):
+        preferred_keys = (
+            "title",
+            "name",
+            "content",
+            "description",
+            "summary",
+            "text",
+            "question",
+            "task",
+            "activity",
+            "significance",
+            "core_content",
+            "core_question",
+            "narrative_arc",
+        )
+        parts: List[str] = []
+        for key in preferred_keys:
+            rendered = _stringify_lesson_pack_value(value.get(key))
+            if rendered:
+                parts.append(rendered)
+        if parts:
+            return " | ".join(_dedupe_text_parts(parts))
+        generic_parts = []
+        for key, item in value.items():
+            rendered = _stringify_lesson_pack_value(item)
+            if rendered:
+                generic_parts.append(f"{key}: {rendered}")
+        return "; ".join(generic_parts)
+    if isinstance(value, list):
+        parts = [_stringify_lesson_pack_value(item) for item in value]
+        return "; ".join([part for part in parts if part])
+    return str(value).strip()
+
+
+def _normalize_lesson_pack_list(value: Any) -> List[str]:
+    if isinstance(value, dict) and isinstance(value.get("slides"), list):
+        return _normalize_lesson_pack_list(value.get("slides"))
+    if isinstance(value, list):
+        items: List[str] = []
+        for item in value:
+            if isinstance(item, list):
+                items.extend(_normalize_lesson_pack_list(item))
+                continue
+            rendered = _stringify_lesson_pack_value(item)
+            if rendered:
+                items.append(rendered)
+        return _dedupe_text_parts(items)
+    if isinstance(value, dict):
+        items: List[str] = []
+        for key, item in value.items():
+            normalized_key = str(key).replace("_", " ").strip()
+            if isinstance(item, list):
+                for child in _normalize_lesson_pack_list(item):
+                    items.append(f"{normalized_key}: {child}")
+                continue
+            rendered = _stringify_lesson_pack_value(item)
+            if rendered:
+                items.append(f"{normalized_key}: {rendered}")
+        return _dedupe_text_parts(items)
+    rendered = _stringify_lesson_pack_value(value)
+    return [rendered] if rendered else []
+
+
+def _normalize_frontier_topic(value: Any, course: Course) -> Dict[str, Any]:
+    if isinstance(value, dict):
+        name = (
+            _stringify_lesson_pack_value(value.get("name"))
+            or _stringify_lesson_pack_value(value.get("topic_name"))
+            or _stringify_lesson_pack_value(value.get("title"))
+            or course.frontier_direction
+            or course.name
+        )
+        insert_position = (
+            _stringify_lesson_pack_value(value.get("insert_position"))
+            or _stringify_lesson_pack_value(value.get("position"))
+            or "After the core concepts"
+        )
+        time_suggestion = (
+            _stringify_lesson_pack_value(value.get("time_suggestion"))
+            or _stringify_lesson_pack_value(value.get("duration"))
+            or _stringify_lesson_pack_value(value.get("recommended_time"))
+            or "15-20 minutes"
+        )
+        normalized = {
+            "name": name,
+            "insert_position": insert_position,
+            "time_suggestion": time_suggestion,
+        }
+        highlights = _normalize_lesson_pack_list(value.get("topics") or value.get("subtopics"))
+        if highlights:
+            normalized["highlights"] = highlights[:6]
+        return normalized
+    name = _stringify_lesson_pack_value(value) or course.frontier_direction or course.name
+    return {
+        "name": name,
+        "insert_position": "After the core concepts",
+        "time_suggestion": "15-20 minutes",
+    }
+
+
+def _normalize_time_allocation(value: Any) -> List[Dict[str, Any]]:
+    if isinstance(value, dict) and isinstance(value.get("segments"), list):
+        value = value.get("segments")
+    if isinstance(value, list):
+        result: List[Dict[str, Any]] = []
+        for item in value:
+            if isinstance(item, dict):
+                segment = (
+                    _stringify_lesson_pack_value(item.get("segment"))
+                    or _stringify_lesson_pack_value(item.get("phase"))
+                    or _stringify_lesson_pack_value(item.get("title"))
+                    or "Teaching segment"
+                )
+                minutes = item.get("minutes") or item.get("duration_minutes") or item.get("duration") or item.get("time") or ""
+                entry: Dict[str, Any] = {
+                    "segment": segment,
+                    "minutes": str(minutes).strip() if minutes not in (None, "") else "",
+                }
+                activities = _normalize_lesson_pack_list(item.get("activities") or item.get("content"))
+                if activities:
+                    entry["activities"] = activities[:4]
+                result.append(entry)
+            else:
+                rendered = _stringify_lesson_pack_value(item)
+                if rendered:
+                    result.append({"segment": rendered, "minutes": ""})
+        return result
+    if isinstance(value, dict):
+        return [{"segment": key, "minutes": _stringify_lesson_pack_value(item)} for key, item in value.items() if _stringify_lesson_pack_value(item)]
+    rendered = _stringify_lesson_pack_value(value)
+    return [{"segment": rendered, "minutes": ""}] if rendered else []
+
+
+def _normalize_lesson_pack_payload(payload: Dict[str, Any], course: Course) -> Dict[str, Any]:
+    main_thread_value = payload.get("main_thread")
+    if isinstance(main_thread_value, dict):
+        main_thread_parts = []
+        for key in ("narrative_arc", "core_question"):
+            rendered = _stringify_lesson_pack_value(main_thread_value.get(key))
+            if rendered:
+                main_thread_parts.append(rendered)
+        main_thread_parts.extend(
+            _normalize_lesson_pack_list(main_thread_value.get("storyline_segments") or main_thread_value.get("three_acts"))[:4]
+        )
+        main_thread = "\n".join(_dedupe_text_parts(main_thread_parts))
+    else:
+        main_thread = _stringify_lesson_pack_value(main_thread_value)
+
+    normalized = {
+        "teaching_objectives": _normalize_lesson_pack_list(payload.get("teaching_objectives")),
+        "prerequisites": _normalize_lesson_pack_list(payload.get("prerequisites")),
+        "main_thread": main_thread or f"Build the lesson around {course.chapter or course.name}, then connect it to {course.frontier_direction or 'the frontier topic'}.",
+        "frontier_topic": _normalize_frontier_topic(payload.get("frontier_topic"), course),
+        "time_allocation": _normalize_time_allocation(payload.get("time_allocation")),
+        "ppt_outline": _normalize_lesson_pack_list(payload.get("ppt_outline")),
+        "teacher_tips": _normalize_lesson_pack_list(payload.get("teacher_tips")),
+        "case_materials": _normalize_lesson_pack_list(payload.get("case_materials")),
+        "discussion_questions": _normalize_lesson_pack_list(payload.get("discussion_questions")),
+        "after_class_tasks": _normalize_lesson_pack_list(payload.get("after_class_tasks")),
+        "extended_reading": _normalize_lesson_pack_list(payload.get("extended_reading")),
+        "risk_warning": _normalize_lesson_pack_list(payload.get("risk_warning")),
+        "references": _normalize_lesson_pack_list(payload.get("references")),
+    }
+    if not normalized["ppt_outline"] and isinstance(payload.get("ppt_outline"), dict):
+        normalized["ppt_outline"] = _normalize_lesson_pack_list(payload["ppt_outline"].get("slides"))
+    return normalized
+
+
+def _build_lesson_pack_prompt(course: Course) -> str:
+    return (
+        "Generate a concise, directly parseable lesson-pack JSON for this course. "
+        "Return JSON only. Do not use Markdown, explanations, or extra top-level fields. "
+        'Use exactly this top-level schema: '
+        '{"teaching_objectives":[...],"prerequisites":[...],"main_thread":"...",'
+        '"frontier_topic":{"name":"...","insert_position":"...","time_suggestion":"..."},'
+        '"time_allocation":[{"segment":"...","minutes":"...","activities":["..."]}],"ppt_outline":[...],'
+        '"teacher_tips":[...],"case_materials":[...],"discussion_questions":[...],"after_class_tasks":[...],'
+        '"extended_reading":[...],"risk_warning":[...],"references":[...]}. '
+        "Keep each array to 3-6 short items. Keep the overall output within about 1800 Chinese characters.\n"
+        f"Course name: {course.name}\n"
+        f"Audience: {course.audience}\n"
+        f"Student level: {course.student_level}\n"
+        f"Current chapter: {course.chapter}\n"
+        f"Learning goals: {course.objectives}\n"
+        f"Duration: {course.duration_minutes} minutes\n"
+        f"Frontier topic: {course.frontier_direction}"
+    )
+
+
+def _repair_lesson_pack_json(raw_content: str, course: Course) -> Optional[Dict[str, Any]]:
+    repair_prompt = (
+        "Rewrite the draft below into strict, parseable JSON. "
+        "Return JSON only. Do not use Markdown, explanations, or extra fields. "
+        "Keep only these top-level fields: teaching_objectives, prerequisites, main_thread, frontier_topic, "
+        "time_allocation, ppt_outline, teacher_tips, case_materials, discussion_questions, "
+        "after_class_tasks, extended_reading, risk_warning, references. "
+        "If the draft is too long, compress it while preserving the teaching essentials.\n"
+        f"Course name: {course.name}\n"
+        f"Current chapter: {course.chapter}\n"
+        f"Draft:\n{_truncate(raw_content, 9000)}"
+    )
+    repaired = _call_chat_model(
+        [
+            {"role": "system", "content": "You are a lesson-pack JSON repair tool. Return valid JSON only."},
+            {"role": "user", "content": repair_prompt},
+        ],
+        model_key="default",
+        max_tokens=2200,
+        temperature=0.2,
+    )
+    if not repaired.get("success"):
+        return None
+    return _extract_json(str(repaired.get("content") or ""))
 
 def ask_course_assistant(
     *,
@@ -267,25 +491,32 @@ def generate_material_update(material_text: str, instructions: str, course_name:
 
 
 def generate_lesson_pack(course: Course) -> LessonPack:
-    prompt = (
-        "请为以下课程生成结构化课程包，输出 JSON，包含 teaching_objectives, prerequisites, main_thread, frontier_topic, time_allocation, ppt_outline, teacher_tips, case_materials, discussion_questions, after_class_tasks, extended_reading, risk_warning, references。\n"
-        f"课程名称：{course.name}\n授课对象：{course.audience}\n学生水平：{course.student_level}\n当前章节：{course.chapter}\n课程目标：{course.objectives}\n时长：{course.duration_minutes} 分钟\n前沿方向：{course.frontier_direction}"
-    )
+    prompt = _build_lesson_pack_prompt(course)
     call_result = _call_chat_model(
         [
-            {"role": "system", "content": "你是一位高校教学设计顾问，只返回 JSON。"},
+            {"role": "system", "content": "你是一位高校教学设计顾问，只返回紧凑、合法、可解析的 JSON。"},
             {"role": "user", "content": prompt},
         ],
         model_key="default",
-        max_tokens=3000,
-        temperature=0.45,
+        max_tokens=2200,
+        temperature=0.35,
     )
     payload = _extract_json(str(call_result.get("content") or "")) if call_result.get("success") else None
+    if payload is None and call_result.get("success") and call_result.get("content"):
+        payload = _repair_lesson_pack_json(str(call_result.get("content") or ""), course)
     if payload is None:
         from .mock_data import mock_generate_lesson_pack
 
         return mock_generate_lesson_pack(course)
-    return LessonPack(id=f"lp-{uuid.uuid4().hex[:8]}", course_id=course.id, version=1, status="draft", payload=payload, created_at=datetime_now())
+    normalized_payload = _normalize_lesson_pack_payload(payload, course)
+    return LessonPack(
+        id=f"lp-{uuid.uuid4().hex[:8]}",
+        course_id=course.id,
+        version=1,
+        status="draft",
+        payload=normalized_payload,
+        created_at=datetime_now(),
+    )
 
 
 def analytics_from_qa_logs(lesson_pack_id: str, qa_logs: List[Dict]) -> AnalyticsReport:
