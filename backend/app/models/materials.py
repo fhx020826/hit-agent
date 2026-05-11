@@ -12,6 +12,8 @@ class MaterialItem(BaseModel):
     created_at: str
     download_url: str
     size: int = 0
+    page_count: int = 0
+    page_aspect_ratio: float | None = None
 
 
 class MaterialUploadResponse(MaterialItem):
@@ -121,20 +123,35 @@ class SavedAnnotationVersionItem(BaseModel):
 
 class MaterialUpdateResult(BaseModel):
     id: str
+    course_id: str = ""
     title: str
+    source_filename: str = ""
+    generation_mode: str = "update_existing"
+    target_format: str = "ppt"
     summary: str
     update_suggestions: List[str] = Field(default_factory=list)
     draft_pages: List[str] = Field(default_factory=list)
     image_suggestions: List[str] = Field(default_factory=list)
+    teaching_flow: List[str] = Field(default_factory=list)
+    speaker_notes: List[str] = Field(default_factory=list)
+    classroom_interactions: List[str] = Field(default_factory=list)
+    assessment_checkpoints: List[str] = Field(default_factory=list)
+    delivery_checklist: List[str] = Field(default_factory=list)
+    reference_updates: List[str] = Field(default_factory=list)
     selected_model: str = "default"
     used_model_name: str = ""
     model_status: str = "ok"
+    generated_file_name: str = ""
+    generated_file_type: str = ""
+    generated_download_url: str = ""
     created_at: str
 
 
 class MaterialUpdatePreviewRequest(BaseModel):
     course_id: str = ""
-    title: str = "PPT / 教案更新"
+    title: str = "PPT / 教案生成"
+    generation_mode: str = "update_existing"
+    target_format: str = "ppt"
     instructions: str = ""
     material_text: str = ""
     selected_model: str = "default"

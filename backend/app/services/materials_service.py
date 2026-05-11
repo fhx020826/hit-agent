@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import threading
 from collections import defaultdict
 from datetime import datetime, timedelta
+from io import BytesIO
 from typing import Any
 from uuid import uuid4
 
@@ -38,6 +40,12 @@ from ..models.schemas import (
     MaterialRequestItem,
     SavedAnnotationVersionItem,
 )
+
+try:
+    from pypdf import PdfReader, PdfWriter
+except Exception:
+    PdfReader = None  # type: ignore[assignment]
+    PdfWriter = None  # type: ignore[assignment]
 
 
 class LiveShareManager:
@@ -74,7 +82,32 @@ def material_download_url(material_id: int) -> str:
     return f"/api/materials/file/{material_id}"
 
 
+def _material_pdf_preview_metrics(row: DBMaterial) -> tuple[int, float | None]:
+    file_type = (row.file_type or "").lower()
+    filename = (row.filename or "").lower()
+    if ".pdf" not in file_type and not filename.endswith(".pdf"):
+        return 0, None
+    if not row.file_path or not os.path.exists(row.file_path) or PdfReader is None:
+        return 0, None
+    try:
+        reader = PdfReader(row.file_path)
+        page_count = int(len(reader.pages))
+        if page_count <= 0:
+            return 0, None
+        first_page = reader.pages[0]
+        media_box = first_page.mediabox
+        width = float(media_box.right) - float(media_box.left)
+        height = float(media_box.top) - float(media_box.bottom)
+        if width <= 0 or height <= 0:
+            return page_count, None
+        ratio = round(width / height, 4)
+        return page_count, max(0.5, min(ratio, 2.4))
+    except Exception:
+        return 0, None
+
+
 def material_to_schema(row: DBMaterial) -> MaterialItem:
+    page_count, page_aspect_ratio = _material_pdf_preview_metrics(row)
     return MaterialItem(
         id=row.id,
         filename=row.filename,
@@ -82,7 +115,36 @@ def material_to_schema(row: DBMaterial) -> MaterialItem:
         created_at=row.created_at,
         download_url=material_download_url(row.id),
         size=int(row.file_size or 0),
+        page_count=page_count,
+        page_aspect_ratio=page_aspect_ratio,
     )
+
+
+def build_material_page_pdf(row: DBMaterial, page_no: int) -> bytes:
+    file_type = (row.file_type or "").lower()
+    filename = (row.filename or "").lower()
+    if ".pdf" not in file_type and not filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF materials support page preview")
+    if not row.file_path or not os.path.exists(row.file_path):
+        raise HTTPException(status_code=404, detail="Material file not found")
+    if PdfReader is None or PdfWriter is None:
+        raise HTTPException(status_code=503, detail="PDF preview is unavailable")
+
+    try:
+        reader = PdfReader(row.file_path)
+        total_pages = int(len(reader.pages))
+        if page_no < 1 or page_no > total_pages:
+            raise HTTPException(status_code=404, detail="Requested page is out of range")
+
+        writer = PdfWriter()
+        writer.add_page(reader.pages[page_no - 1])
+        buffer = BytesIO()
+        writer.write(buffer)
+        return buffer.getvalue()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Failed to build page preview") from exc
 
 
 def can_access_material(row: DBMaterial, current_user: dict[str, Any], db: Session) -> bool:

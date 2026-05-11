@@ -108,6 +108,8 @@ def create_material_update_preview_job(
 @router.post("/material-update/upload", response_model=TaskJobItem)
 def create_material_update_upload_job(
     course_id: str = Form(default=""),
+    generation_mode: str = Form(default="update_existing"),
+    target_format: str = Form(default="ppt"),
     title: str = Form(default="PPT / 教案更新"),
     instructions: str = Form(default=""),
     selected_model: str = Form(default="default"),
@@ -132,6 +134,8 @@ def create_material_update_upload_job(
         course_id=course_id,
         input_payload={
             "course_id": course_id,
+            "generation_mode": generation_mode,
+            "target_format": target_format,
             "title": title,
             "instructions": instructions,
             "selected_model": selected_model,

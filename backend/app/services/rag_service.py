@@ -13,6 +13,12 @@ from .embedding_service import cosine_similarity, generate_embeddings, generate_
 
 
 TOKEN_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9_-]{1,}|[\u4e00-\u9fa5]{2,8}")
+PARAGRAPH_SPLIT_PATTERN = re.compile(r"\n\s*\n+")
+SENTENCE_UNIT_PATTERN = re.compile(r".+?(?:[。！？!?；;](?:\s+|$)|\.(?=\s+[A-Z]|$)|$)", re.S)
+WHITESPACE_PATTERN = re.compile(r"\s+")
+SNIPPET_QUERY_WINDOW = 760
+SNIPPET_MAX_LENGTH = 880
+_EMBEDDING_VECTOR_CACHE: dict[str, List[float]] = {}
 
 
 def _normalize_text(text: str) -> str:
@@ -34,6 +40,82 @@ def _extract_tokens(text: str, max_tokens: int = 80) -> List[str]:
     return result
 
 
+def _clip_text_around_match(text: str, query_text: str, query_tokens: set[str], max_length: int = SNIPPET_QUERY_WINDOW) -> str:
+    clean = _normalize_text(text)
+    if len(clean) <= max_length:
+        return clean
+
+    lower = clean.lower()
+    anchor = -1
+    q = (query_text or "").strip().lower()
+    if q:
+        anchor = lower.find(q)
+    if anchor < 0:
+        for token in sorted(query_tokens, key=len, reverse=True):
+            anchor = lower.find(token.lower())
+            if anchor >= 0:
+                break
+
+    if anchor < 0:
+        return clean[:max_length].strip() + "..."
+
+    half = max_length // 2
+    start = max(0, anchor - half)
+    end = min(len(clean), start + max_length)
+    if end - start < max_length:
+        start = max(0, end - max_length)
+    snippet = clean[start:end].strip()
+    if start > 0:
+        snippet = "..." + snippet
+    if end < len(clean):
+        snippet = snippet + "..."
+    return snippet
+
+
+def _split_large_unit(unit: str, chunk_size: int, overlap: int) -> List[str]:
+    text = unit.strip()
+    if not text:
+        return []
+    if len(text) <= chunk_size:
+        return [text]
+
+    pieces: List[str] = []
+    step = max(120, chunk_size - overlap)
+    start = 0
+    while start < len(text):
+        ideal_end = min(len(text), start + chunk_size)
+        if ideal_end >= len(text):
+            tail = text[start:].strip()
+            if tail:
+                pieces.append(tail)
+            break
+
+        split_end = ideal_end
+        window = text[start:ideal_end]
+        boundary = max(
+            window.rfind("。"),
+            window.rfind("！"),
+            window.rfind("？"),
+            window.rfind(";"),
+            window.rfind("；"),
+            window.rfind("\n"),
+            window.rfind(" "),
+        )
+        if boundary >= max(80, chunk_size // 3):
+            split_end = start + boundary + 1
+
+        segment = text[start:split_end].strip()
+        if segment:
+            pieces.append(segment)
+        start = max(split_end, start + step)
+    return pieces
+
+
+def _sentence_units(paragraph: str) -> List[str]:
+    matches = [item.strip() for item in SENTENCE_UNIT_PATTERN.findall(paragraph or "") if item.strip()]
+    return matches or [paragraph.strip()]
+
+
 def split_chunks(text: str, chunk_size: int = 800, overlap: int = 120) -> List[str]:
     clean = _normalize_text(text)
     if not clean:
@@ -41,17 +123,55 @@ def split_chunks(text: str, chunk_size: int = 800, overlap: int = 120) -> List[s
     if len(clean) <= chunk_size:
         return [clean]
 
+    units: List[str] = []
+    for block in PARAGRAPH_SPLIT_PATTERN.split(clean):
+        paragraph = block.strip()
+        if not paragraph:
+            continue
+        sentences = _sentence_units(paragraph)
+        for sentence in sentences:
+            if len(sentence) <= chunk_size:
+                units.append(sentence)
+            else:
+                units.extend(_split_large_unit(sentence, chunk_size=chunk_size, overlap=overlap))
+
+    if not units:
+        return _split_large_unit(clean, chunk_size=chunk_size, overlap=overlap)
+
     chunks: List[str] = []
-    step = max(120, chunk_size - overlap)
-    start = 0
-    while start < len(clean):
-        end = min(len(clean), start + chunk_size)
-        segment = clean[start:end].strip()
+    current: List[str] = []
+    current_len = 0
+
+    def flush_current() -> None:
+        nonlocal current, current_len
+        if not current:
+            return
+        segment = "\n".join(current).strip()
         if segment:
             chunks.append(segment)
-        if end >= len(clean):
-            break
-        start += step
+        overlap_units: List[str] = []
+        overlap_chars = 0
+        for previous in reversed(current):
+            previous_len = len(previous) + (1 if overlap_units else 0)
+            if overlap_chars + previous_len > overlap:
+                break
+            overlap_units.insert(0, previous)
+            overlap_chars += previous_len
+        current = overlap_units
+        current_len = sum(len(item) for item in current) + max(0, len(current) - 1)
+
+    for unit in units:
+        projected = current_len + (1 if current else 0) + len(unit)
+        if current and projected > chunk_size:
+            flush_current()
+        current.append(unit)
+        current_len = sum(len(item) for item in current) + max(0, len(current) - 1)
+
+    if current:
+        segment = "\n".join(current).strip()
+        if segment:
+            chunks.append(segment)
+
     return chunks
 
 
@@ -99,6 +219,57 @@ def _safe_parse_embedding(raw: str) -> List[float]:
         return [float(value) for value in parsed]
     except Exception:
         return []
+
+
+def _embedding_cache_key(row: DBKnowledgeChunk) -> str:
+    stamp = getattr(row, "embedding_updated_at", "") or getattr(row, "updated_at", "") or ""
+    return f"{row.id}:{stamp}:{len(getattr(row, 'embedding_json', '') or '')}"
+
+
+def _row_embedding_vector(row: DBKnowledgeChunk) -> List[float]:
+    key = _embedding_cache_key(row)
+    cached = _EMBEDDING_VECTOR_CACHE.get(key)
+    if cached is not None:
+        return cached
+    vector = _safe_parse_embedding(getattr(row, "embedding_json", "") or "")
+    if len(_EMBEDDING_VECTOR_CACHE) >= 8000:
+        _EMBEDDING_VECTOR_CACHE.clear()
+    _EMBEDDING_VECTOR_CACHE[key] = vector
+    return vector
+
+
+def _source_row_key(source_type: str, source_id: str) -> str:
+    return f"{source_type}:{source_id}"
+
+
+def _expand_chunk_snippet(
+    item: Dict[str, Any],
+    source_row_maps: Dict[str, Dict[int, DBKnowledgeChunk]],
+    *,
+    query_text: str,
+    query_tokens: set[str],
+    max_length: int = SNIPPET_MAX_LENGTH,
+) -> str:
+    source_key = _source_row_key(str(item.get("source_type") or ""), str(item.get("source_id") or ""))
+    row_map = source_row_maps.get(source_key, {})
+    center_index = int(item.get("chunk_index") or 0)
+    parts: List[str] = []
+
+    for idx in range(center_index - 1, center_index + 2):
+        row = row_map.get(idx)
+        if not row:
+            continue
+        chunk_text = _normalize_text(row.chunk_text or "")
+        if chunk_text:
+            parts.append(chunk_text)
+
+    if not parts:
+        fallback = _normalize_text(str(item.get("snippet") or ""))
+        return fallback[:max_length] + ("..." if len(fallback) > max_length else "")
+
+    merged = "\n".join(parts)
+    clipped = _clip_text_around_match(merged, query_text, query_tokens, max_length=max_length)
+    return clipped if len(clipped) <= max_length + 3 else clipped[:max_length].rstrip() + "..."
 
 
 def _backfill_embeddings(rows: List[DBKnowledgeChunk]) -> int:
@@ -201,7 +372,15 @@ def upsert_chunks_for_lesson_pack(db: Session, lesson_pack: DBLessonPack) -> int
     return len(rows)
 
 
-def retrieve_relevant_chunks(db: Session, *, course_id: str, query_text: str, top_k: int = 6) -> List[Dict[str, Any]]:
+def retrieve_relevant_chunks(
+    db: Session,
+    *,
+    course_id: str,
+    query_text: str,
+    top_k: int = 6,
+    allowed_material_source_ids: set[str] | None = None,
+    allowed_lesson_pack_source_ids: set[str] | None = None,
+) -> List[Dict[str, Any]]:
     if not course_id or not (query_text or "").strip():
         return []
 
@@ -218,8 +397,16 @@ def retrieve_relevant_chunks(db: Session, *, course_id: str, query_text: str, to
     if not rows:
         return []
 
+    source_row_maps: Dict[str, Dict[int, DBKnowledgeChunk]] = {}
     scored: List[Dict[str, Any]] = []
+    normalized_query = WHITESPACE_PATTERN.sub(" ", (query_text or "").strip().lower())
     for row in rows:
+        if row.source_type == "material" and allowed_material_source_ids is not None:
+            if str(row.source_id) not in allowed_material_source_ids:
+                continue
+        if row.source_type == "lesson_pack" and allowed_lesson_pack_source_ids is not None:
+            if str(row.source_id) not in allowed_lesson_pack_source_ids:
+                continue
         chunk_text = row.chunk_text or ""
         if not chunk_text:
             continue
@@ -229,12 +416,19 @@ def retrieve_relevant_chunks(db: Session, *, course_id: str, query_text: str, to
         except Exception:
             chunk_keywords = set()
 
+        source_key = _source_row_key(str(row.source_type), str(row.source_id))
+        source_row_maps.setdefault(source_key, {})[int(row.chunk_index or 0)] = row
+
         overlap = len(query_tokens & chunk_keywords)
         lower_text = chunk_text.lower()
         contains_hits = sum(1 for token in query_tokens if token in lower_text)
-        lexical_raw = overlap * 6 + contains_hits * 1.2
+        source_name_lower = (row.source_name or "").lower()
+        source_name_hits = sum(1 for token in query_tokens if token in source_name_lower)
+        exact_phrase_hit = 1.0 if normalized_query and len(normalized_query) >= 4 and normalized_query in lower_text else 0.0
+        heading_bias = 0.8 if int(row.chunk_index or 0) == 0 else max(0.0, 0.28 - min(int(row.chunk_index or 0), 12) * 0.02)
+        lexical_raw = overlap * 6.2 + contains_hits * 1.35 + source_name_hits * 2.1 + exact_phrase_hit * 12.0 + heading_bias
 
-        chunk_vector = _safe_parse_embedding(getattr(row, "embedding_json", "") or "")
+        chunk_vector = _row_embedding_vector(row)
         vector_raw = max(0.0, cosine_similarity(query_vector, chunk_vector)) if chunk_vector else 0.0
 
         snippet = chunk_text if len(chunk_text) <= 520 else chunk_text[:520] + "..."
@@ -249,6 +443,8 @@ def retrieve_relevant_chunks(db: Session, *, course_id: str, query_text: str, to
                 "_keywords": chunk_keywords,
                 "_lexical": float(lexical_raw),
                 "_vector": float(vector_raw),
+                "_source_name_hits": float(source_name_hits),
+                "_exact_phrase": float(exact_phrase_hit),
                 "_source_bias": 0.04 if row.source_type == "lesson_pack" else 0.02,
             }
         )
@@ -308,7 +504,17 @@ def retrieve_relevant_chunks(db: Session, *, course_id: str, query_text: str, to
     if not selected:
         selected = scored[:top_k]
 
-    return [_to_public_chunk(item) for item in selected[:top_k]]
+    public_items: List[Dict[str, Any]] = []
+    for item in selected[:top_k]:
+        public = _to_public_chunk(item)
+        public["snippet"] = _expand_chunk_snippet(
+            item,
+            source_row_maps,
+            query_text=query_text,
+            query_tokens=query_tokens,
+        )
+        public_items.append(public)
+    return public_items
 
 
 def ensure_course_chunk_index(db: Session, course_id: str) -> int:
@@ -352,7 +558,6 @@ def ensure_course_chunk_index(db: Session, course_id: str) -> int:
         db.query(DBLessonPack)
         .filter(DBLessonPack.course_id == course_id)
         .order_by(DBLessonPack.created_at.desc())
-        .limit(3)
         .all()
     )
     for lesson_pack in lesson_packs:

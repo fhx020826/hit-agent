@@ -95,6 +95,10 @@ def _format_model_label(model_name: str) -> str:
     return normalized or "默认模型"
 
 
+def _model_description(key: str, fallback: str) -> str:
+    return MODEL_DESCRIPTIONS.get(key, fallback)
+
+
 def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
     if not DEFAULT_API_KEY:
         return {}
@@ -112,7 +116,7 @@ def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
             "api_key": DEFAULT_API_KEY,
             "supports_vision": False,
             "is_default": True,
-            "description": MODEL_DESCRIPTIONS["gpt-smart"],
+            "description": _model_description("gpt-smart", f"{smart_model}，适合课程概念解释、综合问答和结构化生成。"),
         }
         if fast_model and fast_model != smart_model:
             items["gpt-fast"] = {
@@ -123,7 +127,7 @@ def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
                 "api_key": DEFAULT_API_KEY,
                 "supports_vision": False,
                 "is_default": False,
-                "description": MODEL_DESCRIPTIONS["gpt-fast"],
+                "description": _model_description("gpt-fast", f"{fast_model}，适合轻量问答、快速生成和课堂即时追问。"),
             }
         return items
 
@@ -136,7 +140,7 @@ def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
             "api_key": DEFAULT_API_KEY,
             "supports_vision": False,
             "is_default": True,
-            "description": MODEL_DESCRIPTIONS["glm-smart"],
+            "description": _model_description("glm-smart", f"{smart_model}，适合课程概念解释、推理问答和结构化生成。"),
         }
         if fast_model and fast_model != smart_model:
             items["glm-fast"] = {
@@ -147,7 +151,7 @@ def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
                 "api_key": DEFAULT_API_KEY,
                 "supports_vision": False,
                 "is_default": False,
-                "description": MODEL_DESCRIPTIONS["glm-fast"],
+                "description": _model_description("glm-fast", f"{fast_model}，适合课堂即时问答、追问和快速总结。"),
             }
         return items
 
@@ -159,7 +163,7 @@ def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
         "api_key": DEFAULT_API_KEY,
         "supports_vision": False,
         "is_default": True,
-        "description": MODEL_DESCRIPTIONS["default"],
+        "description": _model_description("default", f"{smart_model}，适合高质量课程问答与综合解释。"),
     }
     if fast_model and fast_model != smart_model:
         items["default-fast"] = {
@@ -170,7 +174,7 @@ def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
             "api_key": DEFAULT_API_KEY,
             "supports_vision": False,
             "is_default": False,
-            "description": MODEL_DESCRIPTIONS["default-fast"],
+            "description": _model_description("default-fast", f"{fast_model}，适合轻量问答与快速生成。"),
         }
     if DEEPSEEK_EXTRA_MODELS and provider == "deepseek":
         for model_name in DEEPSEEK_EXTRA_MODELS.split(","):

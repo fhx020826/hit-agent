@@ -30,7 +30,7 @@ export default function CourseCreatePage() {
     setLoading(true);
     try {
       const course = await api.createCourse(form);
-      router.push(`/teacher/lesson-pack?course_id=${course.id}`);
+      router.push(`/teacher/material-update?course_id=${course.id}&generation_mode=generate_new&target_format=ppt`);
     } catch (err) {
       alert(`${pick(language, "创建失败：", "Creation failed: ")}${(err as Error).message}`);
     } finally {
@@ -46,7 +46,7 @@ export default function CourseCreatePage() {
         title={<h1>{pick(language, "创建课程画像", "Create Course Profile")}</h1>}
         description={
           <p>
-            {pick(language, "填写课程信息、学生背景和前沿方向，再继续生成课程包。", "Fill in course details, student context, and frontier topics before generating the lesson pack.")}
+            {pick(language, "填写课程信息、学生背景和前沿方向，再进入内容生成。", "Fill in course details, student context, and frontier topics before entering content generation.")}
           </p>
         }
         actions={
@@ -61,7 +61,7 @@ export default function CourseCreatePage() {
           tone="teacher"
           eyebrow={pick(language, "基础信息", "Basics")}
           title={pick(language, "先补齐课程基础信息", "Start with course basics")}
-          description={pick(language, "这些信息会影响课程包的结构和语境。", "These details shape the structure and context of the lesson pack.")}
+          description={pick(language, "这些信息会影响后续 PPT 生成与材料升级的结构和语境。", "These details shape later PPT generation and material upgrades.")}
         >
           <div className="workspace-form-grid">
             <Field label={pick(language, "课程名称", "Course Name")}>
@@ -99,7 +99,7 @@ export default function CourseCreatePage() {
               <input type="text" required value={form.frontier_direction} onChange={(e) => setForm({ ...form, frontier_direction: e.target.value })} placeholder={pick(language, "例如：新一代传输协议与智能网络优化", "Example: New transport protocols and intelligent network optimization")} />
             </Field>
             <div className="workspace-callout soft-grid text-sm leading-7 text-slate-600">
-              {pick(language, "信息越具体，后续课程包越贴近真实课堂。", "The more specific this is, the closer the lesson pack will be to your real class.")}
+              {pick(language, "信息越具体，后续生成结果越贴近真实课堂。", "The more specific this is, the closer the generated result will be to your real class.")}
             </div>
           </div>
         </WorkspaceSection>
@@ -109,7 +109,7 @@ export default function CourseCreatePage() {
             {pick(language, "取消", "Cancel")}
           </Link>
           <button type="submit" disabled={loading} className="button-primary rounded-full px-6 py-3 text-sm font-semibold disabled:opacity-60">
-            {loading ? pick(language, "创建中...", "Creating...") : pick(language, "创建并生成课程包", "Create and Generate")}
+            {loading ? pick(language, "创建中...", "Creating...") : pick(language, "创建并进入内容生成", "Create and Open Generation")}
           </button>
         </div>
       </form>

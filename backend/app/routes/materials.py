@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
+from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..database import (
@@ -32,6 +33,7 @@ from ..models.schemas import (
 from ..security import get_current_user, require_roles
 from ..services.llm_service import extract_text_from_file
 from ..services.materials_service import (
+    build_material_page_pdf,
     can_access_material,
     create_annotation_item,
     create_classroom_share_item,
@@ -116,6 +118,28 @@ def download_material(material_id: int, current_user: dict = Depends(get_current
     if not can_access_material(row, current_user, db):
         raise HTTPException(status_code=403, detail="无权访问该资料")
     return FileResponse(row.file_path, filename=row.filename)
+
+
+@router.get("/file/{material_id}/pages/{page_no}")
+def download_material_page(material_id: int, page_no: int, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    row = db.query(DBMaterial).filter(DBMaterial.id == material_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Material not found")
+    if not can_access_material(row, current_user, db):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    page_pdf = build_material_page_pdf(row, page_no)
+    filename_root, _ = os.path.splitext(row.filename)
+    preview_name = f"{filename_root}_page_{page_no}.pdf"
+    fallback_name = f"material-{material_id}-page-{page_no}.pdf"
+    content_disposition = (
+        f'inline; filename="{fallback_name}"; '
+        f"filename*=UTF-8''{quote(preview_name)}"
+    )
+    return StreamingResponse(
+        iter([page_pdf]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": content_disposition},
+    )
 
 
 @router.post("/share", response_model=ClassroomShare)

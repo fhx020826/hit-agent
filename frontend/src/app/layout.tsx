@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className="h-full antialiased" data-theme-mode="day" data-theme-accent="blue" data-theme-font="default" data-theme-skin="clean">
-      <body className="app-shell min-h-full">
+    <html suppressHydrationWarning lang="zh-CN" className="h-full antialiased" data-theme-mode="day" data-theme-accent="blue" data-theme-font="default" data-theme-skin="clean" data-scroll-behavior="smooth">
+      <body suppressHydrationWarning className="app-shell min-h-full">
         <AppearanceProvider>
           <AuthProvider>
             <LanguageProvider>
