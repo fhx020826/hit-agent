@@ -13,6 +13,7 @@ class DBDiscussionSpace(Base):
 
     id = Column(String, primary_key=True)
     course_id = Column(String, nullable=False)
+    offering_id = Column(String, default="")
     class_name = Column(String, default="")
     space_name = Column(String, nullable=False)
     ai_assistant_enabled = Column(Integer, default=1)
