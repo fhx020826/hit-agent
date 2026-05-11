@@ -101,6 +101,9 @@ def init_db() -> None:
             ("selected_model", "TEXT DEFAULT 'default'"),
             ("used_model_name", "TEXT DEFAULT ''"),
             ("model_status", "TEXT DEFAULT 'ok'"),
+            ("generated_file_name", "TEXT DEFAULT ''"),
+            ("generated_file_path", "TEXT DEFAULT ''"),
+            ("generated_file_type", "TEXT DEFAULT ''"),
         ],
     )
     _ensure_columns(

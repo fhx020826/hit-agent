@@ -417,6 +417,8 @@ def test_discussion_attachment_and_live_share_end_to_end(client):
     assert material_upload_response.status_code == 200
     material_id = material_upload_response.json()["id"]
     material_download_url = material_upload_response.json()["download_url"]
+    assert "page_aspect_ratio" in material_upload_response.json()
+    assert material_upload_response.json()["page_aspect_ratio"] is None
 
     material_download_response = client.get(material_download_url, headers=teacher_headers)
     assert material_download_response.status_code == 200

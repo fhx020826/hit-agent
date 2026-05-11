@@ -78,7 +78,10 @@ export default function LessonPackDetailPage() {
             <h1 className="mt-3 text-3xl font-extrabold text-slate-900 md:text-4xl">{pick(language, "课程包详情", "Lesson Pack Details")}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">{pick(language, "查看模型生成内容、确认课程包结构，并决定是否发布给学生端使用。", "Review the generated content, confirm the lesson pack structure, and decide whether to publish it to students.")}</p>
           </div>
-          <Link href="/teacher" className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{pick(language, "返回教师工作台", "Back to Workspace")}</Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href={`/teacher/lesson-pack?course_id=${pack.course_id}&pack_id=${pack.id}`} className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{pick(language, "返回课程包中心", "Back to Lesson Pack Hub")}</Link>
+            <Link href="/teacher" className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{pick(language, "返回教师工作台", "Back to Workspace")}</Link>
+          </div>
         </div>
 
         <section className="mt-8 section-card rounded-[28px] p-6 md:p-8">
@@ -100,16 +103,28 @@ export default function LessonPackDetailPage() {
         </section>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <Field title={pick(language, "教学目标", "Teaching Goals")} items={toStringArray(payload.teaching_objectives)} />
-          <Field title={pick(language, "先修要求", "Prerequisites")} items={toStringArray(payload.prerequisites)} />
+          <Field title={pick(language, "教学目标", "Teaching Goals")} items={toRichList(payload.teaching_objectives)} />
+          <Field title={pick(language, "先修要求", "Prerequisites")} items={toRichList(payload.prerequisites)} />
+          <Field title={pick(language, "班级画像", "Class Profile")} items={formatClassProfileRich(payload.class_profile, language)} />
+          <Field title={pick(language, "学习诊断", "Learning Diagnostics")} items={toRichList(payload.learning_diagnostics)} />
           <Field title={pick(language, "本节主线", "Main Thread")} text={payload.main_thread as string} full />
-          <Field title={pick(language, "时间分配", "Time Allocation")} items={formatTimeAllocation(payload.time_allocation, language)} />
-          <Field title={pick(language, "课件大纲", "Slides Outline")} items={toStringArray(payload.ppt_outline)} ordered full />
-          <Field title={pick(language, "教师提示", "Teacher Tips")} items={toStringArray(payload.teacher_tips)} />
-          <Field title={pick(language, "案例素材", "Case Materials")} items={toStringArray(payload.case_materials)} />
-          <Field title={pick(language, "讨论题", "Discussion Questions")} items={toStringArray(payload.discussion_questions)} />
-          <Field title={pick(language, "课后任务", "After-class Tasks")} items={toStringArray(payload.after_class_tasks)} />
-          <Field title={pick(language, "延伸阅读", "Extended Reading")} items={toStringArray(payload.extended_reading)} />
+          <Field title={pick(language, "关键概念", "Key Concepts")} items={toRichList(payload.key_concepts)} />
+          <Field title={pick(language, "教学难点", "Teaching Difficulties")} items={toRichList(payload.teaching_difficulties)} />
+          <Field title={pick(language, "时间分配", "Time Allocation")} items={formatTimeAllocationRich(payload.time_allocation, language)} />
+          <Field title={pick(language, "环节设计", "Segment Plan")} items={toRichList(payload.segment_plan)} full />
+          <Field title={pick(language, "课件大纲", "Slides Outline")} items={toRichList(payload.ppt_outline)} ordered full />
+          <Field title={pick(language, "板书设计", "Board Plan")} items={toRichList(payload.board_plan)} />
+          <Field title={pick(language, "教师提示", "Teacher Tips")} items={toRichList(payload.teacher_tips)} />
+          <Field title={pick(language, "案例素材", "Case Materials")} items={toRichList(payload.case_materials)} />
+          <Field title={pick(language, "互动设计", "Interaction Plan")} items={toRichList(payload.interaction_plan)} />
+          <Field title={pick(language, "讨论题", "Discussion Questions")} items={toRichList(payload.discussion_questions)} />
+          <Field title={pick(language, "评价设计", "Assessment Plan")} items={toRichList(payload.assessment_plan)} />
+          <Field title={pick(language, "分层支持", "Differentiated Support")} items={formatStructuredGroupsRich(payload.differentiation_support, language)} full />
+          <Field title={pick(language, "常见误区", "Common Misconceptions")} items={toRichList(payload.common_misconceptions)} />
+          <Field title={pick(language, "预期产出", "Expected Outputs")} items={toRichList(payload.expected_outputs)} />
+          <Field title={pick(language, "课后任务", "After-class Tasks")} items={toRichList(payload.after_class_tasks)} />
+          <Field title={pick(language, "延伸阅读", "Extended Reading")} items={toRichList(payload.extended_reading)} />
+          <Field title={pick(language, "兜底方案", "Fallback Plan")} items={toRichList(payload.fallback_plan)} />
           {payload.risk_warning ? <Field title={pick(language, "风险提示", "Risk Warning")} text={payload.risk_warning as string} full /> : null}
           <Field title={pick(language, "参考资料", "References")} items={toStringArray(payload.references)} full />
         </div>
@@ -176,4 +191,80 @@ function Field({ title, text, items, ordered, full }: { title: string; text?: st
       )}
     </section>
   );
+}
+
+void formatTimeAllocation;
+
+function toRichList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") return JSON.stringify(item);
+        return String(item ?? "");
+      })
+      .filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.trim() ? [value.trim()] : [];
+  }
+  return [];
+}
+
+function formatClassProfileRich(value: unknown, language: "zh-CN" | "en-US"): string[] {
+  if (!value || typeof value !== "object") return [];
+  const profile = value as Record<string, unknown>;
+  const strengths = toRichList(profile.likely_strengths).join(language === "en-US" ? "; " : "；");
+  const risks = toRichList(profile.likely_risks).join(language === "en-US" ? "; " : "；");
+  return [
+    profile.audience ? `${pick(language, "授课对象", "Audience")}${language === "en-US" ? ": " : "："}${profile.audience}` : "",
+    profile.current_level ? `${pick(language, "当前水平", "Current Level")}${language === "en-US" ? ": " : "："}${profile.current_level}` : "",
+    strengths ? `${pick(language, "可能优势", "Likely Strengths")}${language === "en-US" ? ": " : "："}${strengths}` : "",
+    risks ? `${pick(language, "潜在风险", "Likely Risks")}${language === "en-US" ? ": " : "："}${risks}` : "",
+  ].filter(Boolean);
+}
+
+function formatStructuredGroupsRich(value: unknown, language: "zh-CN" | "en-US"): string[] {
+  if (!value || typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  const labels =
+    language === "en-US"
+      ? { foundation: "Foundation", advanced: "Advanced", support_for_struggling: "Support for Struggling Students" }
+      : { foundation: "基础支持", advanced: "拔高支持", support_for_struggling: "薄弱学生支持" };
+  return Object.entries(labels)
+    .map(([key, label]) => {
+      const items = toRichList(record[key]);
+      if (!items.length) return "";
+      return `${label}${language === "en-US" ? ": " : "："}${items.join(language === "en-US" ? "; " : "；")}`;
+    })
+    .filter(Boolean);
+}
+
+function formatTimeAllocationRich(value: unknown, language: "zh-CN" | "en-US"): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>;
+          const segment = typeof record.segment === "string" ? record.segment : "";
+          const minutes = record.minutes;
+          const objective = typeof record.objective === "string" ? record.objective : "";
+          if (segment && minutes !== undefined && minutes !== null && String(minutes).trim()) {
+            const base = language === "en-US" ? `${segment}: ${minutes} min` : `${segment}：${minutes} 分钟`;
+            return objective ? `${base}${language === "en-US" ? " | Goal: " : "｜目标："}${objective}` : base;
+          }
+          return JSON.stringify(record);
+        }
+        return String(item ?? "");
+      })
+      .filter(Boolean);
+  }
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>).map(([key, item]) => (language === "en-US" ? `${key}: ${item}` : `${key}：${item}`));
+  }
+  if (typeof value === "string") {
+    return value.trim() ? [value.trim()] : [];
+  }
+  return [];
 }

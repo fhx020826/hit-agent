@@ -471,14 +471,27 @@ export interface AssignmentTeacherDetail {
 
 export interface MaterialUpdateResult {
   id: string;
+  course_id: string;
   title: string;
+  source_filename: string;
+  generation_mode: string;
+  target_format: string;
   summary: string;
   update_suggestions: string[];
   draft_pages: string[];
   image_suggestions: string[];
+  teaching_flow: string[];
+  speaker_notes: string[];
+  classroom_interactions: string[];
+  assessment_checkpoints: string[];
+  delivery_checklist: string[];
+  reference_updates: string[];
   selected_model: string;
   used_model_name: string;
   model_status: string;
+  generated_file_name: string;
+  generated_file_type: string;
+  generated_download_url: string;
   created_at: string;
 }
 
@@ -551,6 +564,8 @@ export interface MaterialItem {
   created_at: string;
   download_url: string;
   size: number;
+  page_count?: number;
+  page_aspect_ratio?: number | null;
 }
 
 export interface ClassroomShare {
@@ -712,11 +727,14 @@ export const api = {
 
   listCourses: () => request<Course[]>("/api/courses"),
   createCourse: (payload: Omit<Course, "id" | "owner_user_id" | "created_at">) => request<Course>("/api/courses", { method: "POST", body: JSON.stringify(payload) }),
+  updateCourse: (courseId: string, payload: Omit<Course, "id" | "owner_user_id" | "created_at">) => request<Course>(`/api/courses/${courseId}`, { method: "PUT", body: JSON.stringify(payload) }),
+  deleteCourse: (courseId: string) => request<{ status: string; message: string }>(`/api/courses/${courseId}`, { method: "DELETE" }),
   listLessonPacks: (courseId?: string) => request<LessonPack[]>(`/api/lesson-packs${courseId ? `?course_id=${courseId}` : ""}`),
   generateLessonPack: (courseId: string) => request<LessonPack>(`/api/lesson-packs/generate/${courseId}`, { method: "POST" }),
   createLessonPackJob: (courseId: string) => request<TaskJobRecord>(`/api/task-jobs/lesson-pack-generate/${courseId}`, { method: "POST" }),
   getLessonPack: (id: string) => request<LessonPack>(`/api/lesson-packs/${id}`),
   publishLessonPack: (id: string) => request<LessonPack>(`/api/lesson-packs/${id}/publish`, { method: "POST" }),
+  deleteLessonPack: (id: string) => request<{ status: string; message: string }>(`/api/lesson-packs/${id}`, { method: "DELETE" }),
   getTaskJob: (jobId: string) => request<TaskJobRecord>(`/api/task-jobs/${jobId}`),
   listTaskJobs: (params?: { jobType?: string; limit?: number }) => {
     const q = new URLSearchParams();
@@ -856,27 +874,32 @@ export const api = {
 
   previewAssignmentReview: (payload: { course_id?: string; assignment_type: string; title: string; requirements?: string; submission_text: string }) => request<AssignmentReviewResponse>("/api/assignment-review/preview", { method: "POST", body: JSON.stringify(payload) }),
 
-  previewMaterialUpdate: (payload: { course_id?: string; title?: string; instructions?: string; material_text?: string; selected_model?: string }) => request<MaterialUpdateResult>("/api/material-update/preview", { method: "POST", body: JSON.stringify(payload) }),
-  createMaterialUpdatePreviewJob: (payload: { course_id?: string; title?: string; instructions?: string; material_text?: string; selected_model?: string }) => request<TaskJobRecord>("/api/task-jobs/material-update/preview", { method: "POST", body: JSON.stringify(payload) }),
-  uploadMaterialUpdate: async (payload: { course_id?: string; title?: string; instructions?: string; selected_model?: string; file: File }) => {
+  previewMaterialUpdate: (payload: { course_id?: string; title?: string; generation_mode?: string; target_format?: string; instructions?: string; material_text?: string; selected_model?: string }) => request<MaterialUpdateResult>("/api/material-update/preview", { method: "POST", body: JSON.stringify(payload) }),
+  createMaterialUpdatePreviewJob: (payload: { course_id?: string; title?: string; generation_mode?: string; target_format?: string; instructions?: string; material_text?: string; selected_model?: string }) => request<TaskJobRecord>("/api/task-jobs/material-update/preview", { method: "POST", body: JSON.stringify(payload) }),
+  uploadMaterialUpdate: async (payload: { course_id?: string; title?: string; generation_mode?: string; target_format?: string; instructions?: string; selected_model?: string; file: File }) => {
     const form = new FormData();
     if (payload.course_id) form.append("course_id", payload.course_id);
     if (payload.title) form.append("title", payload.title);
+    if (payload.generation_mode) form.append("generation_mode", payload.generation_mode);
+    if (payload.target_format) form.append("target_format", payload.target_format);
     if (payload.instructions) form.append("instructions", payload.instructions);
     if (payload.selected_model) form.append("selected_model", payload.selected_model);
     form.append("file", payload.file);
     return request<MaterialUpdateResult>("/api/material-update/upload", { method: "POST", body: form });
   },
-  createMaterialUpdateUploadJob: async (payload: { course_id?: string; title?: string; instructions?: string; selected_model?: string; file: File }) => {
+  createMaterialUpdateUploadJob: async (payload: { course_id?: string; title?: string; generation_mode?: string; target_format?: string; instructions?: string; selected_model?: string; file: File }) => {
     const form = new FormData();
     if (payload.course_id) form.append("course_id", payload.course_id);
     if (payload.title) form.append("title", payload.title);
+    if (payload.generation_mode) form.append("generation_mode", payload.generation_mode);
+    if (payload.target_format) form.append("target_format", payload.target_format);
     if (payload.instructions) form.append("instructions", payload.instructions);
     if (payload.selected_model) form.append("selected_model", payload.selected_model);
     form.append("file", payload.file);
     return request<TaskJobRecord>("/api/task-jobs/material-update/upload", { method: "POST", body: form });
   },
   listMaterialUpdates: () => request<MaterialUpdateResult[]>("/api/material-update"),
+  deleteMaterialUpdate: (updateId: string) => request<{ status: string; message: string }>(`/api/material-update/${updateId}`, { method: "DELETE" }),
 
   listPendingSurveys: () => request<SurveyPendingItem[]>("/api/feedback/pending"),
   listSurveyTemplates: () => request<{ id: string; name: string; description: string; questions: { id: string; type: string; title: string; options?: string[] }[]; created_at: string }[]>("/api/feedback/templates"),

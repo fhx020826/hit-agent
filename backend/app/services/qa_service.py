@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..database import (
     DBAppearanceSetting,
+    DBAgentConfig,
     DBChatSession,
     DBCourse,
     DBLearningNotebook,
@@ -35,6 +36,7 @@ from ..models.schemas import (
     UploadedAttachment,
 )
 from .llm_service import ask_course_assistant
+from .materials_service import can_access_material
 from .rag_service import ensure_course_chunk_index, retrieve_relevant_chunks
 
 MAX_FOLDER_DEPTH = 5
@@ -398,6 +400,81 @@ def build_course_context(course_id: str, lesson_pack_id: str, db: Session) -> tu
     return (course.name if course else "未命名课程", "\n".join(parts))
 
 
+def _resolve_visible_material_ids(course_id: str, current_user: dict[str, Any], db: Session) -> set[str]:
+    if not course_id:
+        return set()
+    materials = db.query(DBMaterial).filter(DBMaterial.course_id == course_id).all()
+    if current_user.get("role") in {"teacher", "admin"}:
+        return {str(item.id) for item in materials}
+    return {str(item.id) for item in materials if can_access_material(item, current_user, db)}
+
+
+def _resolve_allowed_lesson_pack_ids(course_id: str, lesson_pack_id: str, current_user: dict[str, Any], db: Session) -> set[str]:
+    if not course_id:
+        return set()
+    if current_user.get("role") in {"teacher", "admin"}:
+        rows = db.query(DBLessonPack).filter(DBLessonPack.course_id == course_id).all()
+        return {item.id for item in rows}
+
+    published_ids = {
+        item.id
+        for item in db.query(DBLessonPack)
+        .filter(DBLessonPack.course_id == course_id, DBLessonPack.status == "published")
+        .all()
+    }
+    if lesson_pack_id:
+        selected = (
+            db.query(DBLessonPack)
+            .filter(DBLessonPack.id == lesson_pack_id, DBLessonPack.course_id == course_id, DBLessonPack.status == "published")
+            .first()
+        )
+        if selected:
+            published_ids.add(selected.id)
+    return published_ids
+
+
+def build_course_context_for_ai(
+    course_id: str,
+    lesson_pack_id: str,
+    db: Session,
+    current_user: dict[str, Any],
+) -> tuple[str, str]:
+    parts: list[str] = []
+    course = db.query(DBCourse).filter(DBCourse.id == course_id).first()
+    if course:
+        parts.append(f"课程名称：{course.name}")
+        parts.append(f"授课对象：{(course.audience or '')[:120]}")
+        parts.append(f"课程目标：{(course.objectives or '')[:500]}")
+        parts.append(f"前沿方向：{(course.frontier_direction or '')[:200]}")
+
+    lesson_pack = None
+    if lesson_pack_id:
+        lesson_pack = db.query(DBLessonPack).filter(DBLessonPack.id == lesson_pack_id).first()
+    if not lesson_pack and course_id:
+        lesson_pack = (
+            db.query(DBLessonPack)
+            .filter(DBLessonPack.course_id == course_id, DBLessonPack.status == "published")
+            .order_by(DBLessonPack.created_at.desc())
+            .first()
+        )
+    if lesson_pack:
+        payload = json.loads(lesson_pack.payload) if isinstance(lesson_pack.payload, str) else lesson_pack.payload
+        parts.append("课程包摘要：" + json.dumps(payload, ensure_ascii=False)[:3600])
+
+    materials = db.query(DBMaterial).filter(DBMaterial.course_id == course_id).all() if course_id else []
+    if current_user.get("role") not in {"teacher", "admin"}:
+        materials = [item for item in materials if can_access_material(item, current_user, db)]
+    if materials:
+        parts.append("教学资料摘要：")
+        for item in materials[:4]:
+            if item.content:
+                parts.append(f"[{item.filename}] {item.content[:900]}")
+            else:
+                parts.append(f"[{item.filename}] 当前仅保存文件，暂无可解析文本。")
+
+    return (course.name if course else "未命名课程", "\n".join(parts))
+
+
 def teacher_course_ids(current_user: dict[str, Any], db: Session) -> list[str]:
     owned_rows = db.query(DBCourse).filter(DBCourse.owner_user_id == current_user["id"]).all()
     profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == current_user["id"]).first()
@@ -440,7 +517,7 @@ def infer_question_input_mode(question_text: str, attachments: list[DBQuestionAt
     return "text"
 
 
-def generate_ai_answer(
+def _generate_ai_answer_old(
     *,
     question_text: str,
     course_id: str,
@@ -567,3 +644,86 @@ def notify_teachers_for_question(
                 created_at=created_at,
             )
         )
+
+
+def generate_ai_answer(
+    *,
+    question_text: str,
+    course_id: str,
+    lesson_pack_id: str,
+    selected_model: str,
+    current_user: dict[str, Any],
+    history_rows: list[DBQuestion],
+    attachments: list[DBQuestionAttachment],
+    db: Session,
+) -> dict[str, Any]:
+    appearance = (
+        db.query(DBAppearanceSetting)
+        .filter(DBAppearanceSetting.user_role == current_user["role"], DBAppearanceSetting.user_id == current_user["id"])
+        .first()
+    )
+    agent_config = db.query(DBAgentConfig).filter(DBAgentConfig.course_id == (course_id or "")).first()
+
+    rag_query_parts: list[str] = []
+    if question_text.strip():
+        rag_query_parts.append(question_text.strip())
+    attachment_summaries = [f"{item.file_name}: {item.parse_summary}" for item in attachments if (item.parse_summary or "").strip()]
+    if attachment_summaries:
+        rag_query_parts.append("\n".join(attachment_summaries[:4]))
+    rag_query_text = "\n".join(rag_query_parts).strip() or "课程核心概念"
+
+    allowed_material_ids = _resolve_visible_material_ids(course_id or "", current_user, db)
+    allowed_lesson_pack_ids = _resolve_allowed_lesson_pack_ids(course_id or "", lesson_pack_id or "", current_user, db)
+
+    retrieved_chunks: list[dict[str, Any]] = []
+    try:
+        created_chunk_count = ensure_course_chunk_index(db, course_id or "")
+        if created_chunk_count > 0:
+            db.commit()
+        retrieved_chunks = retrieve_relevant_chunks(
+            db,
+            course_id=course_id or "",
+            query_text=rag_query_text,
+            top_k=6,
+            allowed_material_source_ids=allowed_material_ids,
+            allowed_lesson_pack_source_ids=allowed_lesson_pack_ids,
+        )
+    except Exception:
+        retrieved_chunks = []
+
+    course_name, course_context = build_course_context_for_ai(
+        course_id or "",
+        lesson_pack_id or "",
+        db,
+        current_user=current_user,
+    )
+    history = [{"question": row.question_text, "answer": row.ai_answer_content or row.teacher_answer_content} for row in history_rows[-3:]]
+    ai_payload = ask_course_assistant(
+        question=question_text or "请结合我上传的附件帮我理解这份资料。",
+        course_name=course_name,
+        course_context=course_context,
+        history=history,
+        attachment_contexts=[
+            {
+                "file_name": item.file_name,
+                "file_type": item.file_type,
+                "file_path": item.file_path,
+                "parse_summary": item.parse_summary,
+            }
+            for item in attachments
+        ],
+        retrieved_chunks=retrieved_chunks,
+        model_key=selected_model or "default",
+        language=(appearance.language if appearance and appearance.language else "zh-CN"),
+        scope_rules=(agent_config.scope_rules if agent_config else "仅围绕课程内容、教师上传资料和已开放的学习支持范围回答。"),
+        answer_style=(agent_config.answer_style if agent_config else "讲解型"),
+        enable_homework_support=bool(agent_config.enable_homework_support) if agent_config else True,
+        enable_material_qa=bool(agent_config.enable_material_qa) if agent_config else True,
+        enable_frontier_extension=bool(agent_config.enable_frontier_extension) if agent_config else True,
+    )
+    return {
+        "course_name": course_name,
+        "answer": ai_payload["answer"],
+        "sources": ai_payload["sources"],
+        "used_model_key": ai_payload.get("used_model_key") or selected_model,
+    }
