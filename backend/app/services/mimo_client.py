@@ -32,7 +32,7 @@ class MiMoClient:
             "model": model or self.model,
             "messages": messages,
             "temperature": temperature,
-            "max_tokens": max_tokens,
+            "max_completion_tokens": max_tokens,
             "stream": stream,
         }
         headers = {
@@ -50,6 +50,8 @@ class MiMoClient:
             status_code = exc.response.status_code
             if status_code in (401, 403):
                 raise MiMoClientError("Xiaomi MiMo API authentication failed. Please check MIMO_API_KEY.") from None
+            if status_code == 402:
+                raise MiMoClientError("Xiaomi MiMo API balance is insufficient. Please recharge the Xiaomi MiMo account or enable an active Token Plan.") from None
             if status_code == 429:
                 raise MiMoClientError("Xiaomi MiMo API rate limit or quota exceeded.") from None
             raise MiMoClientError(f"Xiaomi MiMo API request failed with status {status_code}.") from None
