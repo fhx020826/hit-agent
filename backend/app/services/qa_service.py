@@ -202,6 +202,7 @@ def question_to_schema(row: DBQuestion, db: Session) -> QuestionRecord:
         id=row.id,
         session_id=row.session_id,
         course_id=row.course_id,
+        offering_id=row.offering_id or "",
         lesson_pack_id=row.lesson_pack_id,
         question_text=row.question_text,
         answer_target_type=row.answer_target_type,
@@ -234,6 +235,7 @@ def session_to_schema(row: DBChatSession) -> ChatSessionSummary:
     return ChatSessionSummary(
         id=row.id,
         course_id=row.course_id,
+        offering_id=row.offering_id or "",
         lesson_pack_id=row.lesson_pack_id,
         title=row.title,
         selected_model=row.selected_model,

@@ -242,3 +242,21 @@ Updated 2026-04-14 after rerunning the unified frontend and backend verification
 | H1.4 | TC-H1.4 | Query single task state | `backend/tests/test_task_jobs.py` :: `test_async_lesson_pack_job_submission_and_polling`<br>`backend/tests/test_task_jobs.py` :: `test_async_material_update_preview_job_submission_and_polling`<br>`backend/tests/test_task_jobs.py` :: `test_async_material_update_upload_job_submission_and_polling`<br>`backend/tests/test_task_jobs.py` :: `test_async_job_marks_failed_when_background_handler_raises` | PASS | 单任务轮询同时验证了成功态与失败态。 |
 | H1.5 | TC-H1.5 | List current user task history | `backend/tests/test_task_jobs.py` :: `test_task_job_list_returns_created_jobs_for_current_user` | PASS |  |
 | H1.6 | TC-H1.6 | Mark stale queued/running jobs as failed after restart | `backend/tests/test_task_jobs.py` :: `test_recover_incomplete_jobs_marks_stale_rows_failed` | PASS |  |
+
+## Registrar Simulation Addendum
+
+The matrix above was created before the registrar-style academic relationship redesign. The following incremental cases capture the new academic relationship baseline and should be treated as the current verification addendum until the full matrix is re-expanded.
+
+| Feature ID | Case ID | Feature | Latest Evidence | Status | Notes |
+|---|---|---|---|---|---|
+| B2.1 | TC-B2.1 | View registrar simulation overview | `backend/tests/test_course_relationships.py` :: `test_admin_seed_demo_school_is_idempotent` | PASS | Seeded teachers, students, courses and offerings are queryable. |
+| B2.2 | TC-B2.2 | Seed demo academic data idempotently | `backend/tests/test_course_relationships.py` :: `test_admin_seed_demo_school_is_idempotent` | PASS | |
+| B2.3 | TC-B2.3 | Reset demo academic data | route and page wiring reviewed; dedicated automation pending | PARTIAL | Should be added to the next frontend/backend regression batch. |
+| B2.4 | TC-B2.4 | Export demo accounts and relationships | `backend/tests/test_course_relationships.py` :: `test_admin_can_export_demo_accounts` | PASS | |
+| D1.1b.1 | TC-D1.1b.1 | View current teacher offerings | `backend/tests/test_course_relationships.py` :: `test_teacher_and_student_only_see_seeded_relationships` | PASS | Corresponds to `/teacher/course-management`. |
+| D1.1b.2 | TC-D1.1b.2 | View enrolled student list for an offering | `backend/tests/test_course_relationships.py` :: `test_teacher_and_student_only_see_seeded_relationships` | PASS | Teacher and student seeded visibility is covered end-to-end at API level. |
+| D1.1b.3 | TC-D1.1b.3 | Teacher relation management stays read-only in registrar mode | `backend/tests/test_course_relationships.py` :: `test_manual_join_and_teacher_self_binding_are_disabled` | PASS | |
+| E1.1b.1 | TC-E1.1b.1 | View current student enrollments | `backend/tests/test_course_relationships.py` :: `test_teacher_and_student_only_see_seeded_relationships` | PASS | Corresponds to `/student/courses`. |
+| E1.1b.2 | TC-E1.1b.2 | Student manual join is disabled in registrar mode | `backend/tests/test_course_relationships.py` :: `test_manual_join_and_teacher_self_binding_are_disabled` | PASS | |
+| F6 | TC-F6 | Course relationship authorization based on seeded offerings/enrollments | `backend/tests/test_course_relationships.py` :: `test_teacher_and_student_only_see_seeded_relationships` | PASS | Core seeded visibility is automated; additional per-module negative cases should continue expanding. |
+| F7 | TC-F7 | AI assistant constrained to established course relations only | backend route/service review + page copy updated | PARTIAL | Add dedicated end-to-end coverage in the next UI regression batch. |

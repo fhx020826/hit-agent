@@ -1,6 +1,6 @@
 # HIT-Agent Complete Feature List
 
-Updated 2026-04-14. This is the code-grounded full feature inventory for the current repository state.
+Updated 2026-05-08. This is the code-grounded full feature inventory for the current repository state.
 
 Companion verification document:
 - `docs/internal/complete-feature-verification-matrix.md` maps every feature ID below to an independent test case ID, latest automated evidence, and verification status.
@@ -32,6 +32,20 @@ Companion verification document:
 | B1.3 | Filter users by role | dropdown | `GET /api/admin/users?role=` | HIGH |
 | B1.4 | Create user (any role) | form + button | `POST /api/admin/users` | CRITICAL |
 | B1.5 | Delete user | button per row | `DELETE /api/admin/users/{id}` | CRITICAL |
+
+### B2. Registrar Simulation (`/admin/academic`)
+
+| # | Feature | Interaction | API | Test Priority |
+|---|---------|-------------|-----|---------------|
+| B2.1 | View registrar simulation overview | page load | `GET /api/admin/academic/teachers` + `GET /api/admin/academic/students` + `GET /api/admin/academic/courses` + `GET /api/admin/academic/offerings` | CRITICAL |
+| B2.2 | Seed demo academic data idempotently | button | `POST /api/admin/academic/seed-demo-school` | CRITICAL |
+| B2.3 | Reset demo academic data | danger action + confirm | `POST /api/admin/academic/reset-demo-school` | HIGH |
+| B2.4 | Export demo accounts and relationships | button | `GET /api/admin/academic/export-demo-accounts` | HIGH |
+| B2.5 | View teacher roster with course counts | table | `GET /api/admin/academic/teachers` | HIGH |
+| B2.6 | View student roster with course counts | table | `GET /api/admin/academic/students` | HIGH |
+| B2.7 | View academic courses | table | `GET /api/admin/academic/courses` | HIGH |
+| B2.8 | View offerings / teacher-course assignments | table | `GET /api/admin/academic/offerings` | HIGH |
+| B2.9 | View enrollment relationships indirectly through offering counts and export | page sections + export | `GET /api/admin/academic/offerings` + `GET /api/admin/academic/export-demo-accounts` | HIGH |
 
 ## C. Shared Account Settings
 
@@ -66,6 +80,15 @@ Companion verification document:
 |---|---------|-------------|-----|---------------|
 | D1.1 | View teacher dashboard with module cards | page load | none (static) | HIGH |
 | D1.2 | Navigate to all sub-pages | link clicks | n/a | HIGH |
+
+### D1.1b. My Teaching Courses (`/teacher/course-management`)
+
+| # | Feature | Interaction | API | Test Priority |
+|---|---------|-------------|-----|---------------|
+| D1.1b.1 | View current teacher offerings | page load | `GET /api/teacher/course-management/offerings` | CRITICAL |
+| D1.1b.2 | View enrolled student list for an offering | click course card/detail | `GET /api/teacher/course-management/offerings/{offering_id}/students` | HIGH |
+| D1.1b.3 | Show empty-state guidance when teacher has no assigned offerings | page load | same as above | HIGH |
+| D1.1b.4 | Keep relation management read-only for teachers in registrar mode | page actions disabled / rejected | `POST /api/teacher/course-management/courses` + `POST /api/teacher/course-management/offerings` | HIGH |
 
 ### D2. Course Creation (`/teacher/course`)
 
@@ -199,6 +222,15 @@ Companion verification document:
 | E1.1 | View student dashboard with navigation | page load | none (static) | HIGH |
 | E1.2 | Navigate to all sub-pages | link clicks | n/a | HIGH |
 
+### E1.1b. My Courses (`/student/courses`)
+
+| # | Feature | Interaction | API | Test Priority |
+|---|---------|-------------|-----|---------------|
+| E1.1b.1 | View current student enrollments | page load | `GET /api/student/courses` | CRITICAL |
+| E1.1b.2 | Show teacher / semester / class context for each course | card display | `GET /api/student/courses` | HIGH |
+| E1.1b.3 | Show empty-state guidance when no enrollments exist | page load | same as above | HIGH |
+| E1.1b.4 | Keep manual join flow disabled in registrar mode | hidden UI / rejected API | `POST /api/student/courses/join` | HIGH |
+
 ### E2. Q&A Assistant (`/student/qa`)
 
 | # | Feature | Interaction | API | Test Priority |
@@ -285,6 +317,8 @@ Companion verification document:
 | F3 | i18n (Chinese/English) | all pages | HIGH |
 | F4 | File upload handling (multiple formats) | materials, assignments | HIGH |
 | F5 | Anonymous posting toggle | Q&A, discussions | HIGH |
+| F6 | Course relationship authorization based on registrar-seeded offerings/enrollments | questions, assignments, feedback, discussions, materials, student course access | CRITICAL |
+| F7 | AI assistant constrained to established course relations only | teacher and student AI workflows | CRITICAL |
 
 ## G. Legacy Routes, Live Share Views, And Compatibility APIs
 

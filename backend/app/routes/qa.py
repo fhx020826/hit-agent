@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 
 from ..database import (
     DBCourse,
+    DBCourseEnrollment,
+    DBCourseOffering,
     DBLearningNotebook,
     DBLearningNotebookImage,
     DBQuestion,
@@ -47,6 +49,7 @@ from ..models.schemas import (
 )
 from ..security import get_current_user, require_roles
 from ..services.llm_service import extract_text_from_file, generate_weakness_analysis, list_available_models
+from ..services.course_access import assert_student_enrolled
 from ..services.qa_service import (
     attachment_to_schema,
     build_course_context,
@@ -161,6 +164,7 @@ def create_session(body: ChatSessionCreate, current_user: dict = Depends(require
         id=f"chat-{uuid4().hex[:8]}",
         user_id=current_user["id"],
         course_id=body.course_id,
+        offering_id=body.offering_id or "",
         lesson_pack_id=body.lesson_pack_id,
         title=body.title or "新建学习问答",
         selected_model=body.selected_model,
@@ -536,6 +540,7 @@ def ask_question(body: StudentQuestionCreate, current_user: dict = Depends(requi
         session_id=body.session_id,
         user_id=current_user["id"],
         course_id=body.course_id or session.course_id,
+        offering_id=body.offering_id or "",
         lesson_pack_id=body.lesson_pack_id or session.lesson_pack_id,
         question_text=body.question.strip(),
         answer_target_type=body.answer_target_type,
@@ -719,10 +724,14 @@ def list_teacher_questions(
     current_user: dict = Depends(require_roles("teacher")),
     db: Session = Depends(get_db),
 ):
+    teacher_offering_ids = [
+        row.id
+        for row in db.query(DBCourseOffering).filter(DBCourseOffering.teacher_user_id == current_user["id"], DBCourseOffering.status == "active").all()
+    ]
     teacher_course_ids_list = teacher_course_ids(current_user, db)
-    if not teacher_course_ids_list:
+    if not teacher_course_ids_list and not teacher_offering_ids:
         return []
-    query = db.query(DBQuestion).filter(DBQuestion.course_id.in_(teacher_course_ids_list))
+    query = db.query(DBQuestion).filter((DBQuestion.course_id.in_(teacher_course_ids_list)) | (DBQuestion.offering_id.in_(teacher_offering_ids)))
     if status:
         if status in {"pending", "replied", "closed"}:
             query = query.filter(DBQuestion.teacher_reply_status == status)
@@ -737,7 +746,8 @@ def list_teacher_questions(
 @router.post("/teacher/questions/{question_id}/reply", response_model=QuestionRecord)
 def teacher_reply(question_id: str, body: TeacherReplyRequest, current_user: dict = Depends(require_roles("teacher")), db: Session = Depends(get_db)):
     teacher_course_ids_list = teacher_course_ids(current_user, db)
-    row = db.query(DBQuestion).filter(DBQuestion.id == question_id, DBQuestion.course_id.in_(teacher_course_ids_list)).first()
+    teacher_offering_ids = [row.id for row in db.query(DBCourseOffering).filter(DBCourseOffering.teacher_user_id == current_user["id"]).all()]
+    row = db.query(DBQuestion).filter(DBQuestion.id == question_id, (DBQuestion.course_id.in_(teacher_course_ids_list)) | (DBQuestion.offering_id.in_(teacher_offering_ids))).first()
     if not row:
         raise HTTPException(status_code=404, detail="问题不存在")
     now = _now()
@@ -789,3 +799,10 @@ def download_attachment(attachment_id: str, current_user: dict = Depends(get_cur
     if not allowed:
         raise HTTPException(status_code=403, detail="无权访问该附件")
     return FileResponse(row.file_path, filename=row.file_name)
+    if body.answer_target_type in {"teacher", "both"}:
+        if not body.offering_id:
+            raise HTTPException(status_code=400, detail="向教师提问前请先选择课程关系")
+        assert_student_enrolled(db, current_user["id"], body.offering_id)
+        offering = db.query(DBCourseOffering).filter(DBCourseOffering.id == body.offering_id).first()
+        if offering:
+            body.course_id = body.course_id or offering.course_id

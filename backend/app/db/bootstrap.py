@@ -10,14 +10,18 @@ from uuid import uuid4
 from sqlalchemy import inspect, text
 
 from .models import (
+    DBAcademicCourse,
     DBCourse,
+    DBCourseEnrollment,
     DBCourseClass,
+    DBCourseOffering,
     DBDiscussionMessage,
     DBDiscussionSpace,
     DBDiscussionSpaceMember,
     DBLessonPack,
     DBMaterialUpdateJob,
     DBQALog,
+    DBSchoolClass,
     DBSurveyInstance,
     DBSurveyTemplate,
     DBTeacher,
@@ -27,6 +31,388 @@ from .models import (
     DBWeaknessAnalysis,
 )
 from .session import Base, SessionLocal, engine
+
+
+def _ensure_user(
+    db,
+    *,
+    role: str,
+    account: str,
+    password_hash: str,
+    display_name: str,
+    user_id: str,
+):
+    row = db.query(DBUser).filter(DBUser.account == account).first()
+    if row:
+        return row
+    row = DBUser(
+        id=user_id,
+        role=role,
+        account=account,
+        password_hash=password_hash,
+        display_name=display_name,
+        status="active",
+        created_at=datetime.now().isoformat(),
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def seed_demo_school_data(db) -> dict:
+    import os
+    import random
+
+    from ..security import hash_password
+
+    now = datetime.now().isoformat()
+    semester = os.getenv("DEMO_SEMESTER", "2025-2026-2")
+    teacher_count = max(1, int(os.getenv("DEMO_TEACHER_COUNT", "6")))
+    student_count = max(1, int(os.getenv("DEMO_STUDENT_COUNT", "60")))
+    course_count = max(1, int(os.getenv("DEMO_COURSE_COUNT", "8")))
+    min_courses_per_student = max(1, int(os.getenv("DEMO_MIN_COURSES_PER_STUDENT", "2")))
+    max_courses_per_student = max(min_courses_per_student, int(os.getenv("DEMO_MAX_COURSES_PER_STUDENT", "5")))
+    min_students_per_course = max(1, int(os.getenv("DEMO_MIN_STUDENTS_PER_COURSE", "8")))
+    teacher_password = os.getenv("DEMO_TEACHER_PASSWORD", "Teacher123!")
+    student_password = os.getenv("DEMO_STUDENT_PASSWORD", "Student123!")
+    rng = random.Random(20260508)
+
+    class_specs = [
+        ("AI 2024 Class 1", "Computing School", "Artificial Intelligence", "2024", "2024"),
+        ("SE 2024 Class 1", "Computing School", "Software Engineering", "2024", "2024"),
+        ("IVE 2024 Class 1", "Future Mobility School", "Intelligent Vehicle Engineering", "2024", "2024"),
+        ("DS 2023 Class 1", "Computing School", "Data Science", "2023", "2023"),
+        ("AUTO 2023 Class 1", "Automation School", "Automation", "2023", "2023"),
+        ("EE 2022 Class 1", "Information School", "Electronic Engineering", "2022", "2022"),
+    ]
+    class_count = min(len(class_specs), max(3, (student_count + 11) // 12))
+    class_rows: list[DBSchoolClass] = []
+    created_classes = 0
+    for index, spec in enumerate(class_specs[:class_count], start=1):
+        name, college, major, grade, year = spec
+        row = db.query(DBSchoolClass).filter(DBSchoolClass.name == name).first()
+        if not row:
+            row = DBSchoolClass(
+                id=f"demo-class-{index:03d}",
+                name=name,
+                college=college,
+                major=major,
+                grade=grade,
+                year=year,
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(row)
+            db.flush()
+            created_classes += 1
+        class_rows.append(row)
+
+    created_teachers = 0
+    teacher_users = []
+    for index in range(1, teacher_count + 1):
+        account = "teacher_demo" if index == 1 else f"teacher{index-1:03d}"
+        display_name = "Demo Teacher" if index == 1 else f"Demo Teacher {index-1:03d}"
+        user_id = "user-teacher-demo" if index == 1 else f"user-demo-teacher-{index-1:03d}"
+        user = _ensure_user(
+            db,
+            role="teacher",
+            account=account,
+            password_hash=hash_password(teacher_password),
+            display_name=display_name,
+            user_id=user_id,
+        )
+        teacher_users.append(user)
+        if user.created_at == now:
+            created_teachers += 1
+        profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == user.id).first()
+        if not profile:
+            profile = DBUserProfile(user_id=user.id, created_at=now)
+            db.add(profile)
+        profile.real_name = display_name
+        profile.department = profile.department or "Demo Teaching Department"
+        profile.teacher_no = profile.teacher_no or f"T{2026000 + index}"
+        profile.role_title = profile.role_title or "Lecturer"
+        profile.updated_at = now
+
+    created_students = 0
+    student_users = []
+    for index in range(1, student_count + 1):
+        account = "student_demo" if index == 1 else f"student{index-1:03d}"
+        display_name = "Demo Student" if index == 1 else f"Demo Student {index-1:03d}"
+        user_id = "user-student-demo" if index == 1 else f"user-demo-student-{index-1:03d}"
+        user = _ensure_user(
+            db,
+            role="student",
+            account=account,
+            password_hash=hash_password(student_password),
+            display_name=display_name,
+            user_id=user_id,
+        )
+        student_users.append(user)
+        if user.created_at == now:
+            created_students += 1
+        clazz = class_rows[(index - 1) % len(class_rows)]
+        profile = db.query(DBUserProfile).filter(DBUserProfile.user_id == user.id).first()
+        if not profile:
+            profile = DBUserProfile(user_id=user.id, created_at=now)
+            db.add(profile)
+        profile.real_name = display_name
+        profile.class_name = clazz.name
+        profile.student_no = profile.student_no or f"S{20260000 + index}"
+        profile.college = profile.college or clazz.college
+        profile.major = profile.major or clazz.major
+        profile.grade = profile.grade or clazz.grade
+        profile.updated_at = now
+
+    base_course_specs = [
+        ("New Energy Vehicle Thermal Safety", "DEMO-COURSE-001", "Battery thermal safety and management"),
+        ("Autonomous Driving Perception", "DEMO-COURSE-002", "Multimodal sensing and fusion"),
+        ("Automotive Embedded Software", "DEMO-COURSE-003", "Vehicle control software engineering"),
+        ("Data Structures and Algorithms", "DEMO-COURSE-004", "Algorithms for engineering systems"),
+        ("Engineering Ethics", "DEMO-COURSE-005", "Engineering responsibility and research norms"),
+        ("Computer Networks", "DEMO-COURSE-006", "Protocols and networked systems"),
+        ("Machine Learning Foundations", "DEMO-COURSE-007", "Introductory machine learning methods"),
+        ("Software Testing", "DEMO-COURSE-008", "Testing design and quality assurance"),
+        ("Database Systems", "DEMO-COURSE-009", "Data modeling and transaction systems"),
+        ("Human-Computer Interaction", "DEMO-COURSE-010", "Interaction design and usability"),
+    ]
+    while len(base_course_specs) < course_count:
+        next_index = len(base_course_specs) + 1
+        base_course_specs.append((f"Demo Course {next_index:03d}", f"DEMO-COURSE-{next_index:03d}", "Demo course description"))
+
+    created_academic_courses = 0
+    created_legacy_courses = 0
+    academic_courses: list[DBAcademicCourse] = []
+    legacy_courses: dict[str, DBCourse] = {}
+    for index, (name, code, description) in enumerate(base_course_specs[:course_count], start=1):
+        academic = db.query(DBAcademicCourse).filter(DBAcademicCourse.code == code).first()
+        if not academic:
+            academic = DBAcademicCourse(
+                id=f"demo-academic-{index:03d}",
+                name=name,
+                code=code,
+                description=description,
+                credit="2.0",
+                department="Demo Department",
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(academic)
+            db.flush()
+            created_academic_courses += 1
+        academic_courses.append(academic)
+        legacy = db.query(DBCourse).filter(DBCourse.id == f"demo-course-{index:03d}").first()
+        if not legacy:
+            legacy = DBCourse(
+                id=f"demo-course-{index:03d}",
+                name=name,
+                audience="Demo Students",
+                class_name=class_rows[(index - 1) % len(class_rows)].name,
+                student_level="undergraduate",
+                chapter="Course overview",
+                objectives=f"Support teaching flow for {name}",
+                duration_minutes=90,
+                frontier_direction=description,
+                owner_user_id="",
+                created_at=now,
+            )
+            db.add(legacy)
+            db.flush()
+            created_legacy_courses += 1
+        legacy_courses[academic.id] = legacy
+
+    created_offerings = 0
+    offering_rows: list[DBCourseOffering] = []
+    for index, academic in enumerate(academic_courses, start=1):
+        teacher = teacher_users[(index - 1) % len(teacher_users)]
+        clazz = class_rows[(index - 1) % len(class_rows)]
+        legacy = legacy_courses[academic.id]
+        legacy.owner_user_id = teacher.id
+        legacy.class_name = clazz.name
+        legacy.audience = clazz.name
+        existed = db.query(DBCourseOffering).filter(DBCourseOffering.academic_course_id == academic.id, DBCourseOffering.semester == semester).first()
+        if not existed:
+            existed = DBCourseOffering(
+                id=f"demo-offering-{index:03d}",
+                academic_course_id=academic.id,
+                course_id=legacy.id,
+                teacher_user_id=teacher.id,
+                class_id=clazz.id,
+                semester=semester,
+                invite_code=f"DEBUG-{index:03d}",
+                join_enabled=0,
+                discussion_space_id="",
+                status="active",
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(existed)
+            db.flush()
+            created_offerings += 1
+        else:
+            existed.teacher_user_id = teacher.id
+            existed.course_id = legacy.id
+            existed.class_id = clazz.id
+            existed.join_enabled = 0
+            existed.status = "active"
+            existed.updated_at = now
+        if not existed.discussion_space_id:
+            space = DBDiscussionSpace(
+                id=f"demo-space-{index:03d}",
+                course_id=legacy.id,
+                class_name=clazz.name,
+                space_name=f"{academic.name} Discussion Space",
+                offering_id=existed.id,
+                ai_assistant_enabled=1,
+                created_at=now,
+            )
+            db.add(space)
+            db.flush()
+            existed.discussion_space_id = space.id
+        offering_rows.append(existed)
+
+    selections: dict[str, set[str]] = {off.id: set() for off in offering_rows}
+    student_to_courses: dict[str, set[str]] = {}
+    offering_ids = [off.id for off in offering_rows]
+    sample_min = min(min_courses_per_student, len(offering_ids))
+    sample_max = min(max_courses_per_student, len(offering_ids))
+    for student in student_users:
+        sample_size = rng.randint(sample_min, sample_max)
+        chosen = set(rng.sample(offering_ids, sample_size))
+        student_to_courses[student.id] = chosen
+        for offering_id in chosen:
+            selections[offering_id].add(student.id)
+
+    for offering_id, enrolled in selections.items():
+        if len(enrolled) >= min_students_per_course:
+            continue
+        missing = min_students_per_course - len(enrolled)
+        candidates = [student.id for student in student_users if offering_id not in student_to_courses[student.id]]
+        rng.shuffle(candidates)
+        for student_id in candidates[:missing]:
+            student_to_courses[student_id].add(offering_id)
+            enrolled.add(student_id)
+
+    created_enrollments = 0
+    for offering in offering_rows:
+        if not db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id == offering.discussion_space_id, DBDiscussionSpaceMember.user_id == offering.teacher_user_id).first():
+            db.add(DBDiscussionSpaceMember(id=f"demo-space-member-teacher-{offering.id}", space_id=offering.discussion_space_id, user_id=offering.teacher_user_id, role_in_space="teacher", joined_at=now))
+        for student_id in sorted(selections[offering.id]):
+            existing = db.query(DBCourseEnrollment).filter(DBCourseEnrollment.offering_id == offering.id, DBCourseEnrollment.student_user_id == student_id).first()
+            if not existing:
+                db.add(
+                    DBCourseEnrollment(
+                        id=f"demo-enrollment-{offering.id}-{student_id}"[:64],
+                        offering_id=offering.id,
+                        student_user_id=student_id,
+                        class_id=offering.class_id,
+                        source="simulated_selection",
+                        status="active",
+                        joined_at=now,
+                        created_at=now,
+                    )
+                )
+                created_enrollments += 1
+            if not db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id == offering.discussion_space_id, DBDiscussionSpaceMember.user_id == student_id).first():
+                db.add(DBDiscussionSpaceMember(id=f"demo-space-member-{offering.id}-{student_id}"[:64], space_id=offering.discussion_space_id, user_id=student_id, role_in_space="student", joined_at=now))
+
+    return {
+        "already_seeded": all(value == 0 for value in [created_classes, created_teachers, created_students, created_academic_courses, created_legacy_courses, created_offerings, created_enrollments]),
+        "semester": semester,
+        "classes": len(class_rows),
+        "teachers": len(teacher_users),
+        "students": len(student_users),
+        "academic_courses": len(academic_courses),
+        "created": {
+            "classes": created_classes,
+            "teachers": created_teachers,
+            "students": created_students,
+            "academic_courses": created_academic_courses,
+            "legacy_courses": created_legacy_courses,
+            "offerings": created_offerings,
+            "enrollments": created_enrollments,
+        },
+        "default_passwords": {
+            "teacher": teacher_password,
+            "student": student_password,
+        },
+    }
+
+
+def reset_demo_school_data(db) -> dict:
+    demo_accounts = ["teacher_demo", "student_demo"]
+    demo_user_ids = {row.id for row in db.query(DBUser).filter(DBUser.account.in_(demo_accounts)).all()}
+    demo_user_ids.update({row.id for row in db.query(DBUser).filter(DBUser.account.like("teacher%"), DBUser.role == "teacher").all()})
+    demo_user_ids.update({row.id for row in db.query(DBUser).filter(DBUser.account.like("student%"), DBUser.role == "student").all()})
+
+    offering_rows = db.query(DBCourseOffering).filter(DBCourseOffering.id.like("demo-offering-%")).all()
+    offering_ids = [row.id for row in offering_rows]
+    space_ids = [row.discussion_space_id for row in offering_rows if row.discussion_space_id]
+    academic_ids = [row.academic_course_id for row in offering_rows]
+    legacy_course_ids = [row.course_id for row in offering_rows if row.course_id]
+
+    deleted = {
+        "discussion_members": db.query(DBDiscussionSpaceMember).filter(DBDiscussionSpaceMember.space_id.in_(space_ids)).delete(synchronize_session=False) if space_ids else 0,
+        "enrollments": db.query(DBCourseEnrollment).filter(DBCourseEnrollment.offering_id.in_(offering_ids)).delete(synchronize_session=False) if offering_ids else 0,
+        "offerings": db.query(DBCourseOffering).filter(DBCourseOffering.id.in_(offering_ids)).delete(synchronize_session=False) if offering_ids else 0,
+        "spaces": db.query(DBDiscussionSpace).filter(DBDiscussionSpace.id.in_(space_ids)).delete(synchronize_session=False) if space_ids else 0,
+        "academic_courses": db.query(DBAcademicCourse).filter(DBAcademicCourse.id.in_(academic_ids)).delete(synchronize_session=False) if academic_ids else 0,
+        "legacy_courses": db.query(DBCourse).filter(DBCourse.id.in_(legacy_course_ids)).delete(synchronize_session=False) if legacy_course_ids else 0,
+        "profiles": db.query(DBUserProfile).filter(DBUserProfile.user_id.in_(demo_user_ids)).delete(synchronize_session=False) if demo_user_ids else 0,
+        "users": db.query(DBUser).filter(DBUser.id.in_(demo_user_ids)).delete(synchronize_session=False) if demo_user_ids else 0,
+        "classes": db.query(DBSchoolClass).filter(DBSchoolClass.id.like("demo-class-%")).delete(synchronize_session=False),
+    }
+    return deleted
+
+
+def export_demo_school_accounts(db) -> dict:
+    import os
+
+    teacher_password = os.getenv("DEMO_TEACHER_PASSWORD", "Teacher123!")
+    student_password = os.getenv("DEMO_STUDENT_PASSWORD", "Student123!")
+    teacher_rows = db.query(DBUser).filter(DBUser.role == "teacher").order_by(DBUser.account.asc()).all()
+    student_rows = db.query(DBUser).filter(DBUser.role == "student").order_by(DBUser.account.asc()).all()
+    profiles = {row.user_id: row for row in db.query(DBUserProfile).all()}
+    offerings = {row.id: row for row in db.query(DBCourseOffering).all()}
+    academic_courses = {row.id: row for row in db.query(DBAcademicCourse).all()}
+    enrollments = db.query(DBCourseEnrollment).filter(DBCourseEnrollment.status == "active").all()
+    student_courses: dict[str, list[str]] = {}
+    teacher_courses: dict[str, list[str]] = {}
+    for enrollment in enrollments:
+        offering = offerings.get(enrollment.offering_id)
+        academic = academic_courses.get(offering.academic_course_id) if offering else None
+        if academic:
+            student_courses.setdefault(enrollment.student_user_id, []).append(academic.name)
+    for offering in offerings.values():
+        academic = academic_courses.get(offering.academic_course_id)
+        if academic:
+            teacher_courses.setdefault(offering.teacher_user_id, []).append(academic.name)
+    return {
+        "teachers": [
+            {
+                "account": row.account,
+                "display_name": row.display_name,
+                "teacher_no": profiles[row.id].teacher_no if profiles.get(row.id) else "",
+                "department": profiles[row.id].department if profiles.get(row.id) else "",
+                "initial_password": teacher_password,
+                "courses": sorted(teacher_courses.get(row.id, [])),
+            }
+            for row in teacher_rows
+        ],
+        "students": [
+            {
+                "account": row.account,
+                "display_name": row.display_name,
+                "student_no": profiles[row.id].student_no if profiles.get(row.id) else "",
+                "class_name": profiles[row.id].class_name if profiles.get(row.id) else "",
+                "initial_password": student_password,
+                "courses": sorted(student_courses.get(row.id, [])),
+            }
+            for row in student_rows
+        ],
+    }
 
 
 def _ensure_columns(table_name: str, column_defs: Iterable[tuple[str, str]]) -> None:
@@ -114,6 +500,14 @@ def init_db() -> None:
             ("embedding_updated_at", "TEXT DEFAULT ''"),
         ],
     )
+    _ensure_columns("assignments", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("chat_sessions", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("questions", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("survey_instances", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("materials", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("discussion_spaces", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("classroom_shares", [("offering_id", "TEXT DEFAULT ''")])
+    _ensure_columns("material_requests", [("offering_id", "TEXT DEFAULT ''")])
 
     from ..security import hash_password
     from ..services.mock_data import get_demo_course, get_demo_lesson_pack
@@ -348,6 +742,7 @@ def init_db() -> None:
                 )
             )
 
+        seed_demo_school_data(db)
         db.commit()
     finally:
         db.close()

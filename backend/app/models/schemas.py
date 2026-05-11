@@ -1,5 +1,6 @@
 """Compatibility facade for split Pydantic schema modules."""
 
+from .academic import *  # noqa: F401,F403
 from .assignments import *  # noqa: F401,F403
 from .auth import *  # noqa: F401,F403
 from .common import *  # noqa: F401,F403

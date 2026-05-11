@@ -20,6 +20,7 @@ class UploadedAttachment(BaseModel):
 
 class ChatSessionCreate(BaseModel):
     course_id: str
+    offering_id: str = ""
     lesson_pack_id: str = ""
     title: str = ""
     selected_model: str = "default"
@@ -28,6 +29,7 @@ class ChatSessionCreate(BaseModel):
 class ChatSessionSummary(BaseModel):
     id: str
     course_id: str
+    offering_id: str = ""
     lesson_pack_id: str
     title: str
     selected_model: str
@@ -134,6 +136,7 @@ class FolderContentsResponse(BaseModel):
 class StudentQuestionCreate(BaseModel):
     session_id: str
     course_id: str
+    offering_id: str = ""
     lesson_pack_id: str = ""
     question: str = ""
     answer_target_type: AnswerTargetType = "ai"
@@ -146,6 +149,7 @@ class QuestionRecord(BaseModel):
     id: str
     session_id: str
     course_id: str
+    offering_id: str = ""
     lesson_pack_id: str
     question_text: str
     answer_target_type: AnswerTargetType
