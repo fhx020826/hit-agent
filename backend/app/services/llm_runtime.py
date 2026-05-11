@@ -101,6 +101,8 @@ def _format_model_label(model_name: str) -> str:
         return normalized.upper().replace("-MINI", " mini")
     if lowered.startswith("deepseek"):
         return normalized.replace("deepseek", "DeepSeek")
+    if lowered.startswith("mimo"):
+        return re.sub(r"^mimo", "MiMo", normalized, flags=re.IGNORECASE)
     if lowered.startswith("glm"):
         return normalized.upper()
     return normalized or "默认模型"
@@ -222,6 +224,17 @@ def _build_default_model_entries() -> Dict[str, Dict[str, Any]]:
 def _model_catalog() -> Dict[str, Dict[str, Any]]:
     catalog: Dict[str, Dict[str, Any]] = {}
     catalog.update(_build_default_model_entries())
+    if MIMO_API_KEY and not any(value.get("provider") == "mimo" for value in catalog.values()):
+        catalog["mimo-chat"] = {
+            "label": _format_model_label(MIMO_CHAT_MODEL),
+            "provider": "mimo",
+            "model_name": MIMO_CHAT_MODEL,
+            "base_url": MIMO_BASE_URL,
+            "api_key": "configured",
+            "supports_vision": False,
+            "is_default": False,
+            "description": "Xiaomi MiMo 大模型，适合课程设计、课堂助教、教师答疑与教学分析。",
+        }
     if DASHSCOPE_API_KEY:
         catalog["qwen-text"] = {
             "label": "千问文本模型",
